@@ -8,6 +8,7 @@ import {
   LogOut,
   User
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -24,11 +25,8 @@ export const Sidebar = () => {
     <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-foreground flex items-center justify-center">
-            <Link2 className="w-5 h-5 text-sidebar" />
-          </div>
-          <span className="text-lg font-bold">Share The Link</span>
+        <Link to="/">
+          <Logo textClassName="text-sidebar-foreground" />
         </Link>
       </div>
 
