@@ -21,8 +21,10 @@ const navItems = [
 export const Sidebar = () => {
   const location = useLocation();
 
+  // Hide on mobile - MobileSidebar handles mobile view
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground flex-col">
+
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <Link to="/">
