@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { Link2, Twitter, Instagram, Youtube, Github } from "lucide-react";
+import { Twitter, Instagram, Youtube, Github } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const footerLinks = {
   Product: [
-    { name: "Features", href: "#features" },
-    { name: "Pricing", href: "#pricing" },
+    { name: "Features", href: "/features" },
+    { name: "Pricing", href: "/pricing" },
     { name: "Integrations", href: "#" },
     { name: "Changelog", href: "#" },
   ],
@@ -35,11 +36,8 @@ export const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-background flex items-center justify-center">
-                <Link2 className="w-5 h-5 text-foreground" />
-              </div>
-              <span className="text-lg font-bold">Share The Link</span>
+            <Link to="/" className="inline-block mb-4">
+              <Logo textClassName="text-background" />
             </Link>
             <p className="text-background/70 mb-6 max-w-sm">
               The ultimate link-in-bio platform for entrepreneurs and creators.
@@ -67,12 +65,21 @@ export const Footer = () => {
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.name}>
-                    <a
-                      href={link.href}
-                      className="text-background/70 hover:text-background transition-colors"
-                    >
-                      {link.name}
-                    </a>
+                    {link.href.startsWith("/") ? (
+                      <Link
+                        to={link.href}
+                        className="text-background/70 hover:text-background transition-colors"
+                      >
+                        {link.name}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-background/70 hover:text-background transition-colors"
+                      >
+                        {link.name}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
