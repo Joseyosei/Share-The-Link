@@ -59,7 +59,7 @@ const Login = () => {
                 <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
                 <span className="text-sm text-muted-foreground">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-primary hover:underline">Forgot password?</a>
+              <Link to="/forgot-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
             </div>
             <Button type="submit" disabled={isLoading} className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90">
               {isLoading ? "Logging in..." : "Log in"}
