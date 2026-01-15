@@ -14,6 +14,15 @@ import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPage from "./pages/PricingPage";
+import AboutPage from "./pages/AboutPage";
+import BlogPage from "./pages/BlogPage";
+import CareersPage from "./pages/CareersPage";
+import ContactPage from "./pages/ContactPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
+import SecurityPage from "./pages/SecurityPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
+import ChangelogPage from "./pages/ChangelogPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,8 +44,16 @@ const App = () => (
           <Route path="/dashboard/settings" element={<DashboardSettings />} />
           <Route path="/dashboard/appearance" element={<DashboardAppearance />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/security" element={<SecurityPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
+          <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/:username" element={<Profile />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link2, MousePointerClick, ToggleRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { LinkCard } from "@/components/dashboard/LinkCard";
 import { AddLinkModal } from "@/components/dashboard/AddLinkModal";
@@ -93,8 +94,9 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-muted">
       <Sidebar />
+      <MobileSidebar />
 
-      <main className="ml-64 p-8">
+      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
