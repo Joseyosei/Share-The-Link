@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Link2, 
@@ -9,6 +9,9 @@ import {
   User
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -20,6 +23,21 @@ const navItems = [
 
 export const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { profile, loading } = useUserProfile();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/");
+  };
+
+  const displayName = profile?.full_name || profile?.username || "User";
+  const displayEmail = profile?.email || "user@example.com";
 
   // Hide on mobile - MobileSidebar handles mobile view
   return (
@@ -36,6 +54,7 @@ export const Sidebar = () => {
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
+          const IconComponent = item.icon;
           return (
             <Link
               key={item.href}
@@ -46,7 +65,7 @@ export const Sidebar = () => {
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               }`}
             >
-              <item.icon className="w-5 h-5" />
+              <IconComponent className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
             </Link>
           );
@@ -60,17 +79,26 @@ export const Sidebar = () => {
             <User className="w-5 h-5 text-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">John Doe</p>
-            <p className="text-sm text-sidebar-foreground/60 truncate">john@example.com</p>
+            {loading ? (
+              <>
+                <div className="h-4 w-20 bg-sidebar-foreground/20 rounded animate-pulse mb-1" />
+                <div className="h-3 w-28 bg-sidebar-foreground/10 rounded animate-pulse" />
+              </>
+            ) : (
+              <>
+                <p className="font-medium truncate">{displayName}</p>
+                <p className="text-sm text-sidebar-foreground/60 truncate">{displayEmail}</p>
+              </>
+            )}
           </div>
         </div>
-        <Link
-          to="/"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Log out</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

@@ -106,22 +106,25 @@ const FeaturesPage = () => {
       <section className="py-24 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div
-                key={feature.title}
-                className="group bg-card rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className="w-7 h-7 text-primary-foreground" />
+            {features.map((feature) => {
+              const IconComponent = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="group bg-card rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-border"
+                >
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                    <IconComponent className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-card-foreground mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-muted-foreground">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
