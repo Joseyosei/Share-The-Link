@@ -8,6 +8,7 @@ import { LinkCard } from "@/components/dashboard/LinkCard";
 import { AddLinkModal } from "@/components/dashboard/AddLinkModal";
 import { ProfilePreview } from "@/components/dashboard/ProfilePreview";
 import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface LinkItem {
   id: string;
@@ -20,6 +21,7 @@ interface LinkItem {
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const { profile, loading } = useUserProfile();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [links, setLinks] = useState<LinkItem[]>([
     {
@@ -91,6 +93,12 @@ const Dashboard = () => {
     });
   };
 
+  // Get display name from profile
+  const displayName = profile?.full_name || profile?.username || "there";
+  const firstName = displayName.split(" ")[0];
+  const username = profile?.username || "user";
+  const bio = profile?.bio || "Entrepreneur & Creator";
+
   return (
     <div className="min-h-screen bg-muted">
       <Sidebar />
@@ -101,15 +109,24 @@ const Dashboard = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-1">
-                Welcome back, John! 👋
-              </h1>
-              <p className="text-muted-foreground">
-                Here's what's happening with your links today.
-              </p>
+              {loading ? (
+                <>
+                  <div className="h-8 w-64 bg-muted-foreground/20 rounded animate-pulse mb-2" />
+                  <div className="h-5 w-80 bg-muted-foreground/10 rounded animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-3xl font-bold text-foreground mb-1">
+                    Welcome back, {firstName}! 👋
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Here's what's happening with your links today.
+                  </p>
+                </>
+              )}
             </div>
             <Button asChild className="gradient-button text-primary-foreground hover:opacity-90">
-              <a href="/johndoe" target="_blank" rel="noopener noreferrer">
+              <a href={`/${username}`} target="_blank" rel="noopener noreferrer">
                 View Profile
               </a>
             </Button>
@@ -190,9 +207,9 @@ const Dashboard = () => {
             {/* Preview Sidebar */}
             <div className="hidden lg:block">
               <ProfilePreview
-                username="johndoe"
-                fullName="John Doe"
-                bio="Entrepreneur & Creator"
+                username={username}
+                fullName={displayName}
+                bio={bio}
                 links={links}
               />
             </div>
