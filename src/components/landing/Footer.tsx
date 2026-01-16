@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { Twitter, Instagram, Youtube, Github } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -29,9 +30,9 @@ const socialLinks = [
   { icon: Github, href: "#", label: "GitHub" },
 ];
 
-export const Footer = () => {
+export const Footer = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>((props, ref) => {
   return (
-    <footer className="bg-foreground text-background py-16">
+    <footer ref={ref} className="bg-foreground text-background py-16" {...props}>
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           <div className="lg:col-span-2">
@@ -65,4 +66,6 @@ export const Footer = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = "Footer";

@@ -14,7 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appearance_settings: {
+        Row: {
+          background_color: string | null
+          background_gradient: string | null
+          background_type: string | null
+          bio_color: string | null
+          button_color: string | null
+          button_style: string | null
+          created_at: string
+          font_family: string | null
+          id: string
+          theme: string | null
+          title_color: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          background_color?: string | null
+          background_gradient?: string | null
+          background_type?: string | null
+          bio_color?: string | null
+          button_color?: string | null
+          button_style?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          theme?: string | null
+          title_color?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          background_color?: string | null
+          background_gradient?: string | null
+          background_type?: string | null
+          bio_color?: string | null
+          button_color?: string | null
+          button_style?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          theme?: string | null
+          title_color?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      earnings: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      links: {
+        Row: {
+          clicks: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          position: number | null
+          title: string
+          type: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          clicks?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          position?: number | null
+          title: string
+          type?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          clicks?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          position?: number | null
+          title?: string
+          type?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
