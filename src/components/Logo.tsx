@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import logoSvg from "@/assets/logo.svg";
 
 interface LogoProps {
@@ -13,14 +14,14 @@ const sizeClasses = {
   lg: "w-12 h-12",
 };
 
-export const Logo = ({ 
+export const Logo = forwardRef<HTMLDivElement, LogoProps>(({ 
   className = "", 
   size = "md", 
   showText = true,
   textClassName = ""
-}: LogoProps) => {
+}, ref) => {
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div ref={ref} className={`flex items-center gap-2 ${className}`}>
       <img 
         src={logoSvg} 
         alt="Share The Link Logo" 
@@ -33,4 +34,6 @@ export const Logo = ({
       )}
     </div>
   );
-};
+});
+
+Logo.displayName = "Logo";
