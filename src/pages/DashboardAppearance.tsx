@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { Palette, Image, Type, Square, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
+import { ThemedProfilePreview } from "@/components/dashboard/ThemedProfilePreview";
 
-interface Theme {
+export interface Theme {
   id: string;
   name: string;
   background: string;
@@ -14,7 +17,7 @@ interface Theme {
   isPro?: boolean;
 }
 
-const themes: Theme[] = [
+export const themes: Theme[] = [
   { id: "air", name: "Air", background: "bg-white", buttonStyle: "bg-gray-900", textColor: "text-gray-900" },
   { id: "agate", name: "Agate", background: "bg-gradient-to-br from-purple-500 to-pink-500", buttonStyle: "bg-white", textColor: "text-white" },
   { id: "bliss", name: "Bliss", background: "bg-gradient-to-br from-gray-200 to-gray-400", buttonStyle: "bg-gray-800", textColor: "text-gray-800" },
@@ -42,10 +45,20 @@ const categories = [
 
 const DashboardAppearance = () => {
   const { toast } = useToast();
+  const { profile } = useUserProfile();
+  const { settings, updateSettings } = useAppearanceSettings();
   const [selectedTheme, setSelectedTheme] = useState("air");
   const [activeCategory, setActiveCategory] = useState("theme");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSelectTheme = (themeId: string, isPro?: boolean) => {
+  // Load theme from settings
+  useEffect(() => {
+    if (settings?.theme) {
+      setSelectedTheme(settings.theme);
+    }
+  }, [settings]);
+
+  const handleSelectTheme = async (themeId: string, isPro?: boolean) => {
     if (isPro) {
       toast({
         title: "Pro Feature",
@@ -53,14 +66,34 @@ const DashboardAppearance = () => {
       });
       return;
     }
+
     setSelectedTheme(themeId);
-    toast({
-      title: "Theme applied!",
-      description: "Your profile appearance has been updated.",
-    });
+    setIsSaving(true);
+
+    try {
+      await updateSettings({ theme: themeId });
+      toast({
+        title: "Theme applied!",
+        description: "Your profile appearance has been updated.",
+      });
+    } catch (error) {
+      console.error("Error saving theme:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save theme. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const selectedThemeData = themes.find((t) => t.id === selectedTheme);
+
+  // Get user data for preview
+  const username = profile?.username || "username";
+  const fullName = profile?.full_name || "Your Name";
+  const bio = profile?.bio || "Creator & Entrepreneur ✨";
 
   return (
     <div className="min-h-screen bg-muted">
@@ -77,9 +110,12 @@ const DashboardAppearance = () => {
                 Customize your profile's look and feel.
               </p>
             </div>
-            <Button className="gradient-button text-primary-foreground hover:opacity-90 gap-2">
+            <Button 
+              className="gradient-button text-primary-foreground hover:opacity-90 gap-2"
+              disabled={isSaving}
+            >
               <Sparkles className="w-4 h-4" />
-              Enhance
+              {isSaving ? "Saving..." : "Enhance"}
             </Button>
           </div>
 
@@ -193,7 +229,7 @@ const DashboardAppearance = () => {
                       <label className="text-sm font-medium text-foreground mb-2 block">
                         Font Family
                       </label>
-                      <select className="w-full p-3 rounded-xl border border-border bg-background">
+                      <select className="w-full p-3 rounded-xl border border-border bg-background text-foreground">
                         <option>Inter</option>
                         <option>Roboto</option>
                         <option>Open Sans</option>
@@ -239,7 +275,7 @@ const DashboardAppearance = () => {
                               : "rounded-lg"
                           }`}
                         />
-                        <p className="text-sm font-medium text-center mt-2">{style}</p>
+                        <p className="text-sm font-medium text-center mt-2 text-foreground">{style}</p>
                       </button>
                     ))}
                   </div>
@@ -249,59 +285,12 @@ const DashboardAppearance = () => {
 
             {/* Right: Live Preview */}
             <div className="hidden lg:block">
-              <div className="sticky top-8">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Live Preview</h3>
-                <div className="relative mx-auto" style={{ width: "280px" }}>
-                  {/* Phone Frame */}
-                  <div className="absolute inset-0 bg-foreground rounded-[3rem] -z-10 scale-[1.02]" />
-                  <div className="bg-background rounded-[2.5rem] overflow-hidden border-4 border-foreground">
-                    {/* Phone Notch */}
-                    <div className="h-8 bg-foreground flex justify-center items-end pb-1">
-                      <div className="w-20 h-5 bg-background rounded-b-xl" />
-                    </div>
-
-                    {/* Profile Content */}
-                    <div className={`min-h-[500px] p-6 ${selectedThemeData?.background || "bg-white"}`}>
-                      {/* Avatar */}
-                      <div className="flex flex-col items-center mb-6">
-                        <div className="w-20 h-20 rounded-full bg-gray-300 mb-3 flex items-center justify-center">
-                          <span className="text-2xl">👤</span>
-                        </div>
-                        <h4 className={`font-bold text-lg ${selectedThemeData?.textColor || "text-gray-900"}`}>
-                          Your Name
-                        </h4>
-                        <p className={`text-sm opacity-70 ${selectedThemeData?.textColor || "text-gray-900"}`}>
-                          @username
-                        </p>
-                        <p className={`text-sm text-center mt-2 opacity-80 ${selectedThemeData?.textColor || "text-gray-900"}`}>
-                          Creator & Entrepreneur ✨
-                        </p>
-                      </div>
-
-                      {/* Sample Links */}
-                      <div className="space-y-3">
-                        {["My Website", "Latest Video", "Shop Now"].map((link) => (
-                          <div
-                            key={link}
-                            className={`w-full py-3 px-4 rounded-xl text-center font-medium ${selectedThemeData?.buttonStyle || "bg-gray-900"} ${
-                              selectedThemeData?.buttonStyle?.includes("bg-white")
-                                ? "text-gray-900"
-                                : "text-white"
-                            }`}
-                          >
-                            {link}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Footer */}
-                      <p className={`text-xs text-center mt-8 opacity-50 ${selectedThemeData?.textColor || "text-gray-900"}`}>
-                        Powered by Share The Link
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ThemedProfilePreview
+                username={username}
+                fullName={fullName}
+                bio={bio}
+                theme={selectedThemeData}
+              />
             </div>
           </div>
         </div>
