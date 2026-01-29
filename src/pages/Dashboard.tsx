@@ -6,91 +6,107 @@ import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { LinkCard } from "@/components/dashboard/LinkCard";
 import { AddLinkModal } from "@/components/dashboard/AddLinkModal";
+import { EditLinkModal } from "@/components/dashboard/EditLinkModal";
 import { ProfilePreview } from "@/components/dashboard/ProfilePreview";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
-
-interface LinkItem {
-  id: string;
-  title: string;
-  url: string;
-  type: string;
-  clicks: number;
-  isActive: boolean;
-}
+import { useLinks } from "@/hooks/useLinks";
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const { profile, loading } = useUserProfile();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [links, setLinks] = useState<LinkItem[]>([
-    {
-      id: "1",
-      title: "My Portfolio",
-      url: "https://myportfolio.com",
-      type: "standard",
-      clicks: 234,
-      isActive: true,
-    },
-    {
-      id: "2",
-      title: "Buy My Course",
-      url: "https://course.example.com",
-      type: "product",
-      clicks: 156,
-      isActive: true,
-    },
-    {
-      id: "3",
-      title: "Watch My YouTube",
-      url: "https://youtube.com/@example",
-      type: "video",
-      clicks: 89,
-      isActive: true,
-    },
-  ]);
+  const { profile, loading: profileLoading } = useUserProfile();
+  const { 
+    links, 
+    loading: linksLoading, 
+    stats, 
+    addLink, 
+    updateLink,
+    deleteLink, 
+    toggleLink 
+  } = useLinks();
+  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<{ id: string; title: string; url: string; type: string } | null>(null);
 
-  const stats = {
-    totalLinks: links.length,
-    totalClicks: links.reduce((acc, link) => acc + link.clicks, 0),
-    activeLinks: links.filter((link) => link.isActive).length,
-  };
-
-  const handleToggle = (id: string) => {
-    setLinks((prev) =>
-      prev.map((link) =>
-        link.id === id ? { ...link, isActive: !link.isActive } : link
-      )
-    );
+  const handleToggle = async (id: string) => {
+    try {
+      await toggleLink(id);
+    } catch (error) {
+      console.error("Error toggling link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to toggle link status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (id: string) => {
-    toast({
-      title: "Edit link",
-      description: "Edit functionality coming soon!",
-    });
+    const link = links.find(l => l.id === id);
+    if (link) {
+      setEditingLink({
+        id: link.id,
+        title: link.title,
+        url: link.url,
+        type: link.type || "standard",
+      });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setLinks((prev) => prev.filter((link) => link.id !== id));
-    toast({
-      title: "Link deleted",
-      description: "The link has been removed from your profile.",
-    });
+  const handleUpdateLink = async (id: string, updates: { title: string; url: string; type: string }) => {
+    try {
+      await updateLink(id, updates);
+      toast({
+        title: "Link updated!",
+        description: "Your link has been updated successfully.",
+      });
+      setEditingLink(null);
+    } catch (error) {
+      console.error("Error updating link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddLink = (newLink: { title: string; url: string; type: string }) => {
-    const link: LinkItem = {
-      id: Date.now().toString(),
-      ...newLink,
-      clicks: 0,
-      isActive: true,
-    };
-    setLinks((prev) => [...prev, link]);
-    toast({
-      title: "Link added!",
-      description: "Your new link is now live on your profile.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteLink(id);
+      toast({
+        title: "Link deleted",
+        description: "The link has been removed from your profile.",
+      });
+    } catch (error) {
+      console.error("Error deleting link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddLink = async (newLink: { title: string; url: string; type: string }) => {
+    try {
+      await addLink({
+        title: newLink.title,
+        url: newLink.url,
+        type: newLink.type,
+      });
+      toast({
+        title: "Link added!",
+        description: "Your new link is now live on your profile.",
+      });
+    } catch (error) {
+      console.error("Error adding link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Get display name from profile
@@ -98,6 +114,16 @@ const Dashboard = () => {
   const firstName = displayName.split(" ")[0];
   const username = profile?.username || "user";
   const bio = profile?.bio || "Entrepreneur & Creator";
+
+  const loading = profileLoading || linksLoading;
+
+  // Transform links for ProfilePreview
+  const previewLinks = links.map(link => ({
+    id: link.id,
+    title: link.title,
+    url: link.url,
+    isActive: link.is_active ?? true,
+  }));
 
   return (
     <div className="min-h-screen bg-muted">
@@ -161,7 +187,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-foreground">Your Links</h2>
                   <Button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => setIsAddModalOpen(true)}
                     className="gradient-button text-primary-foreground hover:opacity-90"
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -169,12 +195,25 @@ const Dashboard = () => {
                   </Button>
                 </div>
 
-                {links.length > 0 ? (
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="bg-card rounded-2xl p-4 shadow-lg animate-pulse">
+                        <div className="h-6 bg-muted-foreground/20 rounded w-1/3 mb-2" />
+                        <div className="h-4 bg-muted-foreground/10 rounded w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                ) : links.length > 0 ? (
                   <div className="space-y-3">
                     {links.map((link) => (
                       <LinkCard
                         key={link.id}
-                        {...link}
+                        id={link.id}
+                        title={link.title}
+                        url={link.url}
+                        clicks={link.clicks || 0}
+                        isActive={link.is_active ?? true}
                         onToggle={handleToggle}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
@@ -193,7 +232,7 @@ const Dashboard = () => {
                       Create your first link to get started
                     </p>
                     <Button
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={() => setIsAddModalOpen(true)}
                       className="gradient-button text-primary-foreground hover:opacity-90"
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -210,7 +249,7 @@ const Dashboard = () => {
                 username={username}
                 fullName={displayName}
                 bio={bio}
-                links={links}
+                links={previewLinks}
               />
             </div>
           </div>
@@ -219,9 +258,17 @@ const Dashboard = () => {
 
       {/* Add Link Modal */}
       <AddLinkModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddLink}
+      />
+
+      {/* Edit Link Modal */}
+      <EditLinkModal
+        isOpen={!!editingLink}
+        onClose={() => setEditingLink(null)}
+        onSave={handleUpdateLink}
+        link={editingLink}
       />
     </div>
   );

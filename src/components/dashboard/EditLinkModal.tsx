@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 interface EditLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (link: { id: string; title: string; url: string; type: string }) => void;
+  onSave: (id: string, updates: { title: string; url: string; type: string }) => void;
   link: {
     id: string;
     title: string;
     url: string;
     type: string;
-  };
+  } | null;
 }
 
 const linkTypes = [
@@ -23,21 +23,23 @@ const linkTypes = [
 
 export const EditLinkModal = ({ isOpen, onClose, onSave, link }: EditLinkModalProps) => {
   const [formData, setFormData] = useState({
-    title: link.title,
-    url: link.url,
-    type: link.type,
+    title: "",
+    url: "",
+    type: "standard",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setFormData({
-      title: link.title,
-      url: link.url,
-      type: link.type,
-    });
+    if (link) {
+      setFormData({
+        title: link.title,
+        url: link.url,
+        type: link.type,
+      });
+    }
   }, [link]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !link) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +60,7 @@ export const EditLinkModal = ({ isOpen, onClose, onSave, link }: EditLinkModalPr
       return;
     }
 
-    onSave({ id: link.id, ...formData });
+    onSave(link.id, formData);
     setErrors({});
   };
 

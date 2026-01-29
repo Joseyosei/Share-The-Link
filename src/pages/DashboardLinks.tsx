@@ -8,114 +8,107 @@ import { AddLinkModal } from "@/components/dashboard/AddLinkModal";
 import { EditLinkModal } from "@/components/dashboard/EditLinkModal";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-
-interface LinkItem {
-  id: string;
-  title: string;
-  url: string;
-  type: string;
-  clicks: number;
-  isActive: boolean;
-}
+import { useLinks } from "@/hooks/useLinks";
 
 const DashboardLinks = () => {
   const { toast } = useToast();
+  const { 
+    links, 
+    loading, 
+    addLink, 
+    updateLink, 
+    deleteLink, 
+    toggleLink,
+    reorderLinks 
+  } = useLinks();
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
-  const [links, setLinks] = useState<LinkItem[]>([
-    {
-      id: "1",
-      title: "My Portfolio",
-      url: "https://myportfolio.com",
-      type: "standard",
-      clicks: 234,
-      isActive: true,
-    },
-    {
-      id: "2",
-      title: "Buy My Course",
-      url: "https://course.example.com",
-      type: "product",
-      clicks: 156,
-      isActive: true,
-    },
-    {
-      id: "3",
-      title: "Watch My YouTube",
-      url: "https://youtube.com/@example",
-      type: "video",
-      clicks: 89,
-      isActive: true,
-    },
-  ]);
+  const [editingLink, setEditingLink] = useState<{
+    id: string;
+    title: string;
+    url: string;
+    type: string;
+  } | null>(null);
 
-  const handleToggle = (id: string) => {
-    setLinks((prev) =>
-      prev.map((link) =>
-        link.id === id ? { ...link, isActive: !link.isActive } : link
-      )
-    );
+  const handleToggle = async (id: string) => {
+    try {
+      await toggleLink(id);
+    } catch (error) {
+      console.error("Error toggling link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to toggle link status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (id: string) => {
     const link = links.find((l) => l.id === id);
     if (link) {
-      setEditingLink(link);
+      setEditingLink({
+        id: link.id,
+        title: link.title,
+        url: link.url,
+        type: link.type || "standard",
+      });
     }
   };
 
-  const handleSaveEdit = (updatedLink: { id: string; title: string; url: string; type: string }) => {
-    setLinks((prev) =>
-      prev.map((link) =>
-        link.id === updatedLink.id
-          ? { ...link, title: updatedLink.title, url: updatedLink.url, type: updatedLink.type }
-          : link
-      )
-    );
-    toast({
-      title: "Link updated",
-      description: "Your changes have been saved.",
-    });
-    setEditingLink(null);
+  const handleSaveEdit = async (id: string, updates: { title: string; url: string; type: string }) => {
+    try {
+      await updateLink(id, updates);
+      toast({
+        title: "Link updated",
+        description: "Your changes have been saved.",
+      });
+      setEditingLink(null);
+    } catch (error) {
+      console.error("Error updating link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setLinks((prev) => prev.filter((link) => link.id !== id));
-    toast({
-      title: "Link deleted",
-      description: "The link has been removed from your profile.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteLink(id);
+      toast({
+        title: "Link deleted",
+        description: "The link has been removed from your profile.",
+      });
+    } catch (error) {
+      console.error("Error deleting link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddLink = (newLink: { title: string; url: string; type: string }) => {
-    const link: LinkItem = {
-      id: Date.now().toString(),
-      ...newLink,
-      clicks: 0,
-      isActive: true,
-    };
-    setLinks((prev) => [...prev, link]);
-    toast({
-      title: "Link added!",
-      description: "Your new link is now live on your profile.",
-    });
-  };
-
-  const handleDragEnd = (draggedId: string, targetId: string) => {
-    const draggedIndex = links.findIndex((l) => l.id === draggedId);
-    const targetIndex = links.findIndex((l) => l.id === targetId);
-    
-    if (draggedIndex === -1 || targetIndex === -1) return;
-    
-    const newLinks = [...links];
-    const [removed] = newLinks.splice(draggedIndex, 1);
-    newLinks.splice(targetIndex, 0, removed);
-    
-    setLinks(newLinks);
-    toast({
-      title: "Links reordered",
-      description: "Your link order has been updated.",
-    });
+  const handleAddLink = async (newLink: { title: string; url: string; type: string }) => {
+    try {
+      await addLink({
+        title: newLink.title,
+        url: newLink.url,
+        type: newLink.type,
+      });
+      toast({
+        title: "Link added!",
+        description: "Your new link is now live on your profile.",
+      });
+    } catch (error) {
+      console.error("Error adding link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -146,12 +139,25 @@ const DashboardLinks = () => {
           </div>
 
           {/* Links List */}
-          {links.length > 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-card rounded-2xl p-4 shadow-lg animate-pulse">
+                  <div className="h-6 bg-muted-foreground/20 rounded w-1/3 mb-2" />
+                  <div className="h-4 bg-muted-foreground/10 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : links.length > 0 ? (
             <div className="space-y-3">
               {links.map((link) => (
                 <LinkCard
                   key={link.id}
-                  {...link}
+                  id={link.id}
+                  title={link.title}
+                  url={link.url}
+                  clicks={link.clicks || 0}
+                  isActive={link.is_active ?? true}
                   onToggle={handleToggle}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
@@ -186,14 +192,12 @@ const DashboardLinks = () => {
         onAdd={handleAddLink}
       />
 
-      {editingLink && (
-        <EditLinkModal
-          isOpen={!!editingLink}
-          onClose={() => setEditingLink(null)}
-          onSave={handleSaveEdit}
-          link={editingLink}
-        />
-      )}
+      <EditLinkModal
+        isOpen={!!editingLink}
+        onClose={() => setEditingLink(null)}
+        onSave={handleSaveEdit}
+        link={editingLink}
+      />
     </div>
   );
 };
