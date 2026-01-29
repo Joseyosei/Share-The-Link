@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,15 +17,46 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
+      }
+    };
+    checkSession();
+  }, [navigate, location]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!formData.email || !formData.password) { setError("Please fill in all fields"); return; }
+    
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all fields");
+      return;
+    }
+    
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    toast({ title: "Welcome back!", description: "You've successfully logged in." });
+    
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    });
+    
     setIsLoading(false);
-    navigate("/dashboard");
+    
+    if (authError) {
+      setError(authError.message);
+      return;
+    }
+    
+    if (data.session) {
+      toast({ title: "Welcome back!", description: "You've successfully logged in." });
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
