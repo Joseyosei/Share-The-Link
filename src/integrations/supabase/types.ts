@@ -169,7 +169,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_public_links: {
+        Args: { lookup_username: string }
+        Returns: {
+          id: string
+          link_position: number
+          link_type: string
+          title: string
+          url: string
+        }[]
+      }
+      get_public_profile: {
+        Args: { lookup_username: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          full_name: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock, ArrowLeft, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -17,6 +18,29 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Check if user came from a password reset link (they'll have a session)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      setCheckingAuth(false);
+    };
+    
+    // Listen for auth state changes (including recovery tokens)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsAuthenticated(true);
+      }
+      setCheckingAuth(false);
+    });
+
+    checkSession();
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -43,11 +67,19 @@ const ForgotPassword = () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setIsSuccess(true);
     
+    const { error } = await supabase.auth.updateUser({
+      password: formData.newPassword
+    });
+    
+    setIsLoading(false);
+    
+    if (error) {
+      setErrors({ newPassword: error.message });
+      return;
+    }
+    
+    setIsSuccess(true);
     toast({
       title: "Password updated!",
       description: "Your password has been successfully changed.",
@@ -61,6 +93,51 @@ const ForgotPassword = () => {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-foreground"></div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show message to use login page
+  if (!isAuthenticated && !isSuccess) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/">
+              <Logo textClassName="text-primary-foreground" />
+            </Link>
+          </div>
+
+          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Reset Password</h1>
+            <p className="text-muted-foreground mb-6">
+              To reset your password, please log in first and then update your password from your account settings.
+            </p>
+            
+            <Button
+              asChild
+              className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
+            >
+              <Link to="/login">Go to Login</Link>
+            </Button>
+
+            <Link
+              to="/"
+              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-6">

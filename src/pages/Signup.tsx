@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
+import { supabase } from "@/integrations/supabase/client";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -13,6 +14,17 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", username: "", email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    checkSession();
+  }, [navigate]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -31,11 +43,51 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    toast({ title: "Account created!", description: "Welcome to Share The Link." });
+    
+    // Check if username is already taken
+    const { data: existingUser } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("username", formData.username)
+      .maybeSingle();
+    
+    if (existingUser) {
+      setErrors({ username: "This username is already taken" });
+      setIsLoading(false);
+      return;
+    }
+    
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          full_name: formData.fullName,
+          username: formData.username,
+        }
+      }
+    });
+    
     setIsLoading(false);
-    navigate("/dashboard");
+    
+    if (error) {
+      setErrors({ email: error.message });
+      return;
+    }
+    
+    if (data.session) {
+      toast({ title: "Account created!", description: "Welcome to Share The Link." });
+      navigate("/dashboard");
+    } else if (data.user) {
+      toast({ 
+        title: "Account created!", 
+        description: "Please check your email to verify your account." 
+      });
+      navigate("/login");
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
