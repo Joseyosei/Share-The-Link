@@ -42,7 +42,7 @@ export const Features = () => {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className="group p-8 rounded-2xl gradient-card hover-lift hover-glow cursor-default"
+              className="group p-8 rounded-2xl bg-card border border-border hover-lift hover-glow cursor-default"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="w-14 h-14 rounded-xl gradient-button flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
