@@ -6,7 +6,9 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  User
+  User,
+  Radio,
+  Wand2
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -16,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Link2, label: "Links", href: "/dashboard/links" },
+  { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
+  { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
@@ -67,6 +71,11 @@ export const Sidebar = () => {
             >
               <IconComponent className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
+              {item.isNew && (
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold">
+                  NEW
+                </span>
+              )}
             </Link>
           );
         })}

@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_generations: {
+        Row: {
+          applied: boolean | null
+          applied_at: string | null
+          business_description: string
+          created_at: string
+          generated_bio: string | null
+          generated_colors: Json | null
+          generated_ctas: Json | null
+          generated_font: string | null
+          generated_layout: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          applied?: boolean | null
+          applied_at?: string | null
+          business_description: string
+          created_at?: string
+          generated_bio?: string | null
+          generated_colors?: Json | null
+          generated_ctas?: Json | null
+          generated_font?: string | null
+          generated_layout?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          applied?: boolean | null
+          applied_at?: string | null
+          business_description?: string
+          created_at?: string
+          generated_bio?: string | null
+          generated_colors?: Json | null
+          generated_ctas?: Json | null
+          generated_font?: string | null
+          generated_layout?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       appearance_settings: {
         Row: {
           background_color: string | null
@@ -161,6 +203,198 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      stream_chat: {
+        Row: {
+          created_at: string
+          id: string
+          is_highlighted: boolean | null
+          message: string
+          message_type: string | null
+          stream_id: string
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_highlighted?: boolean | null
+          message: string
+          message_type?: string | null
+          stream_id: string
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_highlighted?: boolean | null
+          message?: string
+          message_type?: string | null
+          stream_id?: string
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_chat_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stream_tips: {
+        Row: {
+          amount: number
+          created_at: string
+          creator_amount: number
+          currency: string | null
+          id: string
+          message: string | null
+          platform_fee: number
+          stream_id: string
+          stripe_payment_id: string | null
+          tipper_id: string | null
+          tipper_name: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          creator_amount: number
+          currency?: string | null
+          id?: string
+          message?: string | null
+          platform_fee: number
+          stream_id: string
+          stripe_payment_id?: string | null
+          tipper_id?: string | null
+          tipper_name: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          creator_amount?: number
+          currency?: string | null
+          id?: string
+          message?: string | null
+          platform_fee?: number
+          stream_id?: string
+          stripe_payment_id?: string | null
+          tipper_id?: string | null
+          tipper_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_tips_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stream_viewers: {
+        Row: {
+          id: string
+          joined_at: string
+          left_at: string | null
+          stream_id: string
+          viewer_id: string | null
+          viewer_name: string | null
+          watch_duration: number | null
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          stream_id: string
+          viewer_id?: string | null
+          viewer_name?: string | null
+          watch_duration?: number | null
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          stream_id?: string
+          viewer_id?: string | null
+          viewer_name?: string | null
+          watch_duration?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_viewers_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streams: {
+        Row: {
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          is_recording: boolean | null
+          peak_viewers: number | null
+          recording_url: string | null
+          room_name: string | null
+          room_url: string | null
+          scheduled_at: string | null
+          started_at: string | null
+          status: string
+          thumbnail_url: string | null
+          title: string
+          total_tips: number | null
+          updated_at: string
+          user_id: string
+          viewer_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_recording?: boolean | null
+          peak_viewers?: number | null
+          recording_url?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          title: string
+          total_tips?: number | null
+          updated_at?: string
+          user_id: string
+          viewer_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_recording?: boolean | null
+          peak_viewers?: number | null
+          recording_url?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          title?: string
+          total_tips?: number | null
+          updated_at?: string
+          user_id?: string
+          viewer_count?: number | null
         }
         Relationships: []
       }

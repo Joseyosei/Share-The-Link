@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Link2, MousePointerClick, ToggleRight, Plus } from "lucide-react";
+import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -11,6 +13,7 @@ import { ProfilePreview } from "@/components/dashboard/ProfilePreview";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLinks } from "@/hooks/useLinks";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -180,6 +183,50 @@ const Dashboard = () => {
                   label="Active Links"
                   value={stats.activeLinks}
                 />
+              </div>
+
+              {/* New Features Section */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Link to="/streaming">
+                  <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:shadow-lg transition-all cursor-pointer h-full">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0">
+                          <Radio className="w-6 h-6 text-destructive" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold">Live Streaming</h3>
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px]">NEW</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Stream live to your audience and earn tips with 90/10 split
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link to="/ai-builder">
+                  <Card className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20 hover:shadow-lg transition-all cursor-pointer h-full">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                          <Wand2 className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold">AI Page Builder</h3>
+                            <Badge className="bg-primary/20 text-primary text-[10px]">NEW</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Describe your business, get a pro page in 30 seconds
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               </div>
 
               {/* Links Section */}
