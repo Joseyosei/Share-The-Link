@@ -14,6 +14,8 @@ import DashboardSettings from "./pages/DashboardSettings";
 import DashboardAppearance from "./pages/DashboardAppearance";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
+import Streaming from "./pages/Streaming";
+import AIBuilder from "./pages/AIBuilder";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPage from "./pages/PricingPage";
 import AboutPage from "./pages/AboutPage";
@@ -59,6 +61,8 @@ const App = () => (
           <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/dashboard/appearance" element={<ProtectedRoute><DashboardAppearance /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
+          <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}
           <Route path="/:username" element={<Profile />} />

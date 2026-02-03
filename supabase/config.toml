@@ -1,1 +1,13 @@
 project_id = "kcvltaydhlipuyyxvhnm"
+
+[functions.create-stream]
+verify_jwt = false
+
+[functions.update-stream-status]
+verify_jwt = false
+
+[functions.stream-tip]
+verify_jwt = false
+
+[functions.ai-page-builder]
+verify_jwt = false
