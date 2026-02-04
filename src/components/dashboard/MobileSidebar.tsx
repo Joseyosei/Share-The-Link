@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   Radio,
-  Wand2
+  Wand2,
+  Store
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const navItems = [
   { icon: Link2, label: "Links", href: "/dashboard/links" },
   { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
+  { icon: Store, label: "Sell Products", href: "/connect", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },

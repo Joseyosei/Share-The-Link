@@ -11,3 +11,33 @@ verify_jwt = false
 
 [functions.ai-page-builder]
 verify_jwt = false
+
+[functions.create-connected-account]
+verify_jwt = false
+
+[functions.create-account-link]
+verify_jwt = false
+
+[functions.get-account-status]
+verify_jwt = false
+
+[functions.create-connect-product]
+verify_jwt = false
+
+[functions.list-connect-products]
+verify_jwt = false
+
+[functions.create-connect-checkout]
+verify_jwt = false
+
+[functions.create-subscription-checkout]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.stripe-connect-webhook]
+verify_jwt = false

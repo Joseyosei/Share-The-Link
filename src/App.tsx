@@ -27,6 +27,9 @@ import TermsPage from "./pages/TermsPage";
 import SecurityPage from "./pages/SecurityPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import ChangelogPage from "./pages/ChangelogPage";
+import ConnectDashboard from "./pages/ConnectDashboard";
+import StorefrontPage from "./pages/StorefrontPage";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +58,12 @@ const App = () => (
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/changelog" element={<ChangelogPage />} />
           
+          {/* Public storefront - anyone can view */}
+          <Route path="/store/:accountId" element={<StorefrontPage />} />
+          
+          {/* Subscription success page */}
+          <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+          
           {/* Protected routes - require authentication */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/links" element={<ProtectedRoute><DashboardLinks /></ProtectedRoute>} />
@@ -63,6 +72,8 @@ const App = () => (
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
           <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
+          <Route path="/connect" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
+          <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}
           <Route path="/:username" element={<Profile />} />

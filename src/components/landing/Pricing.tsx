@@ -1,11 +1,15 @@
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useSubscription, TierKey } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 const plans = [
   {
     name: "Free",
-    price: "$0",
+    tier: "free" as TierKey,
+    price: "£0",
     period: "forever",
     description: "Perfect for getting started",
     features: [
@@ -19,7 +23,8 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "$9",
+    tier: "pro" as TierKey,
+    price: "£7",
     period: "/month",
     description: "For growing creators",
     features: [
@@ -34,7 +39,8 @@ const plans = [
   },
   {
     name: "Business",
-    price: "$29",
+    tier: "business" as TierKey,
+    price: "£23",
     period: "/month",
     description: "For teams and agencies",
     features: [
@@ -50,6 +56,42 @@ const plans = [
 ];
 
 export const Pricing = () => {
+  const { startCheckout, loading, subscription, isAuthenticated } = useSubscription();
+  const [loadingTier, setLoadingTier] = useState<TierKey | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  const handlePlanClick = async (tier: TierKey) => {
+    // Free tier - just redirect to signup
+    if (tier === "free") {
+      navigate("/signup");
+      return;
+    }
+
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      navigate("/signup");
+      return;
+    }
+
+    // Start checkout for paid tiers
+    setLoadingTier(tier);
+    await startCheckout(tier);
+    setLoadingTier(null);
+  };
+
+  const isCurrentPlan = (tier: TierKey) => {
+    return subscription?.tier === tier && subscription.subscribed;
+  };
+
   return (
     <section id="pricing" className="py-24 bg-muted">
       <div className="container mx-auto px-6">
@@ -65,7 +107,7 @@ export const Pricing = () => {
 
         {/* Pricing Grid */}
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan, index) => (
+          {plans.map((plan) => (
             <div
               key={plan.name}
               className={`relative rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 ${
@@ -79,6 +121,15 @@ export const Pricing = () => {
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                   <span className="px-4 py-1 rounded-full text-sm font-semibold gradient-button text-primary-foreground">
                     MOST POPULAR
+                  </span>
+                </div>
+              )}
+
+              {/* Current Plan Badge */}
+              {isCurrentPlan(plan.tier) && (
+                <div className="absolute -top-4 right-4">
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-primary text-primary-foreground">
+                    YOUR PLAN
                   </span>
                 </div>
               )}
@@ -112,14 +163,24 @@ export const Pricing = () => {
               </ul>
 
               <Button
-                asChild
+                onClick={() => handlePlanClick(plan.tier)}
+                disabled={loadingTier === plan.tier || loading || isCurrentPlan(plan.tier)}
                 className={`w-full py-6 font-semibold ${
                   plan.popular
                     ? "bg-background text-foreground hover:bg-background/90"
                     : "gradient-button text-primary-foreground hover:opacity-90"
                 }`}
               >
-                <Link to="/signup">{plan.cta}</Link>
+                {loadingTier === plan.tier ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : isCurrentPlan(plan.tier) ? (
+                  "Current Plan"
+                ) : (
+                  plan.cta
+                )}
               </Button>
             </div>
           ))}

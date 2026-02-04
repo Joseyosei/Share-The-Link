@@ -1,18 +1,22 @@
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
-import { Check, X, HelpCircle } from "lucide-react";
+import { Check, X, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useSubscription, TierKey } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
 
 const plans = [
   {
     name: "Free",
-    price: "$0",
+    tier: "free" as TierKey,
+    price: "£0",
     period: "forever",
     description: "Perfect for getting started",
     cta: "Get Started",
@@ -20,7 +24,8 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "$9",
+    tier: "pro" as TierKey,
+    price: "£7",
     period: "/month",
     description: "For growing creators",
     cta: "Start Free Trial",
@@ -28,7 +33,8 @@ const plans = [
   },
   {
     name: "Business",
-    price: "$29",
+    tier: "business" as TierKey,
+    price: "£23",
     period: "/month",
     description: "For teams and agencies",
     cta: "Contact Sales",
@@ -103,12 +109,45 @@ const comparisonFeatures = [
 ];
 
 const PricingPage = () => {
+  const { startCheckout, loading, subscription, isAuthenticated } = useSubscription();
+  const [loadingTier, setLoadingTier] = useState<TierKey | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  const handlePlanClick = async (tier: TierKey) => {
+    if (tier === "free") {
+      navigate("/signup");
+      return;
+    }
+
+    if (!isLoggedIn) {
+      navigate("/signup");
+      return;
+    }
+
+    setLoadingTier(tier);
+    await startCheckout(tier);
+    setLoadingTier(null);
+  };
+
+  const isCurrentPlan = (tier: TierKey) => {
+    return subscription?.tier === tier && subscription.subscribed;
+  };
+
   const renderFeatureValue = (value: boolean | string) => {
     if (typeof value === "string") {
       return <span className="font-medium text-foreground">{value}</span>;
     }
     return value ? (
-      <Check className="w-5 h-5 text-green-500 mx-auto" />
+      <Check className="w-5 h-5 text-primary mx-auto" />
     ) : (
       <X className="w-5 h-5 text-muted-foreground/50 mx-auto" />
     );
@@ -168,14 +207,24 @@ const PricingPage = () => {
                 </div>
 
                 <Button
-                  asChild
+                  onClick={() => handlePlanClick(plan.tier)}
+                  disabled={loadingTier === plan.tier || loading || isCurrentPlan(plan.tier)}
                   className={`w-full py-6 font-semibold ${
                     plan.popular
                       ? "bg-background text-foreground hover:bg-background/90"
                       : "gradient-button text-primary-foreground hover:opacity-90"
                   }`}
                 >
-                  <Link to="/signup">{plan.cta}</Link>
+                  {loadingTier === plan.tier ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isCurrentPlan(plan.tier) ? (
+                    "Current Plan"
+                  ) : (
+                    plan.cta
+                  )}
                 </Button>
               </div>
             ))}
