@@ -104,6 +104,95 @@ export type Database = {
         }
         Relationships: []
       }
+      connect_products: {
+        Row: {
+          connected_account_id: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price_amount: number
+          stripe_price_id: string | null
+          stripe_product_id: string
+          updated_at: string
+        }
+        Insert: {
+          connected_account_id: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price_amount: number
+          stripe_price_id?: string | null
+          stripe_product_id: string
+          updated_at?: string
+        }
+        Update: {
+          connected_account_id?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price_amount?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connect_products_connected_account_id_fkey"
+            columns: ["connected_account_id"]
+            isOneToOne: false
+            referencedRelation: "connected_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connected_accounts: {
+        Row: {
+          charges_enabled: boolean | null
+          contact_email: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          onboarding_complete: boolean | null
+          payouts_enabled: boolean | null
+          stripe_account_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          charges_enabled?: boolean | null
+          contact_email?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          onboarding_complete?: boolean | null
+          payouts_enabled?: boolean | null
+          stripe_account_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          charges_enabled?: boolean | null
+          contact_email?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          onboarding_complete?: boolean | null
+          payouts_enabled?: boolean | null
+          stripe_account_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       earnings: {
         Row: {
           amount: number | null
@@ -395,6 +484,51 @@ export type Database = {
           updated_at?: string
           user_id?: string
           viewer_count?: number | null
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_name: string | null
+          status: string | null
+          stripe_account_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_name?: string | null
+          status?: string | null
+          stripe_account_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_name?: string | null
+          status?: string | null
+          stripe_account_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
