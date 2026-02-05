@@ -53,11 +53,9 @@ serve(async (req) => {
         properties: {
           enable_chat: true,
           enable_screenshare: true,
-          enable_recording: "cloud",
           start_video_off: false,
           start_audio_off: false,
           owner_only_broadcast: true,
-          max_participants: 100,
           exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
         },
       }),
