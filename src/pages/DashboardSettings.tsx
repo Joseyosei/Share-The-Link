@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Mail, Lock, Trash2, Camera } from "lucide-react";
+import { ArrowLeft, User, Lock, Trash2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
@@ -10,12 +10,11 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
-  const { profile, loading: profileLoading } = useUserProfile();
+  const { profile, loading: profileLoading, refetch } = useUserProfile();
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    email: "",
     username: "",
     fullName: "",
     bio: "",
@@ -34,7 +33,6 @@ const DashboardSettings = () => {
   useEffect(() => {
     if (profile) {
       setProfileData({
-        email: profile.email || "",
         username: profile.username || "",
         fullName: profile.full_name || "",
         bio: profile.bio || "",
@@ -74,6 +72,9 @@ const DashboardSettings = () => {
         .eq("user_id", user.id);
 
       if (error) throw error;
+
+      // Refetch profile data to update sidebar and other components
+      await refetch();
 
       toast({
         title: "Profile updated",
@@ -290,23 +291,6 @@ const DashboardSettings = () => {
                 <p className="text-sm text-muted-foreground mt-1">
                   sharethelink.com/{profileData.username}
                 </p>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={profileData.email}
-                    onChange={handleProfileChange}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                  />
-                </div>
               </div>
 
               {/* Bio */}
