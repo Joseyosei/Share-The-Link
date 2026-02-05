@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserProfile {
@@ -16,42 +17,43 @@ export const useUserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setLoading(false);
-          return;
-        }
-
-        const { data, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (profileError && profileError.code !== "PGRST116") {
-          throw profileError;
-        }
-
-        setProfile(data ? { ...data, email: user.email } : {
-          id: "",
-          user_id: user.id,
-          full_name: user.user_metadata?.full_name || null,
-          username: user.user_metadata?.username || null,
-          bio: null,
-          avatar_url: null,
-          email: user.email,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch profile");
-      } finally {
+  const fetchProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
         setLoading(false);
+        return;
       }
-    };
 
+      const { data, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError && profileError.code !== "PGRST116") {
+        throw profileError;
+      }
+
+      setProfile(data ? { ...data, email: user.email } : {
+        id: "",
+        user_id: user.id,
+        full_name: user.user_metadata?.full_name || null,
+        username: user.user_metadata?.username || null,
+        bio: null,
+        avatar_url: null,
+        email: user.email,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch profile");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     fetchProfile();
 
     // Listen for auth changes
@@ -60,7 +62,7 @@ export const useUserProfile = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
-  return { profile, loading, error };
+  return { profile, loading, error, refetch: fetchProfile };
 };
