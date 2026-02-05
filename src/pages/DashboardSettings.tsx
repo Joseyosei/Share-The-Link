@@ -1,21 +1,24 @@
-import { useState } from "react";
-import { ArrowLeft, User, Mail, Lock, Trash2, Upload, Camera } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, User, Mail, Lock, Trash2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
+  const { profile, loading: profileLoading } = useUserProfile();
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+
   const [profileData, setProfileData] = useState({
-    email: "john@example.com",
-    username: "johndoe",
-    fullName: "John Doe",
-    bio: "Entrepreneur & Creator. Sharing my journey and building cool stuff.",
+    email: "",
+    username: "",
+    fullName: "",
+    bio: "",
     profileImage: "",
   });
 
@@ -26,6 +29,19 @@ const DashboardSettings = () => {
   });
 
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+
+  // Load profile data from Supabase
+  useEffect(() => {
+    if (profile) {
+      setProfileData({
+        email: profile.email || "",
+        username: profile.username || "",
+        fullName: profile.full_name || "",
+        bio: profile.bio || "",
+        profileImage: profile.avatar_url || "",
+      });
+    }
+  }, [profile]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -42,12 +58,37 @@ const DashboardSettings = () => {
 
   const handleSaveProfile = async () => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast({
-      title: "Profile updated",
-      description: "Your changes have been saved successfully.",
-    });
-    setIsLoading(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profileData.fullName,
+          username: profileData.username,
+          bio: profileData.bio,
+          avatar_url: profileData.profileImage,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile updated",
+        description: "Your changes have been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -72,25 +113,49 @@ const DashboardSettings = () => {
     }
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast({
-      title: "Password changed",
-      description: "Your password has been updated successfully.",
-    });
-    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    setIsLoading(false);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password changed",
+        description: "Your password has been updated successfully.",
+      });
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error",
+        description: "Failed to change password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    toast({
-      title: "Account deleted",
-      description: "Your account has been permanently deleted.",
-      variant: "destructive",
-    });
-    setIsLoading(false);
-    // In a real app, would redirect to home
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
+        variant: "destructive",
+      });
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete account. Please contact support.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,6 +172,28 @@ const DashboardSettings = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-muted">
+        <Sidebar />
+        <MobileSidebar />
+        <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-card rounded-2xl p-6 shadow-lg animate-pulse">
+              <div className="h-8 bg-muted-foreground/20 rounded w-1/3 mb-6" />
+              <div className="h-24 bg-muted-foreground/10 rounded mb-4" />
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-12 bg-muted-foreground/10 rounded" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted">

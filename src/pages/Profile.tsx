@@ -1,8 +1,9 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Eye, Loader2 } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { themes } from "@/pages/DashboardAppearance";
 
 interface ProfileData {
   username: string;
@@ -26,6 +27,7 @@ const Profile = () => {
   const [links, setLinks] = useState<LinkData[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [themeId, setThemeId] = useState<string>("air");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -64,6 +66,25 @@ const Profile = () => {
         } else {
           setLinks((linksData || []) as LinkData[]);
         }
+
+        // Fetch appearance settings for this user
+        const { data: profileRecord } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("username", username)
+          .single();
+
+        if (profileRecord) {
+          const { data: appearanceData } = await supabase
+            .from("appearance_settings")
+            .select("theme")
+            .eq("user_id", profileRecord.user_id)
+            .single();
+
+          if (appearanceData?.theme) {
+            setThemeId(appearanceData.theme);
+          }
+        }
       } catch (err) {
         console.error('Unexpected error:', err);
         setNotFound(true);
@@ -74,6 +95,9 @@ const Profile = () => {
 
     fetchProfile();
   }, [username]);
+
+  // Get theme data
+  const currentTheme = themes.find((t) => t.id === themeId) || themes[0];
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -131,11 +155,11 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen gradient-bg py-12 px-4">
+    <div className={`min-h-screen ${currentTheme.background} py-12 px-4`}>
       {/* Share Button */}
       <button
         onClick={handleShare}
-        className="fixed top-4 right-4 p-3 rounded-full bg-primary-foreground/10 backdrop-blur-lg text-primary-foreground hover:bg-primary-foreground/20 transition-colors z-10"
+        className={`fixed top-4 right-4 p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-colors z-10 ${currentTheme.textColor} bg-white/10`}
         aria-label="Share profile"
       >
         <Share2 className="w-5 h-5" />
@@ -145,7 +169,7 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="text-center mb-8 animate-fade-in">
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full bg-primary-foreground/20 backdrop-blur-lg mx-auto mb-4 flex items-center justify-center border-4 border-primary-foreground/30 shadow-xl overflow-hidden">
+          <div className={`w-28 h-28 rounded-full backdrop-blur-lg mx-auto mb-4 flex items-center justify-center border-4 shadow-xl overflow-hidden bg-white/20 border-white/30`}>
             {profile?.avatar_url ? (
               <img 
                 src={profile.avatar_url} 
@@ -153,21 +177,21 @@ const Profile = () => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User className="w-14 h-14 text-primary-foreground" />
+              <User className={`w-14 h-14 ${currentTheme.textColor}`} />
             )}
           </div>
 
           {/* Name */}
-          <h1 className="text-2xl font-bold text-primary-foreground mb-1">
+          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1`}>
             {profile?.full_name || username}
           </h1>
 
           {/* Username */}
-          <p className="text-primary-foreground/70 mb-3">@{username}</p>
+          <p className={`${currentTheme.textColor} opacity-70 mb-3`}>@{username}</p>
 
           {/* Bio */}
           {profile?.bio && (
-            <p className="text-primary-foreground/90 max-w-sm mx-auto mb-6">
+            <p className={`${currentTheme.textColor} opacity-90 max-w-sm mx-auto mb-6`}>
               {profile.bio}
             </p>
           )}
@@ -180,12 +204,12 @@ const Profile = () => {
               <button
                 key={link.id}
                 onClick={() => handleLinkClick(link.id, link.url)}
-                className="w-full text-left rounded-2xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fade-in bg-primary-foreground"
+                className={`w-full text-left rounded-2xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fade-in ${currentTheme.buttonStyle}`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <span className="font-semibold text-foreground block">
+                    <span className={`font-semibold block ${currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white"}`}>
                       {link.title}
                     </span>
                     {link.link_type === "product" && (
@@ -199,12 +223,12 @@ const Profile = () => {
                       </span>
                     )}
                   </div>
-                  <ExternalLink className="w-5 h-5 text-muted-foreground" />
+                  <ExternalLink className={`w-5 h-5 opacity-70 ${currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white"}`} />
                 </div>
               </button>
             ))
           ) : (
-            <div className="text-center text-primary-foreground/50 py-8">
+            <div className={`text-center ${currentTheme.textColor} opacity-50 py-8`}>
               No links yet
             </div>
           )}
@@ -214,7 +238,7 @@ const Profile = () => {
         <div className="text-center mt-12">
           <Link
             to="/"
-            className="text-sm text-primary-foreground/40 hover:text-primary-foreground/60 transition-colors"
+            className={`text-sm ${currentTheme.textColor} opacity-40 hover:opacity-60 transition-colors`}
           >
             Powered by Share The Link
           </Link>
