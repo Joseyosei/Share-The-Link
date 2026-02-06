@@ -17,10 +17,10 @@ export const Hero = () => {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8 animate-fade-in">
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium text-primary-foreground">
-              Built for Entrepreneurs
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card-light mb-8 animate-fade-in shimmer">
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span className="text-sm font-medium text-white">
+              Built for Entrepreneurs & Creators
             </span>
           </div>
 
@@ -75,10 +75,9 @@ export const Hero = () => {
               </Link>
             </Button>
             <Button
-              variant="outline"
               size="lg"
               asChild
-              className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/20 font-semibold px-8 py-6 text-lg"
+              className="cta-button-outline font-semibold px-8 py-6 text-lg rounded-lg"
             >
               <a href="#pricing">View pricing</a>
             </Button>
