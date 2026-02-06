@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -12,48 +11,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!stripeSecretKey || !supabaseUrl || !supabaseServiceKey) {
-      return res.status(500).json({ error: "Server configuration missing" });
+    if (!stripeSecretKey) {
+      return res.status(500).json({ error: "STRIPE_SECRET_KEY is not configured" });
     }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "No authorization header" });
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user) return res.status(401).json({ error: "Authentication failed" });
-
-    const user = userData.user;
-
-    // Get connected account from DB
-    const { data: connectedAccount, error: accountError } = await supabase
-      .from("connected_accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    if (accountError || !connectedAccount) {
-      return res.status(200).json({ hasAccount: false });
+    const { accountId } = req.body || {};
+    if (!accountId) {
+      return res.status(400).json({ error: "accountId is required" });
     }
 
-    const stripeAccountId = connectedAccount.stripe_account_id;
-
-    // Fetch fresh status from Stripe
     const stripe = new Stripe(stripeSecretKey);
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+    const account = await stripe.accounts.retrieve(accountId);
 
     const chargesEnabled = account.charges_enabled || false;
     const payoutsEnabled = account.payouts_enabled || false;
     const detailsSubmitted = account.details_submitted || false;
 
-    // Determine requirements status
     let requirementsStatus = "none";
     if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
       requirementsStatus = "currently_due";
@@ -63,28 +36,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       requirementsStatus = "eventually_due";
     }
 
-    const onboardingComplete = detailsSubmitted;
-    const readyToProcessPayments = chargesEnabled && payoutsEnabled;
-
-    // Update DB
-    await supabase
-      .from("connected_accounts")
-      .update({
-        onboarding_complete: onboardingComplete,
-        charges_enabled: chargesEnabled,
-        payouts_enabled: payoutsEnabled,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
-
     return res.status(200).json({
-      hasAccount: true,
-      accountId: stripeAccountId,
-      displayName: connectedAccount.display_name,
-      contactEmail: connectedAccount.contact_email,
-      onboardingComplete,
+      onboardingComplete: detailsSubmitted,
       requirementsStatus,
-      readyToProcessPayments,
+      readyToProcessPayments: chargesEnabled && payoutsEnabled,
       chargesEnabled,
       payoutsEnabled,
     });
