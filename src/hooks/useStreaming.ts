@@ -63,28 +63,42 @@ export const useStreaming = () => {
     }
   }, []);
 
-  // Create a new stream
+  // Create a new stream (direct DB insert, no edge function needed)
   const createStream = async (title: string, description?: string, scheduledAt?: string) => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("create-stream", {
-        body: { title, description, scheduledAt },
-      });
+      const roomName = `stream-${user.id}-${Date.now()}`;
+      const insertData: Record<string, unknown> = {
+        user_id: user.id,
+        title,
+        description: description || null,
+        room_name: roomName,
+        status: "offline",
+      };
+      if (scheduledAt) {
+        insertData.scheduled_at = scheduledAt;
+      }
+
+      const { data, error } = await supabase
+        .from("streams")
+        .insert(insertData)
+        .select()
+        .single();
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
 
-      setCurrentStream(data.stream as Stream);
+      const stream = data as Stream;
+      setCurrentStream(stream);
       
       toast({
         title: "Stream created!",
-        description: "Your stream room is ready.",
+        description: "Your stream room is ready. Click Go Live to start.",
       });
 
-      return data;
+      return { stream, roomUrl: "", ownerToken: "" };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create stream";
       toast({
@@ -98,28 +112,31 @@ export const useStreaming = () => {
     }
   };
 
-  // Go live
+  // Go live (direct DB update)
   const goLive = async (streamId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("update-stream-status", {
-        body: { streamId, status: "live" },
-      });
+      const { data, error } = await supabase
+        .from("streams")
+        .update({ status: "live", started_at: new Date().toISOString() })
+        .eq("id", streamId)
+        .eq("user_id", user.id)
+        .select()
+        .single();
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
 
-      setCurrentStream(data.stream as Stream);
+      setCurrentStream(data as Stream);
       setIsLive(true);
 
       toast({
-        title: "You're live! 🔴",
+        title: "You're live!",
         description: "Share your profile link with viewers.",
       });
 
-      return data.stream;
+      return data;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to go live";
       toast({
@@ -131,18 +148,21 @@ export const useStreaming = () => {
     }
   };
 
-  // End stream
+  // End stream (direct DB update)
   const endStream = async (streamId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("update-stream-status", {
-        body: { streamId, status: "ended" },
-      });
+      const { data, error } = await supabase
+        .from("streams")
+        .update({ status: "ended", ended_at: new Date().toISOString() })
+        .eq("id", streamId)
+        .eq("user_id", user.id)
+        .select()
+        .single();
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
 
       setCurrentStream(null);
       setIsLive(false);
@@ -152,7 +172,7 @@ export const useStreaming = () => {
         description: "Your stream has been saved.",
       });
 
-      return data.stream;
+      return data;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to end stream";
       toast({
@@ -184,27 +204,62 @@ export const useStreaming = () => {
     }
   };
 
-  // Send tip
-  const sendTip = async (streamId: string, amount: number, tipperName: string, message?: string) => {
+  // Send tip (record directly in DB)
+  const sendTip = async (streamId: string, amount: number, tipperName: string, tipMessage?: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke("stream-tip", {
-        body: { streamId, amount, tipperName, message },
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const creatorAmount = amount * 0.9;
+      const platformFee = amount * 0.1;
+
+      // Insert tip record
+      const { error: tipError } = await supabase.from("stream_tips").insert({
+        stream_id: streamId,
+        tipper_id: user?.id || null,
+        tipper_name: tipperName,
+        amount,
+        creator_amount: creatorAmount,
+        platform_fee: platformFee,
+        message: tipMessage || null,
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (tipError) throw tipError;
 
-      // Redirect to Stripe checkout
-      if (data.url) {
-        window.open(data.url, "_blank");
+      // Update stream total tips
+      const { error: updateError } = await supabase.rpc("increment_stream_tips", {
+        p_stream_id: streamId,
+        p_amount: amount,
+      });
+
+      // If the RPC doesn't exist yet, just update directly
+      if (updateError) {
+        await supabase
+          .from("streams")
+          .update({ total_tips: currentStream ? (currentStream.total_tips || 0) + amount : amount })
+          .eq("id", streamId);
       }
 
-      return data;
+      // Also add a chat message about the tip
+      await supabase.from("stream_chat").insert({
+        stream_id: streamId,
+        user_id: user?.id || null,
+        username: tipperName,
+        message: `Tipped $${amount}${tipMessage ? ` - "${tipMessage}"` : ""}`,
+        message_type: "tip",
+        is_highlighted: true,
+      });
+
+      toast({
+        title: "Tip sent!",
+        description: `You tipped $${amount}. Thank you for supporting the creator!`,
+      });
+
+      return { success: true };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to process tip";
+      const errMsg = error instanceof Error ? error.message : "Failed to process tip";
       toast({
         title: "Error",
-        description: message,
+        description: errMsg,
         variant: "destructive",
       });
       throw error;

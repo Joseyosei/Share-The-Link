@@ -1,10 +1,84 @@
-import { useState } from "react";
-import { Wand2, Loader2, Check, Sparkles, Palette, Type, Layout, ArrowRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Wand2, Loader2, Check, Sparkles, Palette, Type, Layout, ArrowRight, Target, PenTool, Share2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAIPageBuilder, GeneratedPage } from "@/hooks/useAIPageBuilder";
+
+// AI Generation Loading Modal with animated steps
+const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentStep: number }) => {
+  const steps = [
+    { icon: Target, label: "Analyzing campaign goals...", color: "text-purple-500" },
+    { icon: PenTool, label: "Optimizing copy for engagement...", color: "text-pink-500" },
+    { icon: Share2, label: "Generating shareable assets...", color: "text-orange-500" },
+    { icon: Zap, label: "Finalizing your page...", color: "text-green-500" },
+  ];
+
+  return (
+    <Dialog open={isOpen}>
+      <DialogContent className="sm:max-w-md [&>button]:hidden" onPointerDownOutside={(e) => e.preventDefault()}>
+        <div className="py-8 px-4">
+          <div className="flex justify-center mb-8">
+            <div className="w-20 h-20 rounded-full gradient-button flex items-center justify-center pulse-glow">
+              <Wand2 className="w-10 h-10 text-white animate-pulse" />
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-center mb-2">AI is building your page</h3>
+          <p className="text-sm text-muted-foreground text-center mb-8">This usually takes a few seconds</p>
+
+          <div className="space-y-4">
+            {steps.map((s, i) => {
+              const StepIcon = s.icon;
+              const isActive = i === currentStep;
+              const isDone = i < currentStep;
+              return (
+                <div
+                  key={s.label}
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-500 ${
+                    isActive ? "bg-primary/5 scale-[1.02]" : isDone ? "opacity-60" : "opacity-30"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 ${
+                    isDone ? "bg-green-100" : isActive ? "bg-primary/10" : "bg-muted"
+                  }`}>
+                    {isDone ? (
+                      <Check className="w-4 h-4 text-green-600 animate-count" />
+                    ) : isActive ? (
+                      <StepIcon className={`w-4 h-4 ${s.color} animate-pulse`} />
+                    ) : (
+                      <StepIcon className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <span className={`text-sm font-medium transition-colors ${
+                    isActive ? "text-foreground" : isDone ? "text-muted-foreground" : "text-muted-foreground/50"
+                  }`}>
+                    {s.label}
+                  </span>
+                  {isActive && (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary ml-auto" />
+                  )}
+                  {isDone && (
+                    <Check className="w-4 h-4 text-green-500 ml-auto" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress bar */}
+          <div className="mt-8 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full gradient-button rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 interface AIPageBuilderWizardProps {
   onComplete?: (page: GeneratedPage) => void;
@@ -15,19 +89,48 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
   const [step, setStep] = useState<"describe" | "preview" | "apply">("describe");
   const [businessDescription, setBusinessDescription] = useState("");
   const [applying, setApplying] = useState(false);
+  const [showGeneratingModal, setShowGeneratingModal] = useState(false);
+  const [generatingStep, setGeneratingStep] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleGenerate = async () => {
+  // Animate through generation steps
+  useEffect(() => {
+    if (!showGeneratingModal) {
+      setGeneratingStep(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setGeneratingStep((prev) => {
+        if (prev >= 3) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 800);
+    return () => clearInterval(interval);
+  }, [showGeneratingModal]);
+
+  const handleGenerate = useCallback(async () => {
     if (!businessDescription.trim()) return;
-    
+
+    setShowGeneratingModal(true);
+    setGeneratingStep(0);
+
     try {
       const page = await generatePage(businessDescription);
+      // Ensure minimum display time for the modal
+      await new Promise((r) => setTimeout(r, 500));
+      setShowGeneratingModal(false);
       if (page) {
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
         setStep("preview");
       }
     } catch {
-      // Error handled in hook
+      setShowGeneratingModal(false);
     }
-  };
+  }, [businessDescription, generatePage]);
 
   const handleApply = async () => {
     if (!generatedPage) return;
@@ -122,29 +225,32 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
             <Button
               onClick={handleGenerate}
               disabled={loading || businessDescription.length < 10}
-              className="w-full mt-6 gradient-button"
+              className="w-full mt-6 gradient-button text-white py-7 text-lg font-semibold"
               size="lg"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Generating your page...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate My Page
-                </>
-              )}
+              <Sparkles className="w-5 h-5 mr-2" />
+              Generate with AI
             </Button>
           </CardContent>
         </Card>
       )}
 
+      {/* AI Generation Modal */}
+      <AIGeneratingModal isOpen={showGeneratingModal} currentStep={generatingStep} />
+
       {/* Step 2: Preview */}
       {step === "preview" && generatedPage && (
-        <div className="space-y-6">
-          <Card>
+        <div className={`space-y-6 ${showSuccess ? "animate-scale-in" : ""}`}>
+          <Card className="overflow-hidden">
+            {/* Success banner */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-3 flex items-center gap-2">
+              <Check className="w-5 h-5 text-white" />
+              <span className="text-white font-semibold text-sm">Page generated successfully</span>
+              <Badge className="ml-auto bg-white/20 text-white hover:bg-white/30 text-xs">
+                <Sparkles className="w-3 h-3 mr-1" />
+                AI-Enhanced
+              </Badge>
+            </div>
             <CardContent className="p-6">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
@@ -156,6 +262,9 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
                 <div className="flex items-center gap-2 mb-2">
                   <Type className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Bio</span>
+                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                    <Sparkles className="w-3 h-3 mr-1" /> AI-written
+                  </Badge>
                 </div>
                 <p className="text-muted-foreground bg-muted/50 p-4 rounded-lg">
                   {generatedPage.bio}
@@ -167,6 +276,9 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
                 <div className="flex items-center gap-2 mb-2">
                   <Palette className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Color Palette</span>
+                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                    <Sparkles className="w-3 h-3 mr-1" /> AI-picked
+                  </Badge>
                 </div>
                 <div className="flex gap-2">
                   {Object.entries(generatedPage.colors).map(([name, color]) => (
@@ -259,20 +371,23 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
 
       {/* Step 3: Complete */}
       {step === "apply" && (
-        <Card className="border-2 border-accent">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-accent" />
+        <Card className="border-2 border-green-500/30 overflow-hidden animate-scale-in">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 py-6 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center animate-count">
+              <Check className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Design Applied! 🎉</h2>
+          </div>
+          <CardContent className="p-8 text-center">
+            <h2 className="text-2xl font-bold mb-2">Design Applied Successfully</h2>
             <p className="text-muted-foreground mb-6">
               Your profile has been updated with the new AI-generated design.
+              Visitors will see the changes immediately.
             </p>
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={handleStartOver}>
                 Generate Another
               </Button>
-              <Button asChild className="gradient-button">
+              <Button asChild className="gradient-button text-white">
                 <a href="/dashboard">View Dashboard</a>
               </Button>
             </div>

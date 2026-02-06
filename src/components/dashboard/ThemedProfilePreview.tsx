@@ -1,18 +1,27 @@
 import { User, ExternalLink } from "lucide-react";
 import type { Theme } from "@/pages/DashboardAppearance";
 
+interface PreviewLink {
+  id: string;
+  title: string;
+  url: string;
+  isActive: boolean;
+}
+
 interface ThemedProfilePreviewProps {
   username: string;
   fullName: string;
   bio?: string;
   theme?: Theme;
+  links?: PreviewLink[];
 }
 
 export const ThemedProfilePreview = ({ 
   username, 
   fullName, 
   bio,
-  theme 
+  theme,
+  links,
 }: ThemedProfilePreviewProps) => {
   // Default theme if none selected
   const defaultTheme = {
@@ -31,6 +40,8 @@ export const ThemedProfilePreview = ({
     ? "text-gray-900" 
     : "text-white";
 
+  // Use real links if provided, otherwise fall back to sample links
+  const activeLinks = links ? links.filter((l) => l.isActive) : null;
   const sampleLinks = ["My Website", "Latest Video", "Shop Now"];
 
   return (
@@ -65,17 +76,35 @@ export const ThemedProfilePreview = ({
               )}
             </div>
 
-            {/* Sample Links */}
+            {/* Links */}
             <div className="space-y-3">
-              {sampleLinks.map((link) => (
-                <div
-                  key={link}
-                  className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-between ${activeTheme.buttonStyle} ${buttonTextColor}`}
-                >
-                  <span>{link}</span>
-                  <ExternalLink className="w-4 h-4 opacity-70" />
-                </div>
-              ))}
+              {activeLinks ? (
+                activeLinks.length > 0 ? (
+                  activeLinks.map((link) => (
+                    <div
+                      key={link.id}
+                      className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-between ${activeTheme.buttonStyle} ${buttonTextColor}`}
+                    >
+                      <span className="text-sm truncate">{link.title}</span>
+                      <ExternalLink className="w-4 h-4 opacity-70 shrink-0" />
+                    </div>
+                  ))
+                ) : (
+                  <p className={`text-sm text-center py-4 opacity-50 ${activeTheme.textColor}`}>
+                    Add links to see them here
+                  </p>
+                )
+              ) : (
+                sampleLinks.map((link) => (
+                  <div
+                    key={link}
+                    className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-between ${activeTheme.buttonStyle} ${buttonTextColor}`}
+                  >
+                    <span>{link}</span>
+                    <ExternalLink className="w-4 h-4 opacity-70" />
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Footer */}

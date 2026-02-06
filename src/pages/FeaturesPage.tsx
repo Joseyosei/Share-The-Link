@@ -142,7 +142,7 @@ const FeaturesPage = () => {
             <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
               <Link to="/signup">Start for Free</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+            <Button asChild size="lg" className="cta-button-outline">
               <Link to="/pricing">View Pricing</Link>
             </Button>
           </div>

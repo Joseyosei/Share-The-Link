@@ -9,10 +9,12 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { LinkCard } from "@/components/dashboard/LinkCard";
 import { AddLinkModal } from "@/components/dashboard/AddLinkModal";
 import { EditLinkModal } from "@/components/dashboard/EditLinkModal";
-import { ProfilePreview } from "@/components/dashboard/ProfilePreview";
+import { ThemedProfilePreview } from "@/components/dashboard/ThemedProfilePreview";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLinks } from "@/hooks/useLinks";
+import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
+import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
@@ -27,6 +29,10 @@ const Dashboard = () => {
     deleteLink, 
     toggleLink 
   } = useLinks();
+  const { settings: appearanceSettings } = useAppearanceSettings();
+  
+  // Look up the user's selected theme
+  const userTheme = themes.find((t) => t.id === appearanceSettings?.theme) || themes[0];
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<{ id: string; title: string; url: string; type: string } | null>(null);
@@ -290,12 +296,13 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Preview Sidebar */}
+            {/* Preview Sidebar - reflects the user's selected theme */}
             <div className="hidden lg:block">
-              <ProfilePreview
+              <ThemedProfilePreview
                 username={username}
                 fullName={displayName}
                 bio={bio}
+                theme={userTheme}
                 links={previewLinks}
               />
             </div>

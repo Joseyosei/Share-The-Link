@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
+import { useLinks } from "@/hooks/useLinks";
 import { ThemedProfilePreview } from "@/components/dashboard/ThemedProfilePreview";
 
 export interface Theme {
@@ -47,6 +48,7 @@ const DashboardAppearance = () => {
   const { toast } = useToast();
   const { profile } = useUserProfile();
   const { settings, updateSettings } = useAppearanceSettings();
+  const { links } = useLinks();
   const [selectedTheme, setSelectedTheme] = useState("air");
   const [activeCategory, setActiveCategory] = useState("theme");
   const [isSaving, setIsSaving] = useState(false);
@@ -93,7 +95,15 @@ const DashboardAppearance = () => {
   // Get user data for preview
   const username = profile?.username || "username";
   const fullName = profile?.full_name || "Your Name";
-  const bio = profile?.bio || "Creator & Entrepreneur ✨";
+  const bio = profile?.bio || "Creator & Entrepreneur";
+
+  // Transform links for the preview
+  const previewLinks = links.map((link: { id: string; title: string; url: string; is_active?: boolean | null }) => ({
+    id: link.id,
+    title: link.title,
+    url: link.url,
+    isActive: link.is_active ?? true,
+  }));
 
   return (
     <div className="min-h-screen bg-muted">
@@ -290,6 +300,7 @@ const DashboardAppearance = () => {
                 fullName={fullName}
                 bio={bio}
                 theme={selectedThemeData}
+                links={previewLinks}
               />
             </div>
           </div>
