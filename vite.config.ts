@@ -1,20 +1,8 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// https://vitejs.dev/config/
+// Vite configuration - path alias only, plugins handled by wrapper
 export default {
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
-    },
-  },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": "/vercel/share/v0-project/src",
     },
   },
 };
