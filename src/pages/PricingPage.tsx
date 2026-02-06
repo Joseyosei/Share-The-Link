@@ -1,46 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
-import { Check, X, HelpCircle, Loader2 } from "lucide-react";
+import { Check, X, HelpCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSubscription, TierKey } from "@/hooks/useSubscription";
-import { supabase } from "@/integrations/supabase/client";
-
-const plans = [
-  {
-    name: "Free",
-    tier: "free" as TierKey,
-    price: "£0",
-    period: "forever",
-    description: "Perfect for getting started",
-    cta: "Get Started",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    tier: "pro" as TierKey,
-    price: "£7",
-    period: "/month",
-    description: "For growing creators",
-    cta: "Start Free Trial",
-    popular: true,
-  },
-  {
-    name: "Business",
-    tier: "business" as TierKey,
-    price: "£23",
-    period: "/month",
-    description: "For teams and agencies",
-    cta: "Contact Sales",
-    popular: false,
-  },
-];
+import { PRICING_PLANS, formatPrice, getCheckoutUrl } from "@/lib/stripe-products";
 
 const comparisonFeatures = [
   {
@@ -109,37 +78,18 @@ const comparisonFeatures = [
 ];
 
 const PricingPage = () => {
-  const { startCheckout, loading, subscription, isAuthenticated } = useSubscription();
-  const [loadingTier, setLoadingTier] = useState<TierKey | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  const handlePlanClick = async (tier: TierKey) => {
-    if (tier === "free") {
+  const handlePlanClick = (planId: string) => {
+    if (planId === "free") {
       navigate("/signup");
       return;
     }
-
-    if (!isLoggedIn) {
-      navigate("/signup");
-      return;
+    const checkoutUrl = getCheckoutUrl(planId, interval);
+    if (checkoutUrl) {
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
     }
-
-    setLoadingTier(tier);
-    await startCheckout(tier);
-    setLoadingTier(null);
-  };
-
-  const isCurrentPlan = (tier: TierKey) => {
-    return subscription?.tier === tier && subscription.subscribed;
   };
 
   const renderFeatureValue = (value: boolean | string) => {
@@ -159,16 +109,41 @@ const PricingPage = () => {
       
       {/* Hero Section */}
       <section className="pt-32 pb-16 gradient-hero">
-        <div className="container mx-auto px-6 text-center">
-          <span className="inline-block px-4 py-2 rounded-full bg-primary-foreground/10 text-primary-foreground text-sm font-medium mb-6">
-            💰 Simple Pricing
+        <div className="container mx-auto px-6 text-center relative z-10">
+          <span className="inline-block px-4 py-2 rounded-full bg-white/10 text-white text-sm font-medium mb-6 backdrop-blur-sm border border-white/20">
+            Simple Pricing
           </span>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
             Choose your plan
           </h1>
-          <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto">
+          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10">
             Start free and upgrade as you grow. No hidden fees, cancel anytime.
           </p>
+
+          {/* Monthly / Yearly Toggle */}
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+            <button
+              onClick={() => setInterval("monthly")}
+              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+                interval === "monthly"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-white/80 hover:text-white"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setInterval("yearly")}
+              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+                interval === "yearly"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-white/80 hover:text-white"
+              }`}
+            >
+              Yearly
+              <span className="ml-1.5 text-xs text-green-400 font-bold">Save 33%</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -176,58 +151,85 @@ const PricingPage = () => {
       <section className="py-16 bg-background -mt-8">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 ${
-                  plan.popular
-                    ? "bg-foreground text-background shadow-2xl scale-105 z-10"
-                    : "bg-card text-card-foreground shadow-lg"
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1 rounded-full text-sm font-semibold gradient-button text-primary-foreground">
-                      MOST POPULAR
-                    </span>
-                  </div>
-                )}
-
-                <div className="text-center mb-8">
-                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                  <p className={`text-sm mb-4 ${plan.popular ? "text-background/70" : "text-muted-foreground"}`}>
-                    {plan.description}
-                  </p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-extrabold">{plan.price}</span>
-                    <span className={plan.popular ? "text-background/70" : "text-muted-foreground"}>
-                      {plan.period}
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => handlePlanClick(plan.tier)}
-                  disabled={loadingTier === plan.tier || loading || isCurrentPlan(plan.tier)}
-                  className={`w-full py-6 font-semibold ${
-                    plan.popular
-                      ? "bg-background text-foreground hover:bg-background/90"
-                      : "gradient-button text-primary-foreground hover:opacity-90"
+            {PRICING_PLANS.map((plan) => {
+              const price = interval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
+              const perMonth = interval === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 ${
+                    plan.highlighted
+                      ? "bg-foreground text-background shadow-2xl md:scale-105 z-10"
+                      : "bg-card text-card-foreground shadow-lg"
                   }`}
                 >
-                  {loadingTier === plan.tier ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : isCurrentPlan(plan.tier) ? (
-                    "Current Plan"
-                  ) : (
-                    plan.cta
+                  {plan.highlighted && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                      <span className="px-4 py-1.5 rounded-full text-sm font-semibold gradient-button text-white flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        MOST POPULAR
+                      </span>
+                    </div>
                   )}
-                </Button>
-              </div>
-            ))}
+
+                  <div className="text-center mb-8">
+                    <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                    <p className={`text-sm mb-4 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
+                      {plan.description}
+                    </p>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-4xl font-extrabold">
+                        {price === 0 ? "Free" : formatPrice(interval === "yearly" ? perMonth : price)}
+                      </span>
+                      {price > 0 && (
+                        <span className={plan.highlighted ? "text-background/70" : "text-muted-foreground"}>
+                          /month
+                        </span>
+                      )}
+                    </div>
+                    {interval === "yearly" && price > 0 && (
+                      <p className={`text-xs mt-1 ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
+                        Billed {formatPrice(price)} per year
+                      </p>
+                    )}
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                          plan.highlighted ? "bg-background/20" : "bg-primary/10"
+                        }`}>
+                          <Check className={`w-3 h-3 ${plan.highlighted ? "text-background" : "text-primary"}`} />
+                        </div>
+                        <span className={`text-sm ${plan.highlighted ? "text-background/90" : ""}`}>
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    onClick={() => handlePlanClick(plan.id)}
+                    className={`w-full py-6 font-semibold text-base ${
+                      plan.highlighted
+                        ? "bg-background text-foreground hover:bg-background/90"
+                        : plan.id === "free"
+                          ? "bg-primary/10 text-primary hover:bg-primary/20"
+                          : "gradient-button text-white hover:opacity-90"
+                    }`}
+                  >
+                    {plan.id === "free" ? "Get Started Free" : `Subscribe to ${plan.name}`}
+                  </Button>
+
+                  {plan.id !== "free" && (
+                    <p className={`text-center text-xs mt-3 ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
+                      Secure checkout powered by Stripe
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -250,15 +252,15 @@ const PricingPage = () => {
               <div className="font-semibold text-foreground">Features</div>
               <div className="text-center">
                 <div className="font-bold text-foreground">Free</div>
-                <div className="text-sm text-muted-foreground">$0/forever</div>
+                <div className="text-sm text-muted-foreground">Free forever</div>
               </div>
               <div className="text-center">
                 <div className="font-bold text-primary">Pro</div>
-                <div className="text-sm text-muted-foreground">$9/month</div>
+                <div className="text-sm text-muted-foreground">{formatPrice(7)}/month</div>
               </div>
               <div className="text-center">
                 <div className="font-bold text-foreground">Business</div>
-                <div className="text-sm text-muted-foreground">$29/month</div>
+                <div className="text-sm text-muted-foreground">{formatPrice(23)}/month</div>
               </div>
             </div>
 
@@ -343,16 +345,24 @@ const PricingPage = () => {
 
       {/* CTA Section */}
       <section className="py-24 gradient-hero">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-6">
+        <div className="container mx-auto px-6 text-center relative z-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Ready to get started?
           </h2>
-          <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
+          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8">
             Join thousands of creators and entrepreneurs using Share The Link.
           </p>
-          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-            <Link to="/signup">Start for Free →</Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild size="lg" className="bg-white text-foreground hover:bg-white/90 font-semibold px-10 py-7 text-lg">
+              <Link to="/signup">Start for Free</Link>
+            </Button>
+            <Button asChild size="lg" className="cta-button-outline font-semibold px-10 py-7 text-lg rounded-lg">
+              <Link to="/contact">Contact Sales</Link>
+            </Button>
+          </div>
+          <p className="text-sm text-white/50 mt-6">
+            Secure payments powered by Stripe. Cancel anytime.
+          </p>
         </div>
       </section>
 
