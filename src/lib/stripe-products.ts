@@ -48,7 +48,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 7,
     yearlyPrice: 56,
     currency: "GBP",
-    highlighted: true,
+    highlighted: false,
     features: [
       "Up to 5 profiles",
       "Unlimited links",
