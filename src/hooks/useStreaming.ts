@@ -82,20 +82,16 @@ export const useStreaming = () => {
         insertData.scheduled_at = scheduledAt;
       }
 
-      console.log("[v0] Creating stream with data:", insertData);
-
       const { data, error } = await supabase
         .from("streams")
         .insert(insertData)
         .select()
         .single();
 
-      console.log("[v0] Stream insert result:", { data, error });
       if (error) throw error;
 
       const stream = data as Stream;
       setCurrentStream(stream);
-      console.log("[v0] Stream created successfully:", stream.id);
       
       toast({
         title: "Stream created!",

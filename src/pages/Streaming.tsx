@@ -19,11 +19,8 @@ const Streaming = () => {
     fetchMyStreams();
   }, [fetchMyStreams]);
 
-  const handleStreamCreated = (data: { roomUrl: string; ownerToken: string; stream: { id: string } }) => {
-    console.log("[v0] Stream created successfully:", data);
+  const handleStreamCreated = () => {
     setIsStreamActive(true);
-    // The currentStream is already set in the hook via createStream
-    console.log("[v0] currentStream from hook:", currentStream);
   };
 
   const liveStreams = streams.filter(s => s.status === "live");
