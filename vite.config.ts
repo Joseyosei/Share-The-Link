@@ -1,4 +1,3 @@
-import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -13,7 +12,6 @@ export default {
       overlay: false,
     },
   },
-  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
