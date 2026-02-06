@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,10 +11,14 @@ interface GoLiveModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStreamCreated: (streamData: { roomUrl: string; ownerToken: string; stream: { id: string } }) => void;
+  createStreamFn?: (title: string, description?: string) => Promise<{ stream: { id: string }; roomUrl: string; ownerToken: string }>;
+  isLoading?: boolean;
 }
 
-export const GoLiveModal = ({ isOpen, onClose, onStreamCreated }: GoLiveModalProps) => {
-  const { createStream, loading } = useStreaming();
+export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, isLoading }: GoLiveModalProps) => {
+  const fallback = useStreaming();
+  const createStream = createStreamFn || fallback.createStream;
+  const loading = isLoading ?? fallback.loading;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -94,13 +98,62 @@ interface StreamPlayerProps {
   onEnd?: () => void;
 }
 
-export const StreamPlayer = ({ roomUrl, ownerToken, isOwner, streamId, onEnd }: StreamPlayerProps) => {
+export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) => {
   const { goLive, endStream, isLive } = useStreaming();
   const [loading, setLoading] = useState(false);
+  const [mediaSource, setMediaSource] = useState<"camera" | "screen" | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopMedia = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setMediaSource(null);
+  }, []);
+
+  const startCamera = async () => {
+    try {
+      stopMedia();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setMediaSource("camera");
+    } catch (err) {
+      console.error("Camera access denied:", err);
+    }
+  };
+
+  const startScreenShare = async () => {
+    try {
+      stopMedia();
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setMediaSource("screen");
+      // Handle when user stops sharing via browser UI
+      stream.getVideoTracks()[0].addEventListener("ended", () => {
+        stopMedia();
+      });
+    } catch (err) {
+      console.error("Screen share denied:", err);
+    }
+  };
 
   const handleGoLive = async () => {
     setLoading(true);
     try {
+      if (!mediaSource) {
+        await startCamera();
+      }
       await goLive(streamId);
     } finally {
       setLoading(false);
@@ -110,6 +163,7 @@ export const StreamPlayer = ({ roomUrl, ownerToken, isOwner, streamId, onEnd }: 
   const handleEndStream = async () => {
     setLoading(true);
     try {
+      stopMedia();
       await endStream(streamId);
       onEnd?.();
     } finally {
@@ -117,30 +171,87 @@ export const StreamPlayer = ({ roomUrl, ownerToken, isOwner, streamId, onEnd }: 
     }
   };
 
-  const iframeUrl = ownerToken ? `${roomUrl}?t=${ownerToken}` : roomUrl;
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopMedia();
+    };
+  }, [stopMedia]);
 
   return (
     <div className="relative bg-black rounded-2xl overflow-hidden">
       {isLive && (
         <Badge className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground animate-pulse">
-          🔴 LIVE
+          LIVE
         </Badge>
       )}
-      
-      <iframe
-        src={iframeUrl}
-        allow="camera; microphone; fullscreen; speaker; display-capture"
-        className="w-full aspect-video"
-        title="Live Stream"
-      />
 
+      {/* Video preview */}
+      <div className="w-full aspect-video bg-black flex items-center justify-center">
+        {mediaSource ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-center text-white/60 space-y-4">
+            <Video className="w-16 h-16 mx-auto opacity-40" />
+            <p className="text-sm">Choose a source to preview your stream</p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={startCamera}
+                variant="outline"
+                size="sm"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Camera
+              </Button>
+              <Button
+                onClick={startScreenShare}
+                variant="outline"
+                size="sm"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Monitor className="w-4 h-4 mr-2" />
+                Screen
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Controls overlay */}
       {isOwner && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          {mediaSource && !isLive && (
+            <>
+              <Button
+                onClick={startCamera}
+                variant="secondary"
+                size="sm"
+                className={mediaSource === "camera" ? "ring-2 ring-white" : ""}
+              >
+                <Camera className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={startScreenShare}
+                variant="secondary"
+                size="sm"
+                className={mediaSource === "screen" ? "ring-2 ring-white" : ""}
+              >
+                <Monitor className="w-4 h-4" />
+              </Button>
+            </>
+          )}
           {!isLive ? (
             <Button
               onClick={handleGoLive}
               disabled={loading}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4 mr-2" />}
               Go Live

@@ -11,27 +11,19 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Streaming = () => {
   const { profile } = useUserProfile();
-  const { streams, fetchMyStreams, loading, currentStream, setCurrentStream } = useStreaming();
+  const { streams, fetchMyStreams, loading, currentStream, setCurrentStream, createStream } = useStreaming();
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
-  const [activeStreamData, setActiveStreamData] = useState<{
-    roomUrl: string;
-    ownerToken: string;
-  } | null>(null);
+  const [isStreamActive, setIsStreamActive] = useState(false);
 
   useEffect(() => {
     fetchMyStreams();
   }, [fetchMyStreams]);
 
   const handleStreamCreated = (data: { roomUrl: string; ownerToken: string; stream: { id: string } }) => {
-    setActiveStreamData({
-      roomUrl: data.roomUrl,
-      ownerToken: data.ownerToken,
-    });
-    // Find and set the current stream
-    const stream = streams.find(s => s.id === data.stream.id);
-    if (stream) {
-      setCurrentStream(stream);
-    }
+    console.log("[v0] Stream created successfully:", data);
+    setIsStreamActive(true);
+    // The currentStream is already set in the hook via createStream
+    console.log("[v0] currentStream from hook:", currentStream);
   };
 
   const liveStreams = streams.filter(s => s.status === "live");
@@ -68,22 +60,21 @@ const Streaming = () => {
           </div>
 
           {/* Active Stream */}
-          {activeStreamData && currentStream && (
+          {isStreamActive && currentStream && (
             <div className="mb-8 space-y-4">
               <div className="flex items-center gap-2">
-                <Badge className="bg-destructive animate-pulse">🔴 LIVE</Badge>
+                <Badge className="bg-destructive animate-pulse">LIVE</Badge>
                 <h2 className="text-xl font-bold">{currentStream.title}</h2>
               </div>
               
               <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <StreamPlayer
-                    roomUrl={activeStreamData.roomUrl}
-                    ownerToken={activeStreamData.ownerToken}
+                    roomUrl=""
                     isOwner={true}
                     streamId={currentStream.id}
                     onEnd={() => {
-                      setActiveStreamData(null);
+                      setIsStreamActive(false);
                       fetchMyStreams();
                     }}
                   />
@@ -204,6 +195,8 @@ const Streaming = () => {
         isOpen={showGoLiveModal}
         onClose={() => setShowGoLiveModal(false)}
         onStreamCreated={handleStreamCreated}
+        createStreamFn={createStream}
+        isLoading={loading}
       />
     </div>
   );
