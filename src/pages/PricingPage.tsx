@@ -121,13 +121,13 @@ const PricingPage = () => {
           </p>
 
           {/* Monthly / Yearly Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-1 p-1.5 rounded-full bg-black/20 border border-white/20 backdrop-blur-sm">
             <button
               onClick={() => setInterval("monthly")}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
                 interval === "monthly"
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-white/80 hover:text-white"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-white/70 hover:text-white"
               }`}
             >
               Monthly
@@ -136,12 +136,12 @@ const PricingPage = () => {
               onClick={() => setInterval("yearly")}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
                 interval === "yearly"
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-white/80 hover:text-white"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-white/70 hover:text-white"
               }`}
             >
               Yearly
-              <span className="ml-1.5 text-xs text-green-400 font-bold">Save 33%</span>
+              <span className="ml-1.5 text-xs text-emerald-400 font-bold">Save 33%</span>
             </button>
           </div>
         </div>
