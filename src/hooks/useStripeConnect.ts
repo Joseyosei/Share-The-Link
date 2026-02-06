@@ -1,11 +1,8 @@
 /**
  * useStripeConnect Hook
  * 
- * Provides Stripe Connect functionality for connected accounts:
- * - Creating connected accounts
- * - Onboarding management
- * - Product management
- * - Account status tracking
+ * Provides Stripe Connect functionality via Vercel Serverless Functions.
+ * Replaces Supabase Edge Function calls with direct API calls to /api/* routes.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -34,6 +31,35 @@ interface ConnectProduct {
   currency: string;
 }
 
+/**
+ * Helper to call Vercel API routes with auth token
+ */
+async function callApi(endpoint: string, body?: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`/api/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || `API error: ${response.status}`);
+  }
+
+  return data;
+}
+
 export const useStripeConnect = () => {
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [products, setProducts] = useState<ConnectProduct[]>([]);
@@ -48,15 +74,7 @@ export const useStripeConnect = () => {
     setError(null);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "create-connected-account",
-        {
-          body: { displayName, contactEmail },
-        }
-      );
-
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
+      const data = await callApi("create-connected-account", { displayName, contactEmail });
 
       toast.success("Connected account created successfully!");
       await fetchAccountStatus();
@@ -79,13 +97,7 @@ export const useStripeConnect = () => {
     setError(null);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "create-account-link"
-      );
-
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
-
+      const data = await callApi("create-account-link");
       return data.url;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create onboarding link";
@@ -98,7 +110,7 @@ export const useStripeConnect = () => {
   };
 
   /**
-   * Fetch the current account status from Stripe
+   * Fetch the current account status
    */
   const fetchAccountStatus = useCallback(async () => {
     try {
@@ -108,13 +120,7 @@ export const useStripeConnect = () => {
         return;
       }
 
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "get-account-status"
-      );
-
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
-
+      const data = await callApi("get-account-status");
       setAccountStatus(data);
     } catch (err) {
       console.error("Error fetching account status:", err);
@@ -135,15 +141,12 @@ export const useStripeConnect = () => {
     setError(null);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "create-connect-product",
-        {
-          body: { name, description, priceInCents, currency },
-        }
-      );
-
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
+      const data = await callApi("create-connect-product", {
+        name,
+        description,
+        priceInCents,
+        currency,
+      });
 
       toast.success("Product created successfully!");
       return data.product;
@@ -160,25 +163,14 @@ export const useStripeConnect = () => {
   /**
    * Fetch products for the current user's connected account
    */
-  const fetchMyProducts = async () => {
-    if (!accountStatus?.accountId) return;
-
+  const fetchMyProducts = useCallback(async () => {
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "list-connect-products",
-        {
-          body: { accountId: accountStatus.accountId },
-        }
-      );
-
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
-
+      const data = await callApi("list-connect-products");
       setProducts(data.products || []);
     } catch (err) {
       console.error("Error fetching products:", err);
     }
-  };
+  }, []);
 
   // Fetch account status on mount and when auth changes
   useEffect(() => {
@@ -192,13 +184,10 @@ export const useStripeConnect = () => {
   }, [fetchAccountStatus]);
 
   return {
-    // State
     accountStatus,
     products,
     loading,
     error,
-
-    // Actions
     createConnectedAccount,
     startOnboarding,
     fetchAccountStatus,
