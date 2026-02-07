@@ -1,15 +1,25 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2 } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { themes } from "@/pages/DashboardAppearance";
+
+interface SocialLinks {
+  twitter?: string;
+  instagram?: string;
+  youtube?: string;
+  github?: string;
+  linkedin?: string;
+  website?: string;
+}
 
 interface ProfileData {
   username: string;
   full_name: string;
   bio: string;
   avatar_url: string;
+  social_links?: SocialLinks;
 }
 
 interface LinkData {
@@ -191,9 +201,81 @@ const Profile = () => {
 
           {/* Bio */}
           {profile?.bio && (
-            <p className={`${currentTheme.textColor} opacity-90 max-w-sm mx-auto mb-6`}>
+            <p className={`${currentTheme.textColor} opacity-90 max-w-sm mx-auto mb-4`}>
               {profile.bio}
             </p>
+          )}
+
+          {/* Social Media Icons */}
+          {profile?.social_links && Object.values(profile.social_links).some(Boolean) && (
+            <div className="flex items-center justify-center gap-3 mb-6">
+              {profile.social_links.twitter && (
+                <a
+                  href={profile.social_links.twitter.startsWith("http") ? profile.social_links.twitter : `https://twitter.com/${profile.social_links.twitter}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  aria-label="Twitter"
+                >
+                  <Twitter className="w-4 h-4" />
+                </a>
+              )}
+              {profile.social_links.instagram && (
+                <a
+                  href={profile.social_links.instagram.startsWith("http") ? profile.social_links.instagram : `https://instagram.com/${profile.social_links.instagram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              )}
+              {profile.social_links.youtube && (
+                <a
+                  href={profile.social_links.youtube.startsWith("http") ? profile.social_links.youtube : `https://youtube.com/${profile.social_links.youtube}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  aria-label="YouTube"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+              )}
+              {profile.social_links.github && (
+                <a
+                  href={profile.social_links.github.startsWith("http") ? profile.social_links.github : `https://github.com/${profile.social_links.github}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  aria-label="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+              )}
+              {profile.social_links.linkedin && (
+                <a
+                  href={profile.social_links.linkedin.startsWith("http") ? profile.social_links.linkedin : `https://linkedin.com/in/${profile.social_links.linkedin}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+              )}
+              {profile.social_links.website && (
+                <a
+                  href={profile.social_links.website.startsWith("http") ? profile.social_links.website : `https://${profile.social_links.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  aria-label="Website"
+                >
+                  <Globe className="w-4 h-4" />
+                </a>
+              )}
+            </div>
           )}
         </div>
 
