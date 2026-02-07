@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 // Exported as a plain object so the v0 wrapper can spread it via ...userConfig.
 // The wrapper provides its own plugins (React) and server config.
 export default {
+  envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
