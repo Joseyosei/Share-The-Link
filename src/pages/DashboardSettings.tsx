@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Lock, Trash2, Camera } from "lucide-react";
+import { ArrowLeft, User, Lock, Trash2, Camera, Twitter, Instagram, Youtube, Github, Globe, Linkedin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
@@ -21,6 +21,15 @@ const DashboardSettings = () => {
     profileImage: "",
   });
 
+  const [socialLinks, setSocialLinks] = useState({
+    twitter: "",
+    instagram: "",
+    youtube: "",
+    github: "",
+    linkedin: "",
+    website: "",
+  });
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -38,12 +47,30 @@ const DashboardSettings = () => {
         bio: profile.bio || "",
         profileImage: profile.avatar_url || "",
       });
+      // Load social links from profile JSONB column
+      const saved = (profile as Record<string, unknown>).social_links as Record<string, string> | null;
+      if (saved && typeof saved === "object") {
+        setSocialLinks((prev) => ({
+          ...prev,
+          twitter: saved.twitter || "",
+          instagram: saved.instagram || "",
+          youtube: saved.youtube || "",
+          github: saved.github || "",
+          linkedin: saved.linkedin || "",
+          website: saved.website || "",
+        }));
+      }
     }
   }, [profile]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfileData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSocialLinks((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +87,12 @@ const DashboardSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Filter out empty social links
+      const filteredSocials: Record<string, string> = {};
+      for (const [key, val] of Object.entries(socialLinks)) {
+        if (val.trim()) filteredSocials[key] = val.trim();
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -67,8 +100,9 @@ const DashboardSettings = () => {
           username: profileData.username,
           bio: profileData.bio,
           avatar_url: profileData.profileImage,
+          social_links: filteredSocials,
           updated_at: new Date().toISOString(),
-        })
+        } as Record<string, unknown>)
         .eq("user_id", user.id);
 
       if (error) throw error;
@@ -306,6 +340,79 @@ const DashboardSettings = () => {
                   className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none"
                   placeholder="Tell the world about yourself..."
                 />
+              </div>
+
+              {/* Social Media Handles */}
+              <div className="pt-4 border-t border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Social Media Handles</h3>
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      name="twitter"
+                      value={socialLinks.twitter}
+                      onChange={handleSocialChange}
+                      placeholder="Twitter / X username"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      name="instagram"
+                      value={socialLinks.instagram}
+                      onChange={handleSocialChange}
+                      placeholder="Instagram username"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Youtube className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      name="youtube"
+                      value={socialLinks.youtube}
+                      onChange={handleSocialChange}
+                      placeholder="YouTube channel URL"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Github className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      name="github"
+                      value={socialLinks.github}
+                      onChange={handleSocialChange}
+                      placeholder="GitHub username"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Linkedin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      name="linkedin"
+                      value={socialLinks.linkedin}
+                      onChange={handleSocialChange}
+                      placeholder="LinkedIn profile URL"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      name="website"
+                      value={socialLinks.website}
+                      onChange={handleSocialChange}
+                      placeholder="Personal website URL"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                    />
+                  </div>
+                </div>
               </div>
 
               <Button
