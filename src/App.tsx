@@ -29,6 +29,7 @@ import IntegrationsPage from "./pages/IntegrationsPage";
 import ChangelogPage from "./pages/ChangelogPage";
 import ConnectDashboard from "./pages/ConnectDashboard";
 import StorefrontPage from "./pages/StorefrontPage";
+import LiveStreamPage from "./pages/LiveStreamPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import NotFound from "./pages/NotFound";
 
@@ -60,6 +61,9 @@ const App = () => (
           
           {/* Public storefront - anyone can view */}
           <Route path="/store/:accountId" element={<StorefrontPage />} />
+          
+          {/* Public live stream viewer page */}
+          <Route path="/live/:username" element={<LiveStreamPage />} />
           
           {/* Subscription success page */}
           <Route path="/subscription/success" element={<SubscriptionSuccess />} />

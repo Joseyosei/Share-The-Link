@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Radio, Video, Calendar, Users, DollarSign, Plus } from "lucide-react";
+import { Radio, Video, Calendar, Users, DollarSign, Plus, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,17 +59,40 @@ const Streaming = () => {
           {/* Active Stream */}
           {isStreamActive && currentStream && (
             <div className="mb-8 space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-destructive animate-pulse">LIVE</Badge>
-                <h2 className="text-xl font-bold">{currentStream.title}</h2>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-destructive animate-pulse">LIVE</Badge>
+                  <h2 className="text-xl font-bold">{currentStream.title}</h2>
+                </div>
+                <div className="flex items-center gap-2 bg-card border rounded-lg px-3 py-2">
+                  <span className="text-sm text-muted-foreground truncate max-w-[200px]">
+                    {window.location.origin}/live/{username}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/live/${username}`);
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(`/live/${username}`, "_blank")}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
               
               <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <StreamPlayer
-                    roomUrl=""
                     isOwner={true}
                     streamId={currentStream.id}
+                    roomName={currentStream.room_name || undefined}
                     onEnd={() => {
                       setIsStreamActive(false);
                       fetchMyStreams();

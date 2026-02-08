@@ -12,7 +12,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ShoppingCart, Store, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,15 +46,14 @@ export const Storefront = () => {
       if (!accountId) return;
 
       try {
-        const { data, error: invokeError } = await supabase.functions.invoke(
-          "list-connect-products",
-          {
-            body: { accountId },
-          }
-        );
+        const response = await fetch("/api/list-connect-products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountId }),
+        });
 
-        if (invokeError) throw new Error(invokeError.message);
-        if (data.error) throw new Error(data.error);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to load store");
 
         setStore(data.store);
         setProducts(data.products || []);
@@ -75,20 +73,19 @@ export const Storefront = () => {
     setCheckoutLoading(product.id);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "create-connect-checkout",
-        {
-          body: {
-            accountId,
-            priceId: product.priceId,
-            productName: product.name,
-            quantity: 1,
-          },
-        }
-      );
+      const response = await fetch("/api/create-connect-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId,
+          priceId: product.priceId,
+          productName: product.name,
+          quantity: 1,
+        }),
+      });
 
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Checkout failed");
 
       // Redirect to checkout
       if (data.url) {
