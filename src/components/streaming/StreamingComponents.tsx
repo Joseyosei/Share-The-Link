@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useStreaming } from "@/hooks/useStreaming";
+import { useBroadcaster, useViewer } from "@/hooks/useWebRTC";
 
 interface GoLiveModalProps {
   isOpen: boolean;
@@ -91,69 +92,40 @@ export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, 
 };
 
 interface StreamPlayerProps {
-  roomUrl: string;
+  roomUrl?: string;
   ownerToken?: string;
   isOwner: boolean;
   streamId: string;
+  roomName?: string;
   onEnd?: () => void;
+  onViewerCountChange?: (count: number) => void;
 }
 
-export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) => {
+export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCountChange }: StreamPlayerProps) => {
   const { goLive, endStream, isLive } = useStreaming();
+  const broadcaster = useBroadcaster(roomName || `stream-${streamId}`);
   const [loading, setLoading] = useState(false);
-  const [mediaSource, setMediaSource] = useState<"camera" | "screen" | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
-  const stopMedia = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+  // Attach local stream to video element
+  useEffect(() => {
+    if (videoRef.current && broadcaster.localStream) {
+      videoRef.current.srcObject = broadcaster.localStream;
     }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setMediaSource(null);
-  }, []);
+  }, [broadcaster.localStream]);
 
-  const startCamera = async () => {
-    try {
-      stopMedia();
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setMediaSource("camera");
-    } catch (err) {
-      console.error("Camera access denied:", err);
-    }
-  };
-
-  const startScreenShare = async () => {
-    try {
-      stopMedia();
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setMediaSource("screen");
-      // Handle when user stops sharing via browser UI
-      stream.getVideoTracks()[0].addEventListener("ended", () => {
-        stopMedia();
-      });
-    } catch (err) {
-      console.error("Screen share denied:", err);
-    }
-  };
+  // Notify parent of viewer count changes
+  useEffect(() => {
+    onViewerCountChange?.(broadcaster.viewerCount);
+  }, [broadcaster.viewerCount, onViewerCountChange]);
 
   const handleGoLive = async () => {
     setLoading(true);
     try {
-      if (!mediaSource) {
-        await startCamera();
+      if (!broadcaster.localStream) {
+        await broadcaster.startCamera();
       }
+      broadcaster.startBroadcasting();
       await goLive(streamId);
     } finally {
       setLoading(false);
@@ -163,7 +135,7 @@ export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) =>
   const handleEndStream = async () => {
     setLoading(true);
     try {
-      stopMedia();
+      broadcaster.stopBroadcasting();
       await endStream(streamId);
       onEnd?.();
     } finally {
@@ -171,24 +143,23 @@ export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) =>
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopMedia();
-    };
-  }, [stopMedia]);
-
   return (
     <div className="relative bg-black rounded-2xl overflow-hidden">
       {isLive && (
-        <Badge className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground animate-pulse">
-          LIVE
-        </Badge>
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+          <Badge className="bg-destructive text-destructive-foreground animate-pulse">
+            LIVE
+          </Badge>
+          <Badge variant="secondary" className="bg-black/50 text-white border-0">
+            <Users className="w-3 h-3 mr-1" />
+            {broadcaster.viewerCount}
+          </Badge>
+        </div>
       )}
 
       {/* Video preview */}
       <div className="w-full aspect-video bg-black flex items-center justify-center">
-        {mediaSource ? (
+        {broadcaster.localStream ? (
           <video
             ref={videoRef}
             autoPlay
@@ -202,7 +173,7 @@ export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) =>
             <p className="text-sm">Choose a source to preview your stream</p>
             <div className="flex gap-3 justify-center">
               <Button
-                onClick={startCamera}
+                onClick={() => broadcaster.startCamera()}
                 variant="outline"
                 size="sm"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
@@ -211,7 +182,7 @@ export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) =>
                 Camera
               </Button>
               <Button
-                onClick={startScreenShare}
+                onClick={() => broadcaster.startScreenShare()}
                 variant="outline"
                 size="sm"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
@@ -227,21 +198,21 @@ export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) =>
       {/* Controls overlay */}
       {isOwner && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-          {mediaSource && !isLive && (
+          {broadcaster.localStream && !isLive && (
             <>
               <Button
-                onClick={startCamera}
+                onClick={() => broadcaster.startCamera()}
                 variant="secondary"
                 size="sm"
-                className={mediaSource === "camera" ? "ring-2 ring-white" : ""}
+                className={broadcaster.mediaSource === "camera" ? "ring-2 ring-white" : ""}
               >
                 <Camera className="w-4 h-4" />
               </Button>
               <Button
-                onClick={startScreenShare}
+                onClick={() => broadcaster.startScreenShare()}
                 variant="secondary"
                 size="sm"
-                className={mediaSource === "screen" ? "ring-2 ring-white" : ""}
+                className={broadcaster.mediaSource === "screen" ? "ring-2 ring-white" : ""}
               >
                 <Monitor className="w-4 h-4" />
               </Button>
@@ -268,6 +239,95 @@ export const StreamPlayer = ({ isOwner, streamId, onEnd }: StreamPlayerProps) =>
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+/**
+ * Viewer Player - Receives and displays a WebRTC stream
+ */
+interface ViewerPlayerProps {
+  roomName: string;
+  streamTitle?: string;
+}
+
+export const ViewerPlayer = ({ roomName, streamTitle }: ViewerPlayerProps) => {
+  const viewer = useViewer(roomName);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasConnected, setHasConnected] = useState(false);
+
+  // Auto-connect on mount
+  useEffect(() => {
+    if (!hasConnected && roomName) {
+      viewer.connect();
+      setHasConnected(true);
+    }
+    return () => {
+      viewer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomName]);
+
+  // Attach remote stream to video
+  useEffect(() => {
+    if (videoRef.current && viewer.remoteStream) {
+      videoRef.current.srcObject = viewer.remoteStream;
+    }
+  }, [viewer.remoteStream]);
+
+  return (
+    <div className="relative bg-black rounded-2xl overflow-hidden">
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+        <Badge className="bg-destructive text-destructive-foreground animate-pulse">
+          LIVE
+        </Badge>
+        {streamTitle && (
+          <span className="text-white text-sm font-medium bg-black/50 px-2 py-1 rounded">
+            {streamTitle}
+          </span>
+        )}
+      </div>
+
+      <div className="w-full aspect-video bg-black flex items-center justify-center">
+        {viewer.remoteStream ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-center text-white/60 space-y-3">
+            {viewer.isConnecting ? (
+              <>
+                <Loader2 className="w-10 h-10 mx-auto animate-spin" />
+                <p className="text-sm">Connecting to stream...</p>
+              </>
+            ) : viewer.connectionState === "failed" ? (
+              <>
+                <Video className="w-12 h-12 mx-auto opacity-40" />
+                <p className="text-sm">Connection failed. The stream may have ended.</p>
+                <Button
+                  onClick={() => {
+                    viewer.disconnect();
+                    setTimeout(() => viewer.connect(), 500);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                >
+                  Retry
+                </Button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-10 h-10 mx-auto animate-spin" />
+                <p className="text-sm">Waiting for broadcaster...</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

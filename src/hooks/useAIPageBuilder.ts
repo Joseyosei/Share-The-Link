@@ -41,28 +41,42 @@ export const useAIPageBuilder = () => {
   const [generatedPage, setGeneratedPage] = useState<GeneratedPage | null>(null);
   const [generationHistory, setGenerationHistory] = useState<AIGeneration[]>([]);
 
-  // Generate page design
+  // Generate page design via Vercel API route
   const generatePage = async (businessDescription: string) => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("ai-page-builder", {
-        body: { businessDescription },
+      const response = await fetch("/api/ai-page-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessDescription }),
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Generation failed");
 
-      setGeneratedPage(data.generation as GeneratedPage);
+      const generation = data.generation as GeneratedPage;
+      setGeneratedPage(generation);
+
+      // Save generation to DB
+      await supabase.from("ai_generations").insert({
+        user_id: user.id,
+        business_description: businessDescription,
+        generated_bio: generation.bio,
+        generated_colors: generation.colors as unknown as Record<string, unknown>,
+        generated_layout: generation.layout,
+        generated_ctas: generation.ctas as unknown as Record<string, unknown>[],
+        generated_font: generation.font,
+      });
 
       toast({
-        title: "Page generated! ✨",
+        title: "Page generated!",
         description: "Preview your new design below.",
       });
 
-      return data.generation as GeneratedPage;
+      return generation;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate page";
       toast({

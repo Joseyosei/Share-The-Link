@@ -77,17 +77,15 @@ export const useSubscription = () => {
 
       setIsAuthenticated(true);
 
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "check-subscription"
-      );
+      const response = await fetch("/api/check-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
 
-      if (invokeError) {
-        console.error("Subscription check error:", invokeError);
-        setSubscription({ subscribed: false, tier: "free" });
-        return;
-      }
+      const data = await response.json();
 
-      if (data.error) {
+      if (!response.ok || data.error) {
         console.error("Subscription check error:", data.error);
         setSubscription({ subscribed: false, tier: "free" });
         return;
@@ -115,15 +113,14 @@ export const useSubscription = () => {
         return null;
       }
 
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "create-subscription-checkout",
-        {
-          body: { tier },
-        }
-      );
+      const response = await fetch("/api/create-subscription-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier, email: user.email }),
+      });
 
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Checkout failed");
 
       // Open checkout in new tab
       if (data.url) {
@@ -148,12 +145,17 @@ export const useSubscription = () => {
     setLoading(true);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "customer-portal"
-      );
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("Not authenticated");
 
-      if (invokeError) throw new Error(invokeError.message);
-      if (data.error) throw new Error(data.error);
+      const response = await fetch("/api/customer-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Portal failed");
 
       // Open portal in new tab
       if (data.url) {
