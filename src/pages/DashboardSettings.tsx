@@ -95,15 +95,15 @@ const DashboardSettings = () => {
 
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          user_id: user.id,
           full_name: profileData.fullName,
           username: profileData.username,
           bio: profileData.bio,
           avatar_url: profileData.profileImage,
           social_links: filteredSocials as unknown as import("@/integrations/supabase/types").Json,
           updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+        }, { onConflict: "user_id" });
 
       if (error) throw error;
 
@@ -115,7 +115,7 @@ const DashboardSettings = () => {
         description: "Your changes have been saved successfully.",
       });
     } catch (error) {
-      console.log("[v0] Error saving profile:", JSON.stringify(error));
+      console.error("Error saving profile:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save profile. Please try again.",

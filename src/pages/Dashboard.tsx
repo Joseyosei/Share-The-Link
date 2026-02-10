@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLinks } from "@/hooks/useLinks";
 import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
+import { useSubscription } from "@/hooks/useSubscription";
 import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
 
@@ -30,6 +31,7 @@ const Dashboard = () => {
     toggleLink 
   } = useLinks();
   const { settings: appearanceSettings } = useAppearanceSettings();
+  const { subscription } = useSubscription();
   
   // Look up the user's selected theme
   const userTheme = themes.find((t) => t.id === appearanceSettings?.theme) || themes[0];
@@ -151,9 +153,16 @@ const Dashboard = () => {
                 </>
               ) : (
                 <>
-                  <h1 className="text-3xl font-bold text-foreground mb-1">
-                    Welcome back, {firstName}! 👋
-                  </h1>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h1 className="text-3xl font-bold text-foreground">
+                      Welcome back, {firstName}!
+                    </h1>
+                    {subscription?.subscribed && (
+                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs border-0 px-2.5 py-1">
+                        {subscription.tier?.toUpperCase() || "PRO"} Plan
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-muted-foreground">
                     Here's what's happening with your links today.
                   </p>
