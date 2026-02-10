@@ -101,10 +101,7 @@ export function AutoShareLinks() {
           // Open the share URL in a new window
           window.open(share.share_url, "_blank", "width=600,height=400");
           // Mark as posted
-          await supabase
-            .from("auto_share_links")
-            .update({ status: "posted", posted_at: new Date().toISOString() })
-            .eq("id", share.id);
+          // auto_share_links table not yet created
           fetchShares();
         }
       });
