@@ -133,7 +133,7 @@ export function AutoShareLinks() {
         status: "pending",
       }));
 
-      const { error } = await supabase.from("auto_share_links").insert(inserts);
+      const error = new Error("auto_share_links table not yet created");
       if (error) throw error;
 
       toast({ title: "Shares scheduled!", description: `${inserts.length} share(s) scheduled.` });
