@@ -148,7 +148,7 @@ const ConnectDashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("user_products").delete().eq("id", id);
+    await (supabase.from("connect_products" as any).delete().eq("id", id) as any);
     fetchProducts();
     toast({ title: "Product deleted" });
   };
