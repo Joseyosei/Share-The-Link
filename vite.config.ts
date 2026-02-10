@@ -9,6 +9,9 @@ const __dirname = path.dirname(__filename);
 // The wrapper provides its own plugins (React) and server config.
 export default {
   envPrefix: ["VITE_", "NEXT_PUBLIC_"],
+  server: {
+    port: 8080,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

@@ -226,18 +226,11 @@ export const useStreaming = () => {
       if (tipError) throw tipError;
 
       // Update stream total tips
-      const { error: updateError } = await supabase.rpc("increment_stream_tips", {
-        p_stream_id: streamId,
-        p_amount: amount,
-      });
-
-      // If the RPC doesn't exist yet, just update directly
-      if (updateError) {
-        await supabase
-          .from("streams")
-          .update({ total_tips: currentStream ? (currentStream.total_tips || 0) + amount : amount })
-          .eq("id", streamId);
-      }
+      // Update stream total tips directly
+      await supabase
+        .from("streams")
+        .update({ total_tips: currentStream ? (currentStream.total_tips || 0) + amount : amount })
+        .eq("id", streamId);
 
       // Also add a chat message about the tip
       await supabase.from("stream_chat").insert({

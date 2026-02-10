@@ -38,7 +38,7 @@ export const useUserProfile = () => {
         throw profileError;
       }
 
-      setProfile(data ? { ...data, email: user.email } : {
+      setProfile(data ? { ...data, social_links: (data.social_links && typeof data.social_links === 'object' && !Array.isArray(data.social_links)) ? data.social_links as Record<string, string> : null, email: user.email } : {
         id: "",
         user_id: user.id,
         full_name: user.user_metadata?.full_name || null,

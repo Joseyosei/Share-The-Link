@@ -61,7 +61,7 @@ export const useAIPageBuilder = () => {
       setGeneratedPage(generation);
 
       // Save generation to DB
-      await supabase.from("ai_generations").insert({
+      await supabase.from("ai_generations").insert([{
         user_id: user.id,
         business_description: businessDescription,
         generated_bio: generation.bio,
@@ -69,7 +69,7 @@ export const useAIPageBuilder = () => {
         generated_layout: generation.layout,
         generated_ctas: generation.ctas as unknown as Record<string, unknown>[],
         generated_font: generation.font,
-      });
+      }]);
 
       toast({
         title: "Page generated!",
