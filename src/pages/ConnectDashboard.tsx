@@ -154,7 +154,7 @@ const ConnectDashboard = () => {
   };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
-    await supabase.from("user_products").update({ is_active: !currentActive }).eq("id", id);
+    await (supabase.from("connect_products" as any).update({ is_active: !currentActive }).eq("id", id) as any);
     fetchProducts();
   };
 
