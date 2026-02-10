@@ -57,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const sub = trialSubs.data[0];
       const priceId = sub.items.data[0]?.price.id;
-      const tier = PRICE_TO_TIER[priceId] || "free";
+      const tier = PRICE_TO_TIER[priceId] || "pro";
 
       return res.status(200).json({
         subscribed: true,
@@ -73,7 +73,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const sub = subscriptions.data[0];
     const priceId = sub.items.data[0]?.price.id;
-    const tier = PRICE_TO_TIER[priceId] || "free";
+    // Default to "pro" if price not in our mapping (covers test/sandbox prices)
+    const tier = PRICE_TO_TIER[priceId] || "pro";
 
     return res.status(200).json({
       subscribed: true,

@@ -27,7 +27,7 @@ const navItems = [
   { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
   { icon: Play, label: "Media", href: "/media", isNew: true },
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
-  { icon: Store, label: "Sell Products", href: "/connect", isNew: true },
+  { icon: Store, label: "My Shop", href: "/connect", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },

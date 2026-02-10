@@ -13,7 +13,9 @@ import {
   Play
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,7 +25,7 @@ const navItems = [
   { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
   { icon: Play, label: "Media", href: "/media", isNew: true },
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
-  { icon: Store, label: "Sell Products", href: "/connect", isNew: true },
+  { icon: Store, label: "My Shop", href: "/connect", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
@@ -34,6 +36,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile, loading } = useUserProfile();
+  const { subscription } = useSubscription();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -99,7 +102,14 @@ export const Sidebar = () => {
               </>
             ) : (
               <>
-                <p className="font-medium truncate">{displayName}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium truncate">{displayName}</p>
+                  {subscription?.subscribed && (
+                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] px-1.5 py-0 border-0">
+                      PRO
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-sidebar-foreground/60 truncate">{displayEmail}</p>
               </>
             )}

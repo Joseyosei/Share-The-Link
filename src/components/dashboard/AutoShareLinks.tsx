@@ -87,7 +87,7 @@ export function AutoShareLinks() {
       .from("links")
       .select("id, title, url")
       .eq("user_id", user.id)
-      .order("sort_order", { ascending: true });
+      .order("position", { ascending: true });
 
     setLinks(data || []);
   }, []);
