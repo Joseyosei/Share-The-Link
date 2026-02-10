@@ -104,6 +104,53 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_share_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          link_id: string | null
+          message: string | null
+          platform: string
+          posted_at: string | null
+          scheduled_at: string
+          share_url: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link_id?: string | null
+          message?: string | null
+          platform: string
+          posted_at?: string | null
+          scheduled_at: string
+          share_url: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link_id?: string | null
+          message?: string | null
+          platform?: string
+          posted_at?: string | null
+          scheduled_at?: string
+          share_url?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_share_links_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connect_products: {
         Row: {
           connected_account_id: string
@@ -339,6 +386,59 @@ export type Database = {
           },
         ]
       }
+      stream_recordings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          id: string
+          stream_id: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          video_url: string
+          view_count: number | null
+          visibility: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          stream_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          video_url: string
+          view_count?: number | null
+          visibility?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          stream_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          video_url?: string
+          view_count?: number | null
+          visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_recordings_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stream_tips: {
         Row: {
           amount: number
@@ -490,6 +590,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_products: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          external_url: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          price_cents: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          external_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          price_cents?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          external_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          price_cents?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -540,6 +682,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_appearance_by_username: {
+        Args: { lookup_username: string }
+        Returns: {
+          background_color: string
+          background_gradient: string
+          background_type: string
+          bio_color: string
+          button_color: string
+          button_style: string
+          font_family: string
+          theme: string
+          title_color: string
+        }[]
+      }
       get_public_links: {
         Args: { lookup_username: string }
         Returns: {
@@ -556,6 +712,7 @@ export type Database = {
           avatar_url: string
           bio: string
           full_name: string
+          social_links: Json
           username: string
         }[]
       }
