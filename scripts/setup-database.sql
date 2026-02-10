@@ -332,7 +332,42 @@ CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON public.user_subscri
 CREATE INDEX IF NOT EXISTS idx_connect_products_connected_account ON public.connect_products(connected_account_id);
 
 -- ==============================================
--- 8. PUBLIC PROFILE FUNCTIONS (RPC)
+-- 8. AUTO-SHARE LINKS TABLE
+-- ==============================================
+CREATE TABLE IF NOT EXISTS public.auto_share_links (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  link_id UUID NOT NULL REFERENCES public.links(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  message TEXT,
+  share_url TEXT NOT NULL,
+  scheduled_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  posted_at TIMESTAMP WITH TIME ZONE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'posted', 'failed', 'cancelled')),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.auto_share_links ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own auto shares"
+  ON public.auto_share_links FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own auto shares"
+  ON public.auto_share_links FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own auto shares"
+  ON public.auto_share_links FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own auto shares"
+  ON public.auto_share_links FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_auto_share_links_user_id ON public.auto_share_links(user_id);
+CREATE INDEX IF NOT EXISTS idx_auto_share_links_link_id ON public.auto_share_links(link_id);
+CREATE INDEX IF NOT EXISTS idx_auto_share_links_status ON public.auto_share_links(status, scheduled_at)
+  WHERE status = 'pending';
+
+-- ==============================================
+-- 9. PUBLIC PROFILE FUNCTIONS (RPC)
 -- ==============================================
 CREATE OR REPLACE FUNCTION public.get_public_profile(lookup_username text)
 RETURNS TABLE (
@@ -390,7 +425,7 @@ AS $$
 $$;
 
 -- ==============================================
--- 9. TRIGGERS FOR UPDATED_AT
+-- 10. TRIGGERS FOR UPDATED_AT
 -- ==============================================
 CREATE OR REPLACE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE OR REPLACE TRIGGER update_links_updated_at BEFORE UPDATE ON public.links FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -401,7 +436,7 @@ CREATE OR REPLACE TRIGGER update_user_subscriptions_updated_at BEFORE UPDATE ON 
 CREATE OR REPLACE TRIGGER update_connect_products_updated_at BEFORE UPDATE ON public.connect_products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ==============================================
--- 10. ENABLE REALTIME
+-- 11. ENABLE REALTIME
 -- ==============================================
 ALTER PUBLICATION supabase_realtime ADD TABLE public.stream_chat;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.streams;

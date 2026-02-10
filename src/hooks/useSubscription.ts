@@ -116,7 +116,7 @@ export const useSubscription = () => {
       const response = await fetch("/api/create-subscription-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier, email: user.email }),
+        body: JSON.stringify({ tier, email: user.email, userId: user.id }),
       });
 
       const data = await response.json();
@@ -195,6 +195,20 @@ export const useSubscription = () => {
     });
 
     return () => authSub.unsubscribe();
+  }, [checkSubscription]);
+
+  // Re-check subscription after returning from checkout
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscription") === "success") {
+      // Delay to allow Stripe to finalize the subscription
+      const timer = setTimeout(() => {
+        checkSubscription();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
   }, [checkSubscription]);
 
   // Periodic refresh every 60 seconds

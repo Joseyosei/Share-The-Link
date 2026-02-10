@@ -144,6 +144,12 @@ serve(async (req) => {
     // STEP 5: Handle standard subscription events
     // ============================================
     switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutCompleted(supabaseClient, stripeClient, session);
+        break;
+      }
+
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
@@ -289,6 +295,28 @@ async function handleV2AccountEvent(
 }
 
 /**
+ * Handle checkout.session.completed events
+ */
+// deno-lint-ignore no-explicit-any
+async function handleCheckoutCompleted(
+  supabaseClient: any,
+  stripeClient: Stripe,
+  session: Stripe.Checkout.Session
+) {
+  logStep("Handling checkout completed", { sessionId: session.id });
+
+  const subscriptionId = session.subscription as string;
+  if (!subscriptionId) {
+    logStep("No subscription ID in checkout session");
+    return;
+  }
+
+  // Retrieve the full subscription to get details
+  const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+  await handleSubscriptionUpdate(supabaseClient, subscription);
+}
+
+/**
  * Handle subscription update events
  */
 // deno-lint-ignore no-explicit-any
@@ -302,14 +330,14 @@ async function handleSubscriptionUpdate(
   });
 
   // Get user ID from subscription metadata
-  const userId = subscription.metadata?.userId;
+  const userId = subscription.metadata?.supabase_user_id || subscription.metadata?.userId;
   
   // For V2 accounts, get the account from customer_account
   // Note: customer_account is used instead of customer for V2
   const accountId = (subscription as unknown as { customer_account?: string }).customer_account;
 
   if (!userId && !accountId) {
-    logStep("No user ID or account ID found in subscription");
+    logStep("No user ID or account ID found in subscription metadata, skipping DB update");
     return;
   }
 
@@ -370,7 +398,7 @@ async function handleSubscriptionDeleted(
 ) {
   logStep("Handling subscription deletion", { subscriptionId: subscription.id });
 
-  const userId = subscription.metadata?.userId;
+  const userId = subscription.metadata?.supabase_user_id || subscription.metadata?.userId;
   
   if (!userId) {
     logStep("No user ID found in deleted subscription");
