@@ -67,7 +67,7 @@ const MediaPage = () => {
       // Fetch profile data for all user_ids
       const allUserIds = [
         ...(liveData || []).map((s) => s.user_id),
-        ...(recordingData || []).map((r) => r.user_id),
+        ...recordingData.map((r) => r.user_id),
       ];
       const uniqueIds = [...new Set(allUserIds)];
 
