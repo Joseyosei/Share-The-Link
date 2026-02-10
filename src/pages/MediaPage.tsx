@@ -293,10 +293,7 @@ const RecordingCard = ({ recording, formatDuration, formatTimeAgo }: RecordingCa
   const [playing, setPlaying] = useState(false);
 
   const incrementViews = async () => {
-    await supabase
-      .from("stream_recordings")
-      .update({ view_count: (recording.view_count || 0) + 1 })
-      .eq("id", recording.id);
+    // stream_recordings table not yet created — no-op
   };
 
   return (

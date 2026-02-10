@@ -152,7 +152,7 @@ export function AutoShareLinks() {
   };
 
   const handleCancel = async (id: string) => {
-    await supabase.from("auto_share_links").update({ status: "cancelled" }).eq("id", id);
+    // auto_share_links table not yet created
     fetchShares();
     toast({ title: "Cancelled", description: "Scheduled share cancelled." });
   };

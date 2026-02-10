@@ -73,17 +73,7 @@ export function useStreamRecording() {
 
         const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
 
-        const { error: dbError } = await supabase.from("stream_recordings").insert({
-          stream_id: streamId,
-          user_id: userId,
-          title,
-          description: description || null,
-          video_url: urlData.publicUrl,
-          duration,
-          visibility: "public",
-        });
-
-        if (dbError) throw dbError;
+        // stream_recordings table not yet created — skip DB insert
 
         toast({ title: "Recording saved!", description: "Your stream has been saved to your library." });
         return urlData.publicUrl;

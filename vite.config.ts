@@ -11,10 +11,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  plugins: [
-    react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  plugins: [react()],
   envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   resolve: {
     alias: {
