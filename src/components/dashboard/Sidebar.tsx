@@ -110,7 +110,7 @@ export const Sidebar = () => {
                   <p className="font-medium truncate">{displayName}</p>
                   {subscription?.subscribed && (
                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] px-1.5 py-0 border-0">
-                      PRO
+                      {subscription.tier?.toUpperCase() || "PRO"}
                     </Badge>
                   )}
                 </div>
