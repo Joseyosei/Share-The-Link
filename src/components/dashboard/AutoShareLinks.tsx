@@ -112,10 +112,13 @@ export function AutoShareLinks() {
           // Open the share URL in a new window
           window.open(share.share_url, "_blank", "width=600,height=400");
           // Mark as posted
-          await supabase
+          const { error } = await supabase
             .from("auto_share_links")
             .update({ status: "posted", posted_at: new Date().toISOString() })
             .eq("id", share.id);
+          if (error) {
+            console.error("Error marking share as posted:", error);
+          }
           fetchShares();
         }
       });
@@ -169,10 +172,14 @@ export function AutoShareLinks() {
   };
 
   const handleCancel = async (id: string) => {
-    await supabase
+    const { error } = await supabase
       .from("auto_share_links")
       .update({ status: "cancelled" })
       .eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: "Failed to cancel scheduled share.", variant: "destructive" });
+      return;
+    }
     fetchShares();
     toast({ title: "Cancelled", description: "Scheduled share cancelled." });
   };

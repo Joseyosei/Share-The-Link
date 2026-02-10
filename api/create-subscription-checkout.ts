@@ -69,14 +69,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ],
       subscription_data: {
         metadata: {
-          supabase_user_id: userId || "",
+          ...(userId ? { supabase_user_id: userId } : {}),
           tier,
         },
       },
       success_url: `${origin}/dashboard?subscription=success`,
       cancel_url: `${origin}/pricing?subscription=cancelled`,
       metadata: {
-        supabase_user_id: userId || "",
+        ...(userId ? { supabase_user_id: userId } : {}),
         tier,
       },
     });
