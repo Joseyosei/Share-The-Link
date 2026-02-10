@@ -48,7 +48,7 @@ const DashboardSettings = () => {
         profileImage: profile.avatar_url || "",
       });
       // Load social links from profile JSONB column
-      const saved = (profile as Record<string, unknown>).social_links as Record<string, string> | null;
+      const saved = profile.social_links as Record<string, string> | null;
       if (saved && typeof saved === "object") {
         setSocialLinks((prev) => ({
           ...prev,
@@ -100,9 +100,9 @@ const DashboardSettings = () => {
           username: profileData.username,
           bio: profileData.bio,
           avatar_url: profileData.profileImage,
-          social_links: filteredSocials,
+          social_links: filteredSocials as unknown as import("@/integrations/supabase/types").Json,
           updated_at: new Date().toISOString(),
-        } as Record<string, unknown>)
+        })
         .eq("user_id", user.id);
 
       if (error) throw error;
@@ -115,10 +115,10 @@ const DashboardSettings = () => {
         description: "Your changes have been saved successfully.",
       });
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.log("[v0] Error saving profile:", JSON.stringify(error));
       toast({
         title: "Error",
-        description: "Failed to save profile. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save profile. Please try again.",
         variant: "destructive",
       });
     } finally {
