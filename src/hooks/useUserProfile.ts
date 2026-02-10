@@ -45,7 +45,7 @@ export const useUserProfile = () => {
         username: data.username,
         bio: data.bio,
         avatar_url: data.avatar_url,
-        social_links: null,
+        social_links: (data.social_links as Record<string, string> | null) ?? null,
         email: user.email,
       } : {
         id: "",
