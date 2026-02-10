@@ -9,6 +9,7 @@ interface UserProfile {
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  social_links: Record<string, string> | null;
   email?: string;
 }
 
@@ -44,6 +45,7 @@ export const useUserProfile = () => {
         username: user.user_metadata?.username || null,
         bio: null,
         avatar_url: null,
+        social_links: null,
         email: user.email,
       });
     } catch (err) {

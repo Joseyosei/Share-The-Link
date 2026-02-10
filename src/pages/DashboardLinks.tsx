@@ -6,6 +6,7 @@ import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { LinkCard } from "@/components/dashboard/LinkCard";
 import { AddLinkModal } from "@/components/dashboard/AddLinkModal";
 import { EditLinkModal } from "@/components/dashboard/EditLinkModal";
+import { AutoShareLinks } from "@/components/dashboard/AutoShareLinks";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { useLinks } from "@/hooks/useLinks";
@@ -182,6 +183,11 @@ const DashboardLinks = () => {
               </Button>
             </div>
           )}
+
+          {/* Auto-Share Section */}
+          <div className="mt-10">
+            <AutoShareLinks />
+          </div>
         </div>
       </main>
 

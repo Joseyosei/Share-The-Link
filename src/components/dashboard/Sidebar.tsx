@@ -9,7 +9,8 @@ import {
   User,
   Radio,
   Wand2,
-  Store
+  Store,
+  Play
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -20,6 +21,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Link2, label: "Links", href: "/dashboard/links" },
   { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
+  { icon: Play, label: "Media", href: "/media", isNew: true },
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
   { icon: Store, label: "Sell Products", href: "/connect", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },

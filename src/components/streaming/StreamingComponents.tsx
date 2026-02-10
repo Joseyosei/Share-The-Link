@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor } from "lucide-react";
+import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { useStreaming } from "@/hooks/useStreaming";
 import { useBroadcaster, useViewer } from "@/hooks/useWebRTC";
+import { useStreamRecording } from "@/hooks/useStreamRecording";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GoLiveModalProps {
   isOpen: boolean;
@@ -104,8 +106,10 @@ interface StreamPlayerProps {
 export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCountChange }: StreamPlayerProps) => {
   const { goLive, endStream, isLive } = useStreaming();
   const broadcaster = useBroadcaster(roomName || `stream-${streamId}`);
+  const recorder = useStreamRecording();
   const [loading, setLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamTitleRef = useRef("");
 
   // Attach local stream to video element
   useEffect(() => {
@@ -122,11 +126,16 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
   const handleGoLive = async () => {
     setLoading(true);
     try {
-      if (!broadcaster.localStream) {
-        await broadcaster.startCamera();
+      let stream = broadcaster.localStream;
+      if (!stream) {
+        stream = await broadcaster.startCamera();
       }
       broadcaster.startBroadcasting();
       await goLive(streamId);
+      // Start recording the stream
+      if (stream) {
+        recorder.startRecording(stream);
+      }
     } finally {
       setLoading(false);
     }
@@ -135,8 +144,18 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
   const handleEndStream = async () => {
     setLoading(true);
     try {
+      // Stop recording and upload
+      const blob = await recorder.stopRecording();
+      const { data: { user } } = await supabase.auth.getUser();
+
       broadcaster.stopBroadcasting();
       await endStream(streamId);
+
+      // Upload the recording in the background
+      if (blob && user) {
+        recorder.uploadRecording(blob, user.id, streamId, streamTitleRef.current || "Stream Recording");
+      }
+
       onEnd?.();
     } finally {
       setLoading(false);
@@ -153,6 +172,20 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
           <Badge variant="secondary" className="bg-black/50 text-white border-0">
             <Users className="w-3 h-3 mr-1" />
             {broadcaster.viewerCount}
+          </Badge>
+          {recorder.isRecording && (
+            <Badge variant="secondary" className="bg-red-600/80 text-white border-0">
+              <Save className="w-3 h-3 mr-1" />
+              REC
+            </Badge>
+          )}
+        </div>
+      )}
+      {recorder.isUploading && (
+        <div className="absolute top-4 right-4 z-10">
+          <Badge variant="secondary" className="bg-blue-600/80 text-white border-0">
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            Saving...
           </Badge>
         </div>
       )}

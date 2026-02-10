@@ -30,6 +30,7 @@ import ChangelogPage from "./pages/ChangelogPage";
 import ConnectDashboard from "./pages/ConnectDashboard";
 import StorefrontPage from "./pages/StorefrontPage";
 import LiveStreamPage from "./pages/LiveStreamPage";
+import MediaPage from "./pages/MediaPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import NotFound from "./pages/NotFound";
 
@@ -64,6 +65,9 @@ const App = () => (
           
           {/* Public live stream viewer page */}
           <Route path="/live/:username" element={<LiveStreamPage />} />
+          
+          {/* Public media/explore page */}
+          <Route path="/media" element={<MediaPage />} />
           
           {/* Subscription success page */}
           <Route path="/subscription/success" element={<SubscriptionSuccess />} />
