@@ -84,7 +84,7 @@ export const useStreaming = () => {
 
       const { data, error } = await supabase
         .from("streams")
-        .insert(insertData)
+        .insert([insertData as any])
         .select()
         .single();
 
