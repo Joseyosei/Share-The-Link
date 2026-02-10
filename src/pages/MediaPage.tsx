@@ -88,7 +88,7 @@ const MediaPage = () => {
       );
 
       setRecordings(
-        (recordingData || []).map((r) => ({
+        recordingData.map((r) => ({
           ...r,
           profiles: profileMap.get(r.user_id) || undefined,
         }))
