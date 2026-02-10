@@ -91,8 +91,12 @@ export const Sidebar = () => {
       {/* User Profile */}
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-sidebar-accent mb-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-button flex items-center justify-center">
-            <User className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-full bg-gradient-button flex items-center justify-center overflow-hidden">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-5 h-5 text-primary-foreground" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             {loading ? (
