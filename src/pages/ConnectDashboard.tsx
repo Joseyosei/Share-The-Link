@@ -123,16 +123,16 @@ const ConnectDashboard = () => {
       };
 
       if (editingProduct) {
-        const { error } = await supabase
-          .from("user_products")
+        const { error } = await (supabase
+          .from("connect_products" as any)
           .update(payload)
-          .eq("id", editingProduct.id);
+          .eq("id", editingProduct.id) as any);
         if (error) throw error;
         toast({ title: "Product updated!" });
       } else {
-        const { error } = await supabase
-          .from("user_products")
-          .insert(payload);
+        const { error } = await (supabase
+          .from("connect_products" as any)
+          .insert(payload) as any);
         if (error) throw error;
         toast({ title: "Product added!" });
       }
