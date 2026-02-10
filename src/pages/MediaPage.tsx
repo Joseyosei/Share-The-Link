@@ -61,13 +61,8 @@ const MediaPage = () => {
         .eq("status", "live")
         .order("viewer_count", { ascending: false });
 
-      // Fetch public recordings
-      const { data: recordingData } = await supabase
-        .from("stream_recordings")
-        .select("*")
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .limit(50);
+      // stream_recordings table not yet created
+      const recordingData: Recording[] = [];
 
       // Fetch profile data for all user_ids
       const allUserIds = [
