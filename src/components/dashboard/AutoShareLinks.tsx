@@ -70,8 +70,19 @@ export function AutoShareLinks() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // auto_share_links table not yet created — skip fetch
-    setShares([]);
+    const { data, error } = await supabase
+      .from("auto_share_links")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("scheduled_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching shares:", error);
+      setShares([]);
+      return;
+    }
+
+    setShares(data || []);
   }, []);
 
   const fetchLinks = useCallback(async () => {
@@ -101,7 +112,10 @@ export function AutoShareLinks() {
           // Open the share URL in a new window
           window.open(share.share_url, "_blank", "width=600,height=400");
           // Mark as posted
-          // auto_share_links table not yet created
+          await supabase
+            .from("auto_share_links")
+            .update({ status: "posted", posted_at: new Date().toISOString() })
+            .eq("id", share.id);
           fetchShares();
         }
       });
@@ -133,7 +147,10 @@ export function AutoShareLinks() {
         status: "pending",
       }));
 
-      const error = new Error("auto_share_links table not yet created");
+      const { error } = await supabase
+        .from("auto_share_links")
+        .insert(inserts);
+
       if (error) throw error;
 
       toast({ title: "Shares scheduled!", description: `${inserts.length} share(s) scheduled.` });
@@ -152,7 +169,10 @@ export function AutoShareLinks() {
   };
 
   const handleCancel = async (id: string) => {
-    // auto_share_links table not yet created
+    await supabase
+      .from("auto_share_links")
+      .update({ status: "cancelled" })
+      .eq("id", id);
     fetchShares();
     toast({ title: "Cancelled", description: "Scheduled share cancelled." });
   };

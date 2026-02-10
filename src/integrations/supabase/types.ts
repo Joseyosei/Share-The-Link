@@ -490,6 +490,53 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_share_links: {
+        Row: {
+          id: string
+          user_id: string
+          link_id: string
+          platform: string
+          message: string | null
+          share_url: string
+          scheduled_at: string
+          posted_at: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          link_id: string
+          platform: string
+          message?: string | null
+          share_url: string
+          scheduled_at: string
+          posted_at?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          link_id?: string
+          platform?: string
+          message?: string | null
+          share_url?: string
+          scheduled_at?: string
+          posted_at?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_share_links_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
