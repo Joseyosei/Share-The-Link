@@ -70,13 +70,8 @@ export function AutoShareLinks() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
-      .from("auto_share_links")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("scheduled_at", { ascending: true });
-
-    setShares(data || []);
+    // auto_share_links table not yet created — skip fetch
+    setShares([]);
   }, []);
 
   const fetchLinks = useCallback(async () => {
