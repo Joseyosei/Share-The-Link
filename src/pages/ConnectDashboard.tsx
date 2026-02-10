@@ -68,11 +68,11 @@ const ConnectDashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    const { data } = await supabase
-      .from("user_products")
+    const { data } = await (supabase
+      .from("connect_products" as any)
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }) as any);
 
     setProducts((data as Product[]) || []);
     setLoading(false);

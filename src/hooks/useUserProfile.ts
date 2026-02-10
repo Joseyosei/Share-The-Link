@@ -38,7 +38,16 @@ export const useUserProfile = () => {
         throw profileError;
       }
 
-      const profileData = data ? { ...data, social_links: null as Record<string, string> | null, email: user.email } : {
+      setProfile(data ? {
+        id: data.id,
+        user_id: data.user_id,
+        full_name: data.full_name,
+        username: data.username,
+        bio: data.bio,
+        avatar_url: data.avatar_url,
+        social_links: null,
+        email: user.email,
+      } : {
         id: "",
         user_id: user.id,
         full_name: user.user_metadata?.full_name || null,
