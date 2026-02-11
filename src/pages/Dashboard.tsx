@@ -15,6 +15,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLinks } from "@/hooks/useLinks";
 import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
 import { useSubscription } from "@/hooks/useSubscription";
+import { NavigationGuide } from "@/components/dashboard/NavigationGuide";
 import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
 
@@ -333,6 +334,9 @@ const Dashboard = () => {
         onSave={handleUpdateLink}
         link={editingLink}
       />
+
+      {/* Navigation Guide - shows on first visit */}
+      <NavigationGuide />
     </div>
   );
 };
