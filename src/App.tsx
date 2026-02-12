@@ -32,6 +32,7 @@ import StorefrontPage from "./pages/StorefrontPage";
 import LiveStreamPage from "./pages/LiveStreamPage";
 import MediaPage from "./pages/MediaPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import HelpPage from "./pages/HelpPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

@@ -1,26 +1,63 @@
 import { useState, useEffect } from "react";
-import { Radio, Video, Calendar, Users, DollarSign, Plus, Copy, ExternalLink } from "lucide-react";
+import { Radio, Video, Calendar, Users, DollarSign, Plus, Copy, ExternalLink, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { GoLiveModal, StreamPlayer, StreamChat, TipJar, StreamStats } from "@/components/streaming/StreamingComponents";
 import { useStreaming, Stream } from "@/hooks/useStreaming";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { supabase } from "@/integrations/supabase/client";
+
+interface StreamRecording {
+  id: string;
+  stream_id: string | null;
+  video_url: string;
+  title: string;
+  description: string | null;
+  duration: number;
+  view_count: number;
+  created_at: string;
+}
 
 const Streaming = () => {
   const { profile } = useUserProfile();
   const { streams, fetchMyStreams, loading, currentStream, setCurrentStream, createStream } = useStreaming();
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
   const [isStreamActive, setIsStreamActive] = useState(false);
+  const [recordings, setRecordings] = useState<StreamRecording[]>([]);
+  const [selectedRecording, setSelectedRecording] = useState<StreamRecording | null>(null);
 
   useEffect(() => {
     fetchMyStreams();
+    fetchRecordings();
   }, [fetchMyStreams]);
+
+  const fetchRecordings = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("stream_recordings")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) setRecordings(data as StreamRecording[]);
+  };
 
   const handleStreamCreated = () => {
     setIsStreamActive(true);
+  };
+
+  const getRecordingForStream = (streamId: string) => {
+    return recordings.find(r => r.stream_id === streamId);
+  };
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   const liveStreams = streams.filter(s => s.status === "live");
@@ -96,6 +133,8 @@ const Streaming = () => {
                     onEnd={() => {
                       setIsStreamActive(false);
                       fetchMyStreams();
+                      // Refresh recordings after stream ends (delay for upload)
+                      setTimeout(fetchRecordings, 5000);
                     }}
                   />
                   <div className="mt-4">
@@ -187,9 +226,17 @@ const Streaming = () => {
               <h2 className="text-lg font-bold mb-4">Past Streams</h2>
               {pastStreams.length > 0 ? (
                 <div className="grid gap-4">
-                  {pastStreams.map((stream) => (
-                    <StreamCard key={stream.id} stream={stream} />
-                  ))}
+                  {pastStreams.map((stream) => {
+                    const recording = getRecordingForStream(stream.id);
+                    return (
+                      <StreamCard
+                        key={stream.id}
+                        stream={stream}
+                        recording={recording}
+                        onWatch={(rec) => setSelectedRecording(rec)}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <Card className="border-dashed">
@@ -207,6 +254,47 @@ const Streaming = () => {
                 </Card>
               )}
             </div>
+
+            {/* Standalone Recordings (not linked to a stream) */}
+            {recordings.filter(r => !r.stream_id || !pastStreams.find(s => s.id === r.stream_id)).length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold mb-4">Saved Recordings</h2>
+                <div className="grid gap-4">
+                  {recordings
+                    .filter(r => !r.stream_id || !pastStreams.find(s => s.id === r.stream_id))
+                    .map((rec) => (
+                      <Card
+                        key={rec.id}
+                        className="cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setSelectedRecording(rec)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Play className="w-6 h-6 text-primary" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold">{rec.title}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(rec.created_at).toLocaleDateString("en-US", {
+                                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                                  })}
+                                  {rec.duration > 0 && ` -- ${formatDuration(rec.duration)}`}
+                                </p>
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" className="gap-2">
+                              <Play className="w-4 h-4" />
+                              Watch
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -218,11 +306,67 @@ const Streaming = () => {
         createStreamFn={createStream}
         isLoading={loading}
       />
+
+      {/* Video Replay Modal */}
+      <Dialog open={!!selectedRecording} onOpenChange={() => setSelectedRecording(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="text-white flex items-center justify-between">
+              <span>{selectedRecording?.title || "Stream Replay"}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="w-full aspect-video bg-black">
+            {selectedRecording?.video_url ? (
+              <video
+                src={selectedRecording.video_url}
+                controls
+                autoPlay
+                className="w-full h-full"
+                playsInline
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white/60">
+                <div className="text-center">
+                  <Video className="w-16 h-16 mx-auto mb-4 opacity-40" />
+                  <p>No recording available for this stream</p>
+                  <p className="text-sm mt-1 text-white/40">
+                    Future streams will be automatically recorded
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          {selectedRecording && (
+            <div className="p-4 bg-card flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {new Date(selectedRecording.created_at).toLocaleDateString("en-US", {
+                  year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+                })}
+              </span>
+              {selectedRecording.duration > 0 && (
+                <span>Duration: {formatDuration(selectedRecording.duration)}</span>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-const StreamCard = ({ stream }: { stream: Stream }) => {
+const formatDuration = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+interface StreamCardProps {
+  stream: Stream;
+  recording?: StreamRecording;
+  onWatch?: (rec: StreamRecording) => void;
+}
+
+const StreamCard = ({ stream, recording, onWatch }: StreamCardProps) => {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
@@ -233,21 +377,35 @@ const StreamCard = ({ stream }: { stream: Stream }) => {
   };
 
   return (
-    <Card>
+    <Card className={recording ? "cursor-pointer hover:shadow-md transition-shadow" : ""}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
-              <Video className="w-6 h-6 text-muted-foreground" />
+            <div
+              className={`w-16 h-16 rounded-lg flex items-center justify-center ${
+                recording ? "bg-primary/10" : "bg-muted"
+              }`}
+              onClick={() => recording && onWatch?.(recording)}
+            >
+              {recording ? (
+                <Play className="w-6 h-6 text-primary" />
+              ) : (
+                <Video className="w-6 h-6 text-muted-foreground" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold">{stream.title}</h3>
               <p className="text-sm text-muted-foreground">
                 {stream.started_at ? formatDate(stream.started_at) : formatDate(stream.created_at)}
+                {recording && recording.duration > 0 && (
+                  <span className="ml-2 text-primary">
+                    -- {formatDuration(recording.duration)}
+                  </span>
+                )}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-4 text-sm">
             <div className="text-center">
               <p className="font-bold">{stream.peak_viewers || 0}</p>
               <p className="text-muted-foreground">viewers</p>
@@ -258,6 +416,23 @@ const StreamCard = ({ stream }: { stream: Stream }) => {
             </div>
             {stream.status === "live" && (
               <Badge className="bg-destructive">LIVE</Badge>
+            )}
+            {recording && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onWatch?.(recording);
+                }}
+              >
+                <Play className="w-4 h-4" />
+                Watch
+              </Button>
+            )}
+            {!recording && stream.status === "ended" && (
+              <Badge variant="secondary" className="text-xs">No recording</Badge>
             )}
           </div>
         </div>
