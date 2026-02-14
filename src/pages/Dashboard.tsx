@@ -315,8 +315,10 @@ const Dashboard = () => {
                 username={username}
                 fullName={displayName}
                 bio={bio}
+                avatarUrl={avatarUrl}
                 theme={userTheme}
                 links={previewLinks}
+                socialLinks={socialLinks}
               />
             </div>
           </div>
