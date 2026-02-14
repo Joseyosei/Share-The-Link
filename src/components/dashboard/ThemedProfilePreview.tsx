@@ -1,4 +1,4 @@
-import { User, ExternalLink } from "lucide-react";
+import { User, ExternalLink, Twitter, Instagram, Youtube, Github, Linkedin, Globe, Share2 } from "lucide-react";
 import type { Theme } from "@/pages/DashboardAppearance";
 
 interface PreviewLink {
@@ -8,22 +8,43 @@ interface PreviewLink {
   isActive: boolean;
 }
 
+interface SocialLinks {
+  twitter?: string;
+  instagram?: string;
+  youtube?: string;
+  github?: string;
+  linkedin?: string;
+  website?: string;
+}
+
 interface ThemedProfilePreviewProps {
   username: string;
   fullName: string;
   bio?: string;
+  avatarUrl?: string;
   theme?: Theme;
   links?: PreviewLink[];
+  socialLinks?: SocialLinks;
 }
 
-export const ThemedProfilePreview = ({ 
-  username, 
-  fullName, 
+const socialIcons = [
+  { key: "twitter", Icon: Twitter, label: "Twitter" },
+  { key: "instagram", Icon: Instagram, label: "Instagram" },
+  { key: "youtube", Icon: Youtube, label: "YouTube" },
+  { key: "github", Icon: Github, label: "GitHub" },
+  { key: "linkedin", Icon: Linkedin, label: "LinkedIn" },
+  { key: "website", Icon: Globe, label: "Website" },
+];
+
+export const ThemedProfilePreview = ({
+  username,
+  fullName,
   bio,
+  avatarUrl,
   theme,
   links,
+  socialLinks,
 }: ThemedProfilePreviewProps) => {
-  // Default theme if none selected
   const defaultTheme = {
     background: "bg-white",
     buttonStyle: "bg-gray-900",
@@ -31,22 +52,33 @@ export const ThemedProfilePreview = ({
   };
 
   const activeTheme = theme || defaultTheme;
-  
-  // Determine button text color based on button background
-  const buttonTextColor = activeTheme.buttonStyle.includes("bg-white") || 
-                          activeTheme.buttonStyle.includes("bg-amber-100") ||
-                          activeTheme.buttonStyle.includes("bg-lime-") ||
-                          activeTheme.buttonStyle.includes("bg-amber-200")
-    ? "text-gray-900" 
-    : "text-white";
 
-  // Use real links if provided, otherwise fall back to sample links
+  const buttonTextColor =
+    activeTheme.buttonStyle.includes("bg-white") ||
+    activeTheme.buttonStyle.includes("bg-amber-100") ||
+    activeTheme.buttonStyle.includes("bg-lime-") ||
+    activeTheme.buttonStyle.includes("bg-amber-200")
+      ? "text-gray-900"
+      : "text-white";
+
   const activeLinks = links ? links.filter((l) => l.isActive) : null;
-  const sampleLinks = ["My Website", "Latest Video", "Shop Now"];
+
+  const hasSocials = socialLinks && Object.values(socialLinks).some(Boolean);
 
   return (
     <div className="sticky top-8">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Live Preview</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-foreground">Live Preview</h3>
+        <a
+          href={`/${username || "preview"}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-primary hover:underline font-medium"
+        >
+          View Profile
+        </a>
+      </div>
+
       <div className="relative mx-auto" style={{ width: "280px" }}>
         {/* Phone Frame */}
         <div className="absolute inset-0 bg-foreground rounded-[3rem] -z-10 scale-[1.02]" />
@@ -57,74 +89,97 @@ export const ThemedProfilePreview = ({
           </div>
 
           {/* Profile Content */}
-          <div className={`min-h-[500px] p-6 ${activeTheme.background}`}>
-            {/* Avatar */}
-            <div className="flex flex-col items-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-gray-300/50 mb-3 flex items-center justify-center border-2 border-white/20">
-                <User className={`w-10 h-10 ${activeTheme.textColor} opacity-70`} />
+          <div className={`min-h-[480px] ${activeTheme.background} overflow-y-auto`} style={{ maxHeight: "520px" }}>
+            {/* Share button */}
+            <div className="flex justify-end px-4 pt-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm ${activeTheme.textColor}`}>
+                <Share2 className="w-3.5 h-3.5 opacity-60" />
               </div>
-              <h4 className={`font-bold text-lg ${activeTheme.textColor}`}>
+            </div>
+
+            {/* Avatar */}
+            <div className="flex flex-col items-center px-5 pb-2">
+              <div className="w-20 h-20 rounded-full mb-3 flex items-center justify-center border-[3px] shadow-lg overflow-hidden bg-white/20 border-white/30">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={fullName}
+                    className="w-full h-full object-cover"
+                    crossOrigin="anonymous"
+                  />
+                ) : (
+                  <User className={`w-10 h-10 ${activeTheme.textColor} opacity-70`} />
+                )}
+              </div>
+
+              <h4 className={`font-bold text-base leading-tight text-center ${activeTheme.textColor}`}>
                 {fullName || "Your Name"}
               </h4>
-              <p className={`text-sm opacity-70 ${activeTheme.textColor}`}>
+              <p className={`text-[11px] opacity-60 mt-0.5 ${activeTheme.textColor}`}>
                 @{username || "username"}
               </p>
               {bio && (
-                <p className={`text-sm text-center mt-2 opacity-80 ${activeTheme.textColor}`}>
-                  {bio}
+                <p className={`text-[11px] text-center mt-1.5 opacity-75 leading-relaxed px-2 ${activeTheme.textColor}`}>
+                  {bio.length > 80 ? bio.slice(0, 80) + "..." : bio}
                 </p>
+              )}
+
+              {/* Social Icons */}
+              {hasSocials && (
+                <div className="flex items-center gap-2 mt-3">
+                  {socialIcons.map(({ key, Icon }) => {
+                    const value = socialLinks?.[key as keyof SocialLinks];
+                    if (!value) return null;
+                    return (
+                      <div
+                        key={key}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm ${activeTheme.textColor}`}
+                      >
+                        <Icon className="w-3 h-3 opacity-80" />
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
             {/* Links */}
-            <div className="space-y-3">
+            <div className="space-y-2 px-5 py-3">
               {activeLinks ? (
                 activeLinks.length > 0 ? (
                   activeLinks.map((link) => (
                     <div
                       key={link.id}
-                      className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-between ${activeTheme.buttonStyle} ${buttonTextColor}`}
+                      className={`w-full py-2.5 px-3.5 rounded-xl font-medium flex items-center justify-between text-[12px] transition-transform hover:scale-[1.02] ${activeTheme.buttonStyle} ${buttonTextColor}`}
                     >
-                      <span className="text-sm truncate">{link.title}</span>
-                      <ExternalLink className="w-4 h-4 opacity-70 shrink-0" />
+                      <span className="truncate">{link.title}</span>
+                      <ExternalLink className="w-3 h-3 opacity-60 shrink-0 ml-2" />
                     </div>
                   ))
                 ) : (
-                  <p className={`text-sm text-center py-4 opacity-50 ${activeTheme.textColor}`}>
+                  <p className={`text-[11px] text-center py-4 opacity-40 ${activeTheme.textColor}`}>
                     Add links to see them here
                   </p>
                 )
               ) : (
-                sampleLinks.map((link) => (
+                ["My Website", "Latest Video", "Shop Now"].map((link) => (
                   <div
                     key={link}
-                    className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-between ${activeTheme.buttonStyle} ${buttonTextColor}`}
+                    className={`w-full py-2.5 px-3.5 rounded-xl font-medium flex items-center justify-between text-[12px] ${activeTheme.buttonStyle} ${buttonTextColor}`}
                   >
                     <span>{link}</span>
-                    <ExternalLink className="w-4 h-4 opacity-70" />
+                    <ExternalLink className="w-3 h-3 opacity-60" />
                   </div>
                 ))
               )}
             </div>
 
             {/* Footer */}
-            <p className={`text-xs text-center mt-8 opacity-50 ${activeTheme.textColor}`}>
+            <p className={`text-[9px] text-center pb-4 mt-2 opacity-35 ${activeTheme.textColor}`}>
               Powered by Share The Link
             </p>
           </div>
         </div>
-      </div>
-
-      {/* View Profile Link */}
-      <div className="text-center mt-4">
-        <a
-          href={`/${username || "preview"}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-primary hover:underline"
-        >
-          Open full preview →
-        </a>
       </div>
     </div>
   );

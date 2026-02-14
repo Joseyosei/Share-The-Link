@@ -10,7 +10,8 @@ import {
   Radio,
   Wand2,
   Store,
-  Play
+  Play,
+  HelpCircle
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ const navItems = [
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: HelpCircle, label: "Help", href: "/help" },
 ];
 
 export const Sidebar = () => {

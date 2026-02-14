@@ -16,6 +16,7 @@ import { useLinks } from "@/hooks/useLinks";
 import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import { NavigationGuide } from "@/components/dashboard/NavigationGuide";
+import { UpgradePopup } from "@/components/dashboard/UpgradePopup";
 import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
 
@@ -126,6 +127,8 @@ const Dashboard = () => {
   const firstName = displayName.split(" ")[0];
   const username = profile?.username || "user";
   const bio = profile?.bio || "Entrepreneur & Creator";
+  const avatarUrl = profile?.avatar_url || "";
+  const socialLinks = (profile?.social_links as Record<string, string>) || {};
 
   const loading = profileLoading || linksLoading;
 
@@ -312,8 +315,10 @@ const Dashboard = () => {
                 username={username}
                 fullName={displayName}
                 bio={bio}
+                avatarUrl={avatarUrl}
                 theme={userTheme}
                 links={previewLinks}
+                socialLinks={socialLinks}
               />
             </div>
           </div>
@@ -337,6 +342,9 @@ const Dashboard = () => {
 
       {/* Navigation Guide - shows on first visit */}
       <NavigationGuide />
+
+      {/* Upgrade Popup - shows for free users */}
+      <UpgradePopup />
     </div>
   );
 };

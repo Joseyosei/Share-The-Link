@@ -32,7 +32,10 @@ import StorefrontPage from "./pages/StorefrontPage";
 import LiveStreamPage from "./pages/LiveStreamPage";
 import MediaPage from "./pages/MediaPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import HelpPage from "./pages/HelpPage";
+import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -42,6 +45,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <LiveMiniPlayer />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
@@ -82,6 +86,7 @@ const App = () => (
           <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
           <Route path="/connect" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
+          <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}
           <Route path="/:username" element={<Profile />} />
