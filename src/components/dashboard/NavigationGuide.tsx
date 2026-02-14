@@ -1,15 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Link2,
-  Radio,
-  Play,
-  Wand2,
-  Store,
-  Palette,
-  BarChart3,
-  Settings,
   ChevronRight,
   ChevronLeft,
   X,
@@ -20,146 +11,162 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface GuideStep {
-  icon: React.ElementType;
+  sidebarLabel: string;
   title: string;
   description: string;
-  href: string;
-  color: string;
   tip: string;
+  route: string;
 }
 
-const steps: GuideStep[] = [
+const STEPS: GuideStep[] = [
   {
-    icon: LayoutDashboard,
-    title: "Dashboard",
-    description:
-      "Your command center. See link stats, total clicks, and quick access to all features at a glance.",
-    href: "/dashboard",
-    color: "from-violet-500 to-purple-600",
-    tip: "Check your dashboard daily to track link performance.",
+    sidebarLabel: "Dashboard",
+    title: "Your Command Center",
+    description: "See all your stats, links, and a live preview of your public profile at a glance.",
+    tip: "Check your dashboard daily to track click growth.",
+    route: "/dashboard",
   },
   {
-    icon: Link2,
-    title: "Links",
-    description:
-      "Add, edit, reorder, and manage all your links. Toggle links on/off, schedule auto-shares to social media, and track clicks per link.",
-    href: "/dashboard/links",
-    color: "from-blue-500 to-cyan-500",
-    tip: "Use Auto-Share to schedule links to Twitter, WhatsApp, and more.",
+    sidebarLabel: "Links",
+    title: "Manage Your Links",
+    description: "Add, edit, reorder, and schedule auto-shares for all your important links.",
+    tip: "Use the toggle to temporarily hide links without deleting them.",
+    route: "/dashboard/links",
   },
   {
-    icon: Radio,
-    title: "Live Streaming",
-    description:
-      "Go live directly from your browser. Stream to your audience, receive tips, and your streams are automatically recorded for replay.",
-    href: "/streaming",
-    color: "from-red-500 to-rose-600",
-    tip: "Past streams are saved to the Media page for viewers to rewatch.",
+    sidebarLabel: "Live Streaming",
+    title: "Go Live Instantly",
+    description: "Stream directly to your audience using your camera or screen. Earn tips from viewers in real-time.",
+    tip: "Past streams are automatically recorded so fans can replay them.",
+    route: "/streaming",
   },
   {
-    icon: Play,
-    title: "Media",
-    description:
-      "Browse and watch recorded live streams from all creators. Discover trending content and replay your own past streams.",
-    href: "/media",
-    color: "from-pink-500 to-fuchsia-600",
-    tip: "Share your stream recordings to grow your audience.",
+    sidebarLabel: "Media",
+    title: "Your Content Library",
+    description: "Browse and watch live streams and recorded content from all creators on the platform.",
+    tip: "The mini-player lets you keep watching while browsing other pages.",
+    route: "/media",
   },
   {
-    icon: Wand2,
-    title: "AI Page Builder",
-    description:
-      "Describe your business in a few words and our AI generates a professional page design for you in seconds.",
-    href: "/ai-builder",
-    color: "from-purple-500 to-indigo-600",
+    sidebarLabel: "AI Builder",
+    title: "AI-Powered Pages",
+    description: "Describe your business and our AI will generate a professional link page for you in seconds.",
     tip: "Try prompts like 'I'm a photographer' or 'I run a bakery'.",
+    route: "/ai-builder",
   },
   {
-    icon: Store,
-    title: "My Shop",
-    description:
-      "List products and services for your audience to discover. Add digital goods, courses, merch, or any item with a purchase link.",
-    href: "/connect",
-    color: "from-emerald-500 to-teal-600",
-    tip: "Add an image and external purchase link for each product.",
+    sidebarLabel: "My Shop",
+    title: "Sell Your Products",
+    description: "List digital products, services, or merchandise for your audience to discover and purchase.",
+    tip: "Add an external purchase link (Gumroad, Shopify, etc.) for each product.",
+    route: "/connect",
   },
   {
-    icon: Palette,
-    title: "Appearance",
-    description:
-      "Customize how your public profile looks. Choose from multiple themes, change colors, fonts, and button styles.",
-    href: "/dashboard/appearance",
-    color: "from-orange-500 to-amber-500",
-    tip: "Preview changes in real-time before saving.",
+    sidebarLabel: "Appearance",
+    title: "Customize Your Look",
+    description: "Choose from beautiful themes, customize colors, fonts, and button styles for your public profile.",
+    tip: "Preview changes in real-time before publishing.",
+    route: "/dashboard/appearance",
   },
   {
-    icon: BarChart3,
-    title: "Analytics",
-    description:
-      "Track detailed link performance -- clicks over time, top-performing links, geographic data, and referral sources.",
-    href: "/analytics",
-    color: "from-sky-500 to-blue-600",
-    tip: "Use analytics to understand which links resonate with your audience.",
+    sidebarLabel: "Analytics",
+    title: "Track Performance",
+    description: "See detailed click analytics, visitor data, and performance trends for all your links.",
+    tip: "Use analytics to identify which links resonate most with your audience.",
+    route: "/dashboard/analytics",
   },
   {
-    icon: Settings,
-    title: "Settings",
-    description:
-      "Update your profile info, social media handles, change your password, and manage your subscription plan.",
-    href: "/dashboard/settings",
-    color: "from-slate-500 to-gray-600",
-    tip: "Add social media handles so visitors can find you everywhere.",
+    sidebarLabel: "Settings",
+    title: "Account Settings",
+    description: "Update your profile photo, name, bio, social handles, and change your password.",
+    tip: "Add all your social media handles to display them on your public profile.",
+    route: "/dashboard/settings",
+  },
+  {
+    sidebarLabel: "Help",
+    title: "Help & Support",
+    description: "Find answers to common questions, watch video tutorials, and contact our support team.",
+    tip: "You can reopen this guide anytime from the Help page or the floating button.",
+    route: "/help",
   },
 ];
+
+const STORAGE_KEY = "stl-guide-seen";
 
 export const NavigationGuide = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  // Show on first visit
   useEffect(() => {
-    const hasSeenGuide = localStorage.getItem("stl-guide-seen");
-    if (!hasSeenGuide) {
-      setIsOpen(true);
+    const seen = localStorage.getItem(STORAGE_KEY);
+    if (!seen) {
+      const timer = setTimeout(() => setIsOpen(true), 1200);
+      return () => clearTimeout(timer);
     }
   }, []);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    localStorage.setItem("stl-guide-seen", "true");
-  };
-
-  const handleNext = () => {
-    setCompletedSteps((prev) => new Set([...prev, currentStep]));
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+  // Find and highlight the current sidebar nav item
+  const updateHighlight = useCallback(() => {
+    if (!isOpen) {
+      setHighlightRect(null);
+      return;
+    }
+    const label = STEPS[currentStep].sidebarLabel;
+    // Search through all anchor elements in sidebar
+    const allLinks = document.querySelectorAll("aside a, nav a");
+    let found: HTMLElement | null = null;
+    allLinks.forEach((el) => {
+      const text = el.textContent?.trim() || "";
+      if (text.includes(label) && !found) {
+        found = el as HTMLElement;
+      }
+    });
+    if (found) {
+      setHighlightRect(found.getBoundingClientRect());
     } else {
-      handleClose();
+      setHighlightRect(null);
     }
+  }, [isOpen, currentStep]);
+
+  useEffect(() => {
+    updateHighlight();
+    const id = setInterval(updateHighlight, 400);
+    window.addEventListener("resize", updateHighlight);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("resize", updateHighlight);
+    };
+  }, [updateHighlight]);
+
+  const close = () => {
+    setIsOpen(false);
+    localStorage.setItem(STORAGE_KEY, "true");
   };
 
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleGoToPage = () => {
+  const next = () => {
     setCompletedSteps((prev) => new Set([...prev, currentStep]));
-    handleClose();
-    navigate(steps[currentStep].href);
+    if (currentStep < STEPS.length - 1) setCurrentStep((s) => s + 1);
+    else close();
   };
 
-  const step = steps[currentStep];
-  const StepIcon = step.icon;
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const prev = () => {
+    if (currentStep > 0) setCurrentStep((s) => s - 1);
+  };
 
+  const goToPage = () => {
+    setCompletedSteps((prev) => new Set([...prev, currentStep]));
+    close();
+    navigate(STEPS[currentStep].route);
+  };
+
+  // Floating button when closed
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => { setCurrentStep(0); setIsOpen(true); }}
         className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-r from-violet-600 to-pink-600 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center"
         aria-label="Open navigation guide"
       >
@@ -168,140 +175,155 @@ export const NavigationGuide = () => {
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={handleClose}
-      />
+  const step = STEPS[currentStep];
+  const progress = ((currentStep + 1) / STEPS.length) * 100;
 
-      {/* Guide Card */}
-      <div className="relative w-full max-w-lg bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Progress bar */}
-        <div className="h-1 bg-muted">
+  // Position tooltip to the right of highlighted sidebar item
+  const hasHL = highlightRect && highlightRect.width > 0;
+  const tooltipTop = hasHL
+    ? Math.max(16, Math.min(highlightRect!.top + highlightRect!.height / 2 - 130, window.innerHeight - 360))
+    : undefined;
+  const tooltipLeft = hasHL ? highlightRect!.right + 18 : undefined;
+
+  return (
+    <>
+      {/* Backdrop overlay */}
+      <div className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-[2px]" onClick={close} />
+
+      {/* Highlight ring */}
+      {hasHL && (
+        <div
+          className="fixed z-[9999] rounded-xl pointer-events-none transition-all duration-300 ease-out"
+          style={{
+            top: highlightRect!.top - 5,
+            left: highlightRect!.left - 5,
+            width: highlightRect!.width + 10,
+            height: highlightRect!.height + 10,
+            boxShadow: "0 0 0 3px rgba(139,92,246,0.5), 0 0 20px 4px rgba(139,92,246,0.25)",
+            border: "2px solid rgb(139,92,246)",
+          }}
+        />
+      )}
+
+      {/* Tooltip Card -- positioned next to sidebar item */}
+      <div
+        className="fixed z-[10000] w-[340px] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
+        style={
+          hasHL
+            ? { top: tooltipTop, left: tooltipLeft }
+            : { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }
+        }
+      >
+        {/* Arrow pointing left */}
+        {hasHL && (
           <div
-            className="h-full bg-gradient-to-r from-violet-600 to-pink-600 transition-all duration-500"
+            className="absolute -left-[9px] w-[18px] h-[18px] bg-card border-l border-b border-border rotate-45"
+            style={{ top: hasHL ? Math.min(Math.max(highlightRect!.top + highlightRect!.height / 2 - tooltipTop! - 9, 24), 240) : 60 }}
+          />
+        )}
+
+        {/* Progress */}
+        <div className="h-1.5 bg-muted">
+          <div
+            className="h-full bg-gradient-to-r from-violet-600 to-pink-500 transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-violet-500" />
-            <span className="text-sm font-semibold text-muted-foreground">
-              Platform Guide
-            </span>
-            <span className="text-xs text-muted-foreground/60">
-              {currentStep + 1} / {steps.length}
-            </span>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Step Content */}
-        <div className="px-6 py-4">
-          {/* Icon + Title */}
-          <div className="flex items-center gap-4 mb-4">
-            <div
-              className={`w-14 h-14 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center shrink-0 shadow-lg`}
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-violet-500" />
+              <span className="text-[11px] font-bold text-violet-500 uppercase tracking-wider">
+                Step {currentStep + 1} of {STEPS.length}
+              </span>
+            </div>
+            <button
+              onClick={close}
+              className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
+              aria-label="Close guide"
             >
-              <StepIcon className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-foreground">
-                {step.title}
-              </h3>
-              <button
-                onClick={handleGoToPage}
-                className="text-sm text-violet-500 hover:text-violet-600 font-medium transition-colors"
-              >
-                Go to {step.title} page
-                <ChevronRight className="w-3 h-3 inline ml-0.5" />
-              </button>
-            </div>
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
           </div>
 
-          {/* Description */}
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            {step.description}
-          </p>
+          {/* Title */}
+          <h3 className="text-lg font-bold text-foreground mb-1">{step.title}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-3">{step.description}</p>
 
-          {/* Tip */}
-          <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl px-4 py-3">
-            <p className="text-sm text-violet-700 dark:text-violet-300">
-              <span className="font-semibold">Tip: </span>
-              {step.tip}
+          {/* Tip box */}
+          <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl px-3.5 py-2.5 mb-4">
+            <p className="text-xs text-violet-700 dark:text-violet-300 leading-relaxed">
+              <span className="font-bold">Tip:</span> {step.tip}
             </p>
           </div>
-        </div>
 
-        {/* Step Indicators */}
-        <div className="flex items-center justify-center gap-1.5 px-6 pb-3">
-          {steps.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                i === currentStep
-                  ? "w-6 bg-gradient-to-r from-violet-600 to-pink-600"
-                  : completedSteps.has(i)
-                    ? "w-2 bg-emerald-500"
-                    : "w-2 bg-muted-foreground/20 hover:bg-muted-foreground/40"
-              }`}
-              aria-label={`Go to step ${i + 1}: ${steps[i].title}`}
-            />
-          ))}
-        </div>
+          {/* Step dots */}
+          <div className="flex items-center justify-center gap-1 mb-4">
+            {STEPS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentStep(i)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === currentStep
+                    ? "w-5 bg-gradient-to-r from-violet-600 to-pink-500"
+                    : completedSteps.has(i)
+                      ? "w-1.5 bg-emerald-500"
+                      : "w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                }`}
+                aria-label={`Step ${i + 1}`}
+              />
+            ))}
+          </div>
 
-        {/* Footer Buttons */}
-        <div className="flex items-center justify-between px-6 pb-5 pt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-            className="text-muted-foreground"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
-          </Button>
-
+          {/* Buttons */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleClose}
-              className="text-muted-foreground"
+              onClick={prev}
+              disabled={currentStep === 0}
+              className="text-xs h-9"
             >
-              Skip Tour
+              <ChevronLeft className="w-3.5 h-3.5 mr-0.5" />
+              Back
             </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToPage}
+              className="text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50 h-9 flex-1"
+            >
+              Try it
+              <ChevronRight className="w-3 h-3 ml-0.5" />
+            </Button>
+
             <Button
               size="sm"
-              onClick={handleNext}
-              className="bg-gradient-to-r from-violet-600 to-pink-600 text-white hover:opacity-90 border-0"
+              onClick={next}
+              className="text-xs bg-gradient-to-r from-violet-600 to-pink-500 text-white border-0 hover:opacity-90 h-9"
             >
-              {currentStep === steps.length - 1 ? (
+              {currentStep === STEPS.length - 1 ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  Finish
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                  Done
                 </>
               ) : (
                 <>
                   Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                 </>
               )}
             </Button>
           </div>
+
+          <button onClick={close} className="w-full mt-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors text-center">
+            Skip tutorial
+          </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
