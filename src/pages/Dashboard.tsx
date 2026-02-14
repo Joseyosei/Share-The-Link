@@ -127,6 +127,8 @@ const Dashboard = () => {
   const firstName = displayName.split(" ")[0];
   const username = profile?.username || "user";
   const bio = profile?.bio || "Entrepreneur & Creator";
+  const avatarUrl = profile?.avatar_url || "";
+  const socialLinks = (profile?.social_links as Record<string, string>) || {};
 
   const loading = profileLoading || linksLoading;
 
