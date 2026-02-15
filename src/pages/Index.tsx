@@ -70,7 +70,7 @@ const CTASection = () => (
         <Button
           asChild
           size="lg"
-          className="bg-white text-foreground hover:bg-white/90 font-semibold px-10 py-7 text-lg hover-lift"
+          className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-10 py-7 text-lg hover-lift"
         >
           <Link to="/signup">
             Start for Free
@@ -80,7 +80,7 @@ const CTASection = () => (
         <Button
           asChild
           size="lg"
-          className="cta-button-outline font-semibold px-10 py-7 text-lg rounded-lg"
+          className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-10 py-7 text-lg rounded-lg transition-all duration-300"
         >
           <Link to="/pricing">View Pricing</Link>
         </Button>
