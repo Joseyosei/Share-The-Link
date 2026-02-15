@@ -52,7 +52,7 @@ export const Hero = () => {
               />
               <Button
                 asChild
-                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold"
+                className="bg-white text-gray-900 hover:bg-white/90 font-semibold"
               >
                 <Link to="/signup">
                   Claim
@@ -67,7 +67,7 @@ export const Hero = () => {
             <Button
               asChild
               size="lg"
-              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold px-8 py-6 text-lg hover-lift"
+              className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-8 py-6 text-lg hover-lift"
             >
               <Link to="/signup">
                 Get started free
@@ -77,7 +77,7 @@ export const Hero = () => {
             <Button
               size="lg"
               asChild
-              className="cta-button-outline font-semibold px-8 py-6 text-lg rounded-lg"
+              className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-8 py-6 text-lg rounded-lg transition-all duration-300"
             >
               <a href="#pricing">View pricing</a>
             </Button>

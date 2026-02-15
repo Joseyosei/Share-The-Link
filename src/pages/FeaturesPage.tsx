@@ -96,8 +96,8 @@ const FeaturesPage = () => {
           <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
             From analytics to customization, we've built everything you need to grow your audience and monetize your content.
           </p>
-          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-            <Link to="/signup">Get Started Free →</Link>
+          <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-white/90 font-semibold">
+            <Link to="/signup">Get Started Free</Link>
           </Button>
         </div>
       </section>
@@ -139,10 +139,10 @@ const FeaturesPage = () => {
             Join thousands of creators and entrepreneurs who trust Share The Link to grow their audience.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+            <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-white/90 font-semibold">
               <Link to="/signup">Start for Free</Link>
             </Button>
-            <Button asChild size="lg" className="cta-button-outline">
+            <Button asChild size="lg" className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300">
               <Link to="/pricing">View Pricing</Link>
             </Button>
           </div>
