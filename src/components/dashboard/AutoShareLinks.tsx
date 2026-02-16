@@ -150,11 +150,16 @@ export function AutoShareLinks() {
         status: "pending",
       }));
 
-      const { error } = await supabase
-        .from("auto_share_links")
-        .insert(inserts);
-
-      if (error) throw error;
+      // Insert one row per platform selected
+      for (const row of inserts) {
+        const { error } = await supabase
+          .from("auto_share_links")
+          .insert(row);
+        if (error) {
+          console.error("[v0] Auto-share insert error:", error);
+          throw new Error(error.message || "Database insert failed");
+        }
+      }
 
       toast({ title: "Shares scheduled!", description: `${inserts.length} share(s) scheduled.` });
       setShowModal(false);
