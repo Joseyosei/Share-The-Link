@@ -46,6 +46,13 @@ const MediaPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "live" | "recent" | "popular">("all");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
+  }, []);
 
   useEffect(() => {
     fetchContent();
@@ -152,9 +159,15 @@ const MediaPage = () => {
               className="pl-10 rounded-full bg-muted border-0"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
-            Sign In
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/media")}>
+              My Media
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
+              Sign In
+            </Button>
+          )}
         </div>
       </header>
 
@@ -280,7 +293,9 @@ const MediaPage = () => {
                 <p className="text-muted-foreground mb-4">
                   Be the first to stream and share your content!
                 </p>
-                <Button onClick={() => navigate("/signup")}>Get Started</Button>
+                <Button onClick={() => navigate(isLoggedIn ? "/streaming" : "/signup")}>
+                  {isLoggedIn ? "Start Streaming" : "Get Started"}
+                </Button>
               </div>
             )}
           </section>

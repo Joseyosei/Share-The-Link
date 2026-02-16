@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Use untyped client to avoid PostgREST schema cache issues with newer tables
+const autoShareTable = () => supabase.from("auto_share_links" as any);
+
 interface ScheduledShare {
   id: string;
   platform: string;
@@ -70,11 +73,10 @@ export function AutoShareLinks() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("auto_share_links")
+    const { data, error } = await autoShareTable()
       .select("*")
       .eq("user_id", user.id)
-      .order("scheduled_at", { ascending: true });
+      .order("scheduled_at", { ascending: true }) as any;
 
     if (error) {
       console.error("Error fetching shares:", error);
@@ -112,8 +114,7 @@ export function AutoShareLinks() {
           // Open the share URL in a new window
           window.open(share.share_url, "_blank", "width=600,height=400");
           // Mark as posted
-          const { error } = await supabase
-            .from("auto_share_links")
+          const { error } = await autoShareTable()
             .update({ status: "posted", posted_at: new Date().toISOString() })
             .eq("id", share.id);
           if (error) {
@@ -152,9 +153,7 @@ export function AutoShareLinks() {
 
       // Insert one row per platform selected
       for (const row of inserts) {
-        const { error } = await supabase
-          .from("auto_share_links")
-          .insert(row);
+        const { error } = await autoShareTable().insert(row);
         if (error) {
           console.error("[v0] Auto-share insert error:", error);
           throw new Error(error.message || "Database insert failed");
@@ -177,8 +176,7 @@ export function AutoShareLinks() {
   };
 
   const handleCancel = async (id: string) => {
-    const { error } = await supabase
-      .from("auto_share_links")
+    const { error } = await autoShareTable()
       .update({ status: "cancelled" })
       .eq("id", id);
     if (error) {
