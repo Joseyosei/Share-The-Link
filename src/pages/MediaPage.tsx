@@ -61,8 +61,15 @@ const MediaPage = () => {
         .eq("status", "live")
         .order("viewer_count", { ascending: false });
 
-      // stream_recordings table not yet created
-      const recordingData: Recording[] = [];
+      // Fetch public recordings
+      const { data: recData } = await supabase
+        .from("stream_recordings")
+        .select("*")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      const recordingData: Recording[] = (recData || []) as Recording[];
 
       // Fetch profile data for all user_ids
       const allUserIds = [
@@ -293,7 +300,10 @@ const RecordingCard = ({ recording, formatDuration, formatTimeAgo }: RecordingCa
   const [playing, setPlaying] = useState(false);
 
   const incrementViews = async () => {
-    // stream_recordings table not yet created — no-op
+    await supabase
+      .from("stream_recordings")
+      .update({ view_count: (recording.view_count || 0) + 1 })
+      .eq("id", recording.id);
   };
 
   return (

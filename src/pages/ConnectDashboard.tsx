@@ -68,11 +68,11 @@ const ConnectDashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    const { data } = await (supabase
-      .from("connect_products" as any)
+    const { data } = await supabase
+      .from("user_products")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false }) as any);
+      .order("created_at", { ascending: false });
 
     setProducts((data as Product[]) || []);
     setLoading(false);
@@ -123,16 +123,16 @@ const ConnectDashboard = () => {
       };
 
       if (editingProduct) {
-        const { error } = await (supabase
-          .from("connect_products" as any)
+        const { error } = await supabase
+          .from("user_products")
           .update(payload)
-          .eq("id", editingProduct.id) as any);
+          .eq("id", editingProduct.id);
         if (error) throw error;
         toast({ title: "Product updated!" });
       } else {
-        const { error } = await (supabase
-          .from("connect_products" as any)
-          .insert(payload) as any);
+        const { error } = await supabase
+          .from("user_products")
+          .insert(payload);
         if (error) throw error;
         toast({ title: "Product added!" });
       }
@@ -148,13 +148,13 @@ const ConnectDashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await (supabase.from("connect_products" as any).delete().eq("id", id) as any);
+    await supabase.from("user_products").delete().eq("id", id);
     fetchProducts();
     toast({ title: "Product deleted" });
   };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
-    await (supabase.from("connect_products" as any).update({ is_active: !currentActive }).eq("id", id) as any);
+    await supabase.from("user_products").update({ is_active: !currentActive }).eq("id", id);
     fetchProducts();
   };
 

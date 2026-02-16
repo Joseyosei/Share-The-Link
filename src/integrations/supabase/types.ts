@@ -490,6 +490,93 @@ export type Database = {
         }
         Relationships: []
       }
+      user_products: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          price_cents: number
+          image_url: string | null
+          category: string
+          external_url: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          price_cents?: number
+          image_url?: string | null
+          category?: string
+          external_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          price_cents?: number
+          image_url?: string | null
+          category?: string
+          external_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stream_recordings: {
+        Row: {
+          id: string
+          stream_id: string
+          user_id: string
+          title: string
+          description: string | null
+          video_url: string
+          thumbnail_url: string | null
+          duration: number
+          view_count: number
+          visibility: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          stream_id: string
+          user_id: string
+          title: string
+          description?: string | null
+          video_url: string
+          thumbnail_url?: string | null
+          duration?: number
+          view_count?: number
+          visibility?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          stream_id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          video_url?: string
+          thumbnail_url?: string | null
+          duration?: number
+          view_count?: number
+          visibility?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       auto_share_links: {
         Row: {
           id: string
