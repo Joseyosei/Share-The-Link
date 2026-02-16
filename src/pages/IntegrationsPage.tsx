@@ -98,7 +98,7 @@ const IntegrationsPage = () => {
           <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
             We're always adding new integrations. Let us know what tools you'd like to connect.
           </p>
-          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+          <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-white/90 font-semibold">
             <Link to="/contact">Request Integration</Link>
           </Button>
         </div>

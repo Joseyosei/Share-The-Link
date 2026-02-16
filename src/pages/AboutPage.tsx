@@ -79,7 +79,7 @@ const AboutPage = () => {
           <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-8">
             Start sharing your world with one beautiful link today.
           </p>
-          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+          <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-white/90 font-semibold">
             <Link to="/signup">Get Started Free</Link>
           </Button>
         </div>
