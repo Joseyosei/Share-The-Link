@@ -353,10 +353,10 @@ const PricingPage = () => {
             Join thousands of creators and entrepreneurs using Share The Link.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-white text-foreground hover:bg-white/90 font-semibold px-10 py-7 text-lg">
+            <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-10 py-7 text-lg">
               <Link to="/signup">Start for Free</Link>
             </Button>
-            <Button asChild size="lg" className="cta-button-outline font-semibold px-10 py-7 text-lg rounded-lg">
+            <Button asChild size="lg" className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-10 py-7 text-lg rounded-lg transition-all duration-300">
               <Link to="/contact">Contact Sales</Link>
             </Button>
           </div>
