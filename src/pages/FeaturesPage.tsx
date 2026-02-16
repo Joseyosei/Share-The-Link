@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
-import { Link2, TrendingUp, Shield, Zap, BarChart3, Palette, Globe, Users, Smartphone, Lock, Clock, Star } from "lucide-react";
+import { Link2, TrendingUp, Shield, Zap, BarChart3, Palette, Globe, Users, Smartphone, Lock, Clock, Star, Radio, Play, Wand2, Store, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -42,39 +42,39 @@ const features = [
     gradient: "from-accent to-primary",
   },
   {
-    icon: Globe,
-    title: "Custom Domains",
-    description: "Use your own domain for a fully branded experience. Connect any domain in minutes with our simple setup.",
+    icon: Radio,
+    title: "Live Streaming",
+    description: "Go live directly from your dashboard. Stream to your audience with real-time chat, tips, and viewer analytics built in.",
     gradient: "from-primary to-secondary",
   },
   {
-    icon: Users,
-    title: "Team Collaboration",
-    description: "Work together with your team. Invite members, assign roles, and manage multiple profiles from one dashboard.",
+    icon: Play,
+    title: "Media Hub",
+    description: "All your stream recordings in one place. Your audience can browse, search, and watch your content anytime.",
     gradient: "from-secondary to-accent",
   },
   {
-    icon: Smartphone,
-    title: "Mobile Optimized",
-    description: "Your profile looks perfect on every device. Responsive design ensures a seamless experience for all visitors.",
+    icon: Wand2,
+    title: "AI Page Builder",
+    description: "Describe your business and let AI design your profile page in seconds. Choose from generated themes and layouts.",
     gradient: "from-accent to-primary",
+  },
+  {
+    icon: Store,
+    title: "My Shop",
+    description: "List your products and services directly on your profile. Your audience can discover and purchase without leaving your page.",
+    gradient: "from-primary to-secondary",
+  },
+  {
+    icon: Share2,
+    title: "Auto-Share Links",
+    description: "Schedule your links to be shared on Twitter, Facebook, LinkedIn, and WhatsApp automatically at the perfect time.",
+    gradient: "from-secondary to-accent",
   },
   {
     icon: Lock,
     title: "Secure & Private",
     description: "Enterprise-grade security protects your data. SSL encryption, regular backups, and GDPR compliance included.",
-    gradient: "from-primary to-secondary",
-  },
-  {
-    icon: Clock,
-    title: "Link Scheduling",
-    description: "Schedule links to appear and disappear automatically. Perfect for limited-time offers and launches.",
-    gradient: "from-secondary to-accent",
-  },
-  {
-    icon: Star,
-    title: "Priority Support",
-    description: "Get help when you need it. Our dedicated support team is available 24/7 to assist with any questions.",
     gradient: "from-accent to-primary",
   },
 ];

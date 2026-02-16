@@ -26,7 +26,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Link2, label: "Links", href: "/dashboard/links" },
   { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
-  { icon: Play, label: "Media", href: "/media", isNew: true },
+  { icon: Play, label: "Media", href: "/dashboard/media", isNew: true },
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
   { icon: Store, label: "My Shop", href: "/connect", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
