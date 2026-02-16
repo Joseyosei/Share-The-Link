@@ -148,15 +148,16 @@ export const useStreaming = () => {
     }
   };
 
-  // End stream (direct DB update)
+  // End stream (direct DB update + create recording)
   const endStream = async (streamId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const endedAt = new Date().toISOString();
       const { data, error } = await supabase
         .from("streams")
-        .update({ status: "ended", ended_at: new Date().toISOString() })
+        .update({ status: "ended", ended_at: endedAt })
         .eq("id", streamId)
         .eq("user_id", user.id)
         .select()
@@ -164,12 +165,36 @@ export const useStreaming = () => {
 
       if (error) throw error;
 
+      const stream = data as Stream;
+
+      // Calculate duration in seconds
+      const startedAt = stream.started_at ? new Date(stream.started_at).getTime() : Date.now();
+      const duration = Math.round((new Date(endedAt).getTime() - startedAt) / 1000);
+
+      // Automatically create a stream recording entry
+      const recordingsTable = supabase.from("stream_recordings" as any);
+      const { error: recError } = await recordingsTable.insert({
+        stream_id: streamId,
+        user_id: user.id,
+        title: stream.title || "Stream Recording",
+        description: stream.description || null,
+        video_url: stream.recording_url || "",
+        thumbnail_url: stream.thumbnail_url || null,
+        duration: Math.max(duration, 0),
+        view_count: 0,
+        visibility: "public",
+      });
+
+      if (recError) {
+        console.error("[v0] Failed to save recording:", recError);
+      }
+
       setCurrentStream(null);
       setIsLive(false);
 
       toast({
         title: "Stream ended",
-        description: "Your stream has been saved.",
+        description: "Your stream has been saved and recorded.",
       });
 
       return data;

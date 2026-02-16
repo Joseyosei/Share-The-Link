@@ -8,6 +8,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+
+// Bypass PostgREST schema cache issue for newer tables
+const productsTable = () => supabase.from("user_products" as any);
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -68,12 +71,12 @@ const ConnectDashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    const { data } = await supabase
-      .from("user_products")
+    const { data, error } = await productsTable()
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }) as any;
 
+    if (error) console.error("[v0] Products fetch error:", error);
     setProducts((data as Product[]) || []);
     setLoading(false);
   }, [navigate]);
@@ -123,15 +126,13 @@ const ConnectDashboard = () => {
       };
 
       if (editingProduct) {
-        const { error } = await supabase
-          .from("user_products")
+        const { error } = await productsTable()
           .update(payload)
           .eq("id", editingProduct.id);
         if (error) throw error;
         toast({ title: "Product updated!" });
       } else {
-        const { error } = await supabase
-          .from("user_products")
+        const { error } = await productsTable()
           .insert(payload);
         if (error) throw error;
         toast({ title: "Product added!" });
@@ -148,13 +149,13 @@ const ConnectDashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("user_products").delete().eq("id", id);
+    await productsTable().delete().eq("id", id);
     fetchProducts();
     toast({ title: "Product deleted" });
   };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
-    await supabase.from("user_products").update({ is_active: !currentActive }).eq("id", id);
+    await productsTable().update({ is_active: !currentActive }).eq("id", id);
     fetchProducts();
   };
 

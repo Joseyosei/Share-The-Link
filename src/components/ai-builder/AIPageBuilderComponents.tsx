@@ -1,18 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { Wand2, Loader2, Check, Sparkles, Palette, Type, Layout, ArrowRight, Target, PenTool, Share2, Zap } from "lucide-react";
+import {
+  Wand2, Loader2, Check, Sparkles, Palette, Type, Layout, ArrowRight,
+  Target, PenTool, Share2, Zap, Globe, Search
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useAIPageBuilder, GeneratedPage } from "@/hooks/useAIPageBuilder";
+import { useAIPageBuilder, GeneratedPage, ThemeVariant } from "@/hooks/useAIPageBuilder";
 
 // AI Generation Loading Modal with animated steps
 const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentStep: number }) => {
   const steps = [
-    { icon: Target, label: "Analyzing campaign goals...", color: "text-purple-500" },
-    { icon: PenTool, label: "Optimizing copy for engagement...", color: "text-pink-500" },
-    { icon: Share2, label: "Generating shareable assets...", color: "text-orange-500" },
+    { icon: Globe, label: "Searching the web for your business...", color: "text-blue-500" },
+    { icon: Target, label: "Analyzing business goals...", color: "text-purple-500" },
+    { icon: PenTool, label: "Crafting your bio and content...", color: "text-pink-500" },
+    { icon: Palette, label: "Generating theme options...", color: "text-orange-500" },
     { icon: Zap, label: "Finalizing your page...", color: "text-green-500" },
   ];
 
@@ -26,7 +31,9 @@ const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentSt
             </div>
           </div>
           <h3 className="text-xl font-bold text-center mb-2">AI is building your page</h3>
-          <p className="text-sm text-muted-foreground text-center mb-8">This usually takes a few seconds</p>
+          <p className="text-sm text-muted-foreground text-center mb-8">
+            Fetching info from the web and generating themes
+          </p>
 
           <div className="space-y-4">
             {steps.map((s, i) => {
@@ -67,7 +74,6 @@ const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentSt
             })}
           </div>
 
-          {/* Progress bar */}
           <div className="mt-8 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full gradient-button rounded-full transition-all duration-700 ease-out"
@@ -80,18 +86,85 @@ const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentSt
   );
 };
 
+// Theme Card for theme selection
+const ThemeCard = ({
+  theme,
+  isSelected,
+  onClick,
+}: {
+  theme: ThemeVariant;
+  isSelected: boolean;
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+        isSelected
+          ? "border-primary shadow-lg scale-[1.02]"
+          : "border-border hover:border-primary/40 hover:shadow-md"
+      }`}
+    >
+      {/* Color preview strip */}
+      <div className="flex gap-1 mb-3 h-8 rounded-lg overflow-hidden">
+        <div className="flex-1" style={{ backgroundColor: theme.colors.background }} />
+        <div className="flex-1" style={{ backgroundColor: theme.colors.primary }} />
+        <div className="flex-1" style={{ backgroundColor: theme.colors.secondary }} />
+        <div className="flex-1" style={{ backgroundColor: theme.colors.accent }} />
+      </div>
+      {/* Mini preview */}
+      <div
+        className="rounded-lg p-3 mb-3"
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        <div
+          className="text-xs font-bold mb-1"
+          style={{ color: theme.colors.text }}
+        >
+          Preview
+        </div>
+        <div
+          className="w-full h-6 rounded-md mb-1"
+          style={{ backgroundColor: theme.colors.primary }}
+        />
+        <div
+          className="w-3/4 h-6 rounded-md"
+          style={{ backgroundColor: theme.colors.secondary, opacity: 0.6 }}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-sm">{theme.name}</p>
+          <p className="text-xs text-muted-foreground">{theme.description}</p>
+        </div>
+        {isSelected && (
+          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+            <Check className="w-3.5 h-3.5 text-primary-foreground" />
+          </div>
+        )}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <Badge variant="outline" className="text-[10px]">{theme.font}</Badge>
+        <Badge variant="outline" className="text-[10px] capitalize">{theme.layout}</Badge>
+      </div>
+    </button>
+  );
+};
+
 interface AIPageBuilderWizardProps {
   onComplete?: (page: GeneratedPage) => void;
 }
 
 export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) => {
-  const { generatePage, applyDesign, loading, generatedPage } = useAIPageBuilder();
-  const [step, setStep] = useState<"describe" | "preview" | "apply">("describe");
+  const { generatePage, applyDesign, applyThemeToPage, loading, generatedPage, themeVariants } = useAIPageBuilder();
+  const [step, setStep] = useState<"describe" | "themes" | "preview" | "apply">("describe");
   const [businessDescription, setBusinessDescription] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [applying, setApplying] = useState(false);
   const [showGeneratingModal, setShowGeneratingModal] = useState(false);
   const [generatingStep, setGeneratingStep] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState<number | null>(null);
 
   // Animate through generation steps
   useEffect(() => {
@@ -101,13 +174,13 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
     }
     const interval = setInterval(() => {
       setGeneratingStep((prev) => {
-        if (prev >= 3) {
+        if (prev >= 4) {
           clearInterval(interval);
           return prev;
         }
         return prev + 1;
       });
-    }, 800);
+    }, 700);
     return () => clearInterval(interval);
   }, [showGeneratingModal]);
 
@@ -118,23 +191,34 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
     setGeneratingStep(0);
 
     try {
-      const page = await generatePage(businessDescription);
-      // Ensure minimum display time for the modal
+      const page = await generatePage(businessDescription, websiteUrl || undefined);
       await new Promise((r) => setTimeout(r, 500));
       setShowGeneratingModal(false);
       if (page) {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 2000);
-        setStep("preview");
+        // Go to theme selection if themes are available
+        setStep("themes");
       }
     } catch {
       setShowGeneratingModal(false);
     }
-  }, [businessDescription, generatePage]);
+  }, [businessDescription, websiteUrl, generatePage]);
+
+  const handleSelectTheme = (index: number) => {
+    setSelectedThemeIndex(index);
+    if (themeVariants[index]) {
+      applyThemeToPage(themeVariants[index]);
+    }
+  };
+
+  const handleProceedToPreview = () => {
+    setStep("preview");
+  };
 
   const handleApply = async () => {
     if (!generatedPage) return;
-    
+
     setApplying(true);
     try {
       await applyDesign(generatedPage);
@@ -148,32 +232,36 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
   const handleStartOver = () => {
     setStep("describe");
     setBusinessDescription("");
+    setWebsiteUrl("");
+    setSelectedThemeIndex(null);
   };
+
+  const allSteps = ["describe", "themes", "preview", "apply"];
 
   return (
     <div className="max-w-2xl mx-auto">
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-2 mb-8">
-        {["describe", "preview", "apply"].map((s, i) => (
+        {allSteps.map((s, i) => (
           <div key={s} className="flex items-center">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                 step === s
                   ? "bg-primary text-primary-foreground"
-                  : i < ["describe", "preview", "apply"].indexOf(step)
+                  : i < allSteps.indexOf(step)
                   ? "bg-accent text-accent-foreground"
                   : "bg-muted text-muted-foreground"
               }`}
             >
-              {i < ["describe", "preview", "apply"].indexOf(step) ? (
+              {i < allSteps.indexOf(step) ? (
                 <Check className="w-4 h-4" />
               ) : (
                 i + 1
               )}
             </div>
-            {i < 2 && (
-              <div className={`w-12 h-0.5 mx-2 ${
-                i < ["describe", "preview", "apply"].indexOf(step)
+            {i < allSteps.length - 1 && (
+              <div className={`w-8 h-0.5 mx-1 ${
+                i < allSteps.indexOf(step)
                   ? "bg-accent"
                   : "bg-muted"
               }`} />
@@ -192,7 +280,7 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
               </div>
               <h2 className="text-2xl font-bold mb-2">Describe Your Business</h2>
               <p className="text-muted-foreground">
-                Tell us about your business in 2-3 sentences. Our AI will create a professional page design for you.
+                Tell us about your business. You can also add your website URL so the AI can pull information from the web.
               </p>
             </div>
 
@@ -202,6 +290,31 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
               placeholder="Example: I'm a fitness coach helping busy professionals build sustainable workout habits. I offer 1-on-1 coaching, group classes, and a nutrition program."
               className="min-h-32 text-base"
             />
+
+            {/* Website URL for web retrieval */}
+            <div className="mt-4">
+              <label className="text-sm font-medium flex items-center gap-2 mb-2">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                Website URL (optional)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://your-website.com"
+                  type="url"
+                />
+                {websiteUrl && (
+                  <Badge variant="outline" className="shrink-0 flex items-center gap-1">
+                    <Search className="w-3 h-3" />
+                    Will fetch info
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                AI will pull your business info, branding, and details from this URL
+              </p>
+            </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="text-sm text-muted-foreground">Try:</span>
@@ -238,11 +351,55 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
       {/* AI Generation Modal */}
       <AIGeneratingModal isOpen={showGeneratingModal} currentStep={generatingStep} />
 
-      {/* Step 2: Preview */}
+      {/* Step 2: Theme Selection */}
+      {step === "themes" && themeVariants.length > 0 && (
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <Palette className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold mb-1">Choose Your Theme</h2>
+                <p className="text-sm text-muted-foreground">
+                  Select a visual style for your profile. You can always change it later.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {themeVariants.map((theme, index) => (
+                  <ThemeCard
+                    key={theme.name}
+                    theme={theme}
+                    isSelected={selectedThemeIndex === index}
+                    onClick={() => handleSelectTheme(index)}
+                  />
+                ))}
+              </div>
+
+              {/* Skip theme option */}
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                Or skip to use the AI-recommended theme
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleStartOver} className="flex-1">
+              Start Over
+            </Button>
+            <Button onClick={handleProceedToPreview} className="flex-1 gradient-button text-white">
+              <ArrowRight className="w-4 h-4 mr-2" />
+              {selectedThemeIndex !== null ? "Preview with Theme" : "Skip & Preview"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Preview */}
       {step === "preview" && generatedPage && (
         <div className={`space-y-6 ${showSuccess ? "animate-scale-in" : ""}`}>
           <Card className="overflow-hidden">
-            {/* Success banner */}
             <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-3 flex items-center gap-2">
               <Check className="w-5 h-5 text-white" />
               <span className="text-white font-semibold text-sm">Page generated successfully</span>
@@ -276,9 +433,11 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
                 <div className="flex items-center gap-2 mb-2">
                   <Palette className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Color Palette</span>
-                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
-                    <Sparkles className="w-3 h-3 mr-1" /> AI-picked
-                  </Badge>
+                  {selectedThemeIndex !== null && (
+                    <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                      {themeVariants[selectedThemeIndex]?.name}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {Object.entries(generatedPage.colors).map(([name, color]) => (
@@ -338,10 +497,10 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
               {/* Suggestions */}
               {generatedPage.suggestions && generatedPage.suggestions.length > 0 && (
                 <div className="bg-accent/10 p-4 rounded-lg">
-                  <span className="font-medium block mb-2">💡 AI Suggestions</span>
+                  <span className="font-medium block mb-2">AI Suggestions</span>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     {generatedPage.suggestions.map((s, i) => (
-                      <li key={i}>• {s}</li>
+                      <li key={i}>- {s}</li>
                     ))}
                   </ul>
                 </div>
@@ -350,13 +509,13 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
           </Card>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={handleStartOver} className="flex-1">
-              Start Over
+            <Button variant="outline" onClick={() => setStep("themes")} className="flex-1">
+              Change Theme
             </Button>
             <Button
               onClick={handleApply}
               disabled={applying}
-              className="flex-1 gradient-button"
+              className="flex-1 gradient-button text-white"
             >
               {applying ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -369,7 +528,7 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
         </div>
       )}
 
-      {/* Step 3: Complete */}
+      {/* Step 4: Complete */}
       {step === "apply" && (
         <Card className="border-2 border-green-500/30 overflow-hidden animate-scale-in">
           <div className="bg-gradient-to-r from-green-500 to-emerald-500 py-6 flex items-center justify-center">
