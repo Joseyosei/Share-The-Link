@@ -4,6 +4,48 @@ import { Sparkles, Bug, Zap } from "lucide-react";
 
 const changelog = [
   {
+    version: "3.2.0",
+    date: "February 16, 2026",
+    changes: [
+      { type: "feature", title: "AI Builder on Homepage", description: "Try the AI Page Builder directly on the landing page -- describe your business and see a live phone preview instantly, no signup required." },
+      { type: "feature", title: "AI Builder theme selection", description: "Choose from 6 curated theme variants (Minimal Light, Bold Gradient, Warm Sunset, Dark Professional, Elegant Rose, Nature Fresh) after AI generates your profile." },
+      { type: "feature", title: "AI web retrieval", description: "Paste your website URL and let the AI pull real info about your business to generate a more accurate profile." },
+      { type: "fix", title: "Stream recordings now save automatically", description: "Ending a live stream now creates a recording entry so your videos appear in Media and Past Streams." },
+      { type: "fix", title: "My Shop product creation fixed", description: "Resolved PostgREST schema cache error that prevented saving new products." },
+      { type: "fix", title: "Auto-Share scheduling fixed", description: "Resolved the 'table not found in schema cache' error for scheduled link sharing." },
+    ],
+  },
+  {
+    version: "3.1.0",
+    date: "February 12, 2026",
+    changes: [
+      { type: "feature", title: "Media Hub & Dashboard Media", description: "Public media discovery page with filters (All, Live Now, Recent, Trending) plus a protected dashboard media page to manage your own recordings." },
+      { type: "feature", title: "My Shop", description: "List your products and services directly on your profile. Manage inventory, toggle listings, and track catalog value." },
+      { type: "feature", title: "Auto-Share Links", description: "Schedule your links to be shared on Twitter/X, Facebook, LinkedIn, WhatsApp, and Email at a specific time." },
+      { type: "improvement", title: "Features page updated", description: "Landing page features now showcase Live Streaming, Media Hub, AI Builder, My Shop, and Auto-Share." },
+    ],
+  },
+  {
+    version: "3.0.0",
+    date: "February 8, 2026",
+    changes: [
+      { type: "feature", title: "Live Streaming", description: "Go live directly from your dashboard. Stream to your audience with real-time chat, viewer count, and tip collection." },
+      { type: "feature", title: "AI Page Builder", description: "Describe your business in 2-3 sentences and AI generates a complete profile with bio, links, theme, and layout." },
+      { type: "feature", title: "Live Stream PiP Mini-Player", description: "When navigating away from a live stream, a floating mini-player keeps the video playing in the corner." },
+      { type: "feature", title: "Slack-style Navigation Guide", description: "New users get a tooltip walkthrough that highlights each sidebar item with contextual descriptions." },
+      { type: "improvement", title: "Dark mode toggle in navbar", description: "Sun/moon toggle added after 'Join for free' for quick theme switching." },
+    ],
+  },
+  {
+    version: "2.5.0",
+    date: "February 1, 2026",
+    changes: [
+      { type: "feature", title: "Help page", description: "Comprehensive help center with FAQs, video tutorials, and contact support -- accessible from the sidebar." },
+      { type: "improvement", title: "Upgraded profile preview", description: "Dashboard live preview now shows avatar, social media icons, and a share button matching the Linktree aesthetic." },
+      { type: "fix", title: "Dark mode button text visibility", description: "Fixed invisible button text on gradient sections across all landing pages in dark mode." },
+    ],
+  },
+  {
     version: "2.4.0",
     date: "January 15, 2026",
     changes: [
