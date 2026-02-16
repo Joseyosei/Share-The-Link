@@ -6,17 +6,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { businessDescription } = req.body;
+    const { businessDescription, websiteUrl } = req.body;
 
     if (!businessDescription) {
       return res.status(400).json({ error: "Business description is required" });
     }
 
+    // Try to fetch web info about the business if a URL is provided
+    let webContext = "";
+    if (websiteUrl) {
+      try {
+        const fetchRes = await fetch(websiteUrl, {
+          headers: { "User-Agent": "ShareTheLink-Bot/1.0" },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (fetchRes.ok) {
+          const html = await fetchRes.text();
+          // Extract useful text from meta tags and headings
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+          const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+          const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+
+          const parts = [
+            titleMatch?.[1] ? `Website title: ${titleMatch[1]}` : "",
+            descMatch?.[1] ? `Description: ${descMatch[1]}` : "",
+            ogDescMatch?.[1] ? `About: ${ogDescMatch[1]}` : "",
+            h1Match?.[1] ? `Headline: ${h1Match[1]}` : "",
+          ].filter(Boolean);
+
+          webContext = parts.length > 0 ? `\n\nWeb info found: ${parts.join(". ")}` : "";
+        }
+      } catch {
+        // Web fetch failed, continue without it
+      }
+    }
+
+    const fullDescription = businessDescription + webContext;
+
     const apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
     if (!apiKey) {
-      // Fallback: generate a deterministic design without AI
       return res.status(200).json({
-        generation: generateFallbackDesign(businessDescription),
+        generation: generateFallbackDesign(fullDescription),
+        themes: generateThemeVariants(fullDescription),
       });
     }
 
@@ -51,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
           {
             role: "user",
-            content: `Design a link-in-bio page for: ${businessDescription}`,
+            content: `Design a link-in-bio page for: ${fullDescription}`,
           },
         ],
         temperature: 0.7,
@@ -60,31 +92,132 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!response.ok) {
-      console.error("OpenAI API error:", response.status);
       return res.status(200).json({
-        generation: generateFallbackDesign(businessDescription),
+        generation: generateFallbackDesign(fullDescription),
+        themes: generateThemeVariants(fullDescription),
       });
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
-    // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return res.status(200).json({
-        generation: generateFallbackDesign(businessDescription),
+        generation: generateFallbackDesign(fullDescription),
+        themes: generateThemeVariants(fullDescription),
       });
     }
 
     const generation = JSON.parse(jsonMatch[0]);
-    return res.status(200).json({ generation });
+    return res.status(200).json({
+      generation,
+      themes: generateThemeVariants(fullDescription),
+    });
   } catch (error) {
     console.error("AI builder error:", error);
     return res.status(200).json({
       generation: generateFallbackDesign(req.body?.businessDescription || ""),
+      themes: generateThemeVariants(req.body?.businessDescription || ""),
     });
   }
+}
+
+interface ThemeVariant {
+  name: string;
+  description: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+    accent: string;
+  };
+  font: string;
+  layout: string;
+}
+
+function generateThemeVariants(description: string): ThemeVariant[] {
+  return [
+    {
+      name: "Minimal Light",
+      description: "Clean and professional with soft whites",
+      colors: {
+        primary: "#111827",
+        secondary: "#6B7280",
+        background: "#FFFFFF",
+        text: "#111827",
+        accent: "#3B82F6",
+      },
+      font: "Inter",
+      layout: "minimal",
+    },
+    {
+      name: "Bold Gradient",
+      description: "Eye-catching with vibrant purple and pink",
+      colors: {
+        primary: "#7C3AED",
+        secondary: "#EC4899",
+        background: "#0F0F23",
+        text: "#F9FAFB",
+        accent: "#A78BFA",
+      },
+      font: "Space Grotesk",
+      layout: "bold",
+    },
+    {
+      name: "Warm Sunset",
+      description: "Inviting and energetic with warm tones",
+      colors: {
+        primary: "#EA580C",
+        secondary: "#F59E0B",
+        background: "#FFFBEB",
+        text: "#292524",
+        accent: "#FB923C",
+      },
+      font: "DM Sans",
+      layout: "playful",
+    },
+    {
+      name: "Dark Professional",
+      description: "Sleek and modern with dark backgrounds",
+      colors: {
+        primary: "#3B82F6",
+        secondary: "#06B6D4",
+        background: "#0F172A",
+        text: "#F1F5F9",
+        accent: "#22D3EE",
+      },
+      font: "Space Grotesk",
+      layout: "professional",
+    },
+    {
+      name: "Elegant Rose",
+      description: "Sophisticated with soft rose and cream",
+      colors: {
+        primary: "#BE185D",
+        secondary: "#F472B6",
+        background: "#FFF1F2",
+        text: "#1C1917",
+        accent: "#E11D48",
+      },
+      font: "Playfair Display",
+      layout: "elegant",
+    },
+    {
+      name: "Nature Fresh",
+      description: "Organic and calming with green tones",
+      colors: {
+        primary: "#059669",
+        secondary: "#34D399",
+        background: "#ECFDF5",
+        text: "#1E293B",
+        accent: "#10B981",
+      },
+      font: "DM Sans",
+      layout: "minimal",
+    },
+  ];
 }
 
 function generateFallbackDesign(description: string) {

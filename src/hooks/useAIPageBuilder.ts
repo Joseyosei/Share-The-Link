@@ -21,6 +21,20 @@ export interface GeneratedPage {
   suggestions?: string[];
 }
 
+export interface ThemeVariant {
+  name: string;
+  description: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+    accent: string;
+  };
+  font: string;
+  layout: string;
+}
+
 export interface AIGeneration {
   id: string;
   user_id: string;
@@ -39,10 +53,11 @@ export const useAIPageBuilder = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [generatedPage, setGeneratedPage] = useState<GeneratedPage | null>(null);
+  const [themeVariants, setThemeVariants] = useState<ThemeVariant[]>([]);
   const [generationHistory, setGenerationHistory] = useState<AIGeneration[]>([]);
 
   // Generate page design via Vercel API route
-  const generatePage = async (businessDescription: string) => {
+  const generatePage = async (businessDescription: string, websiteUrl?: string) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -51,7 +66,7 @@ export const useAIPageBuilder = () => {
       const response = await fetch("/api/ai-page-builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessDescription }),
+        body: JSON.stringify({ businessDescription, websiteUrl }),
       });
 
       const data = await response.json();
@@ -59,6 +74,11 @@ export const useAIPageBuilder = () => {
 
       const generation = data.generation as GeneratedPage;
       setGeneratedPage(generation);
+
+      // Store theme variants from API
+      if (data.themes) {
+        setThemeVariants(data.themes as ThemeVariant[]);
+      }
 
       // Save generation to DB
       await supabase.from("ai_generations").insert([{
@@ -169,12 +189,25 @@ export const useAIPageBuilder = () => {
     }
   };
 
+  // Apply a theme variant to the current generated page
+  const applyThemeToPage = (theme: ThemeVariant) => {
+    if (!generatedPage) return;
+    setGeneratedPage({
+      ...generatedPage,
+      colors: theme.colors,
+      font: theme.font,
+      layout: theme.layout as GeneratedPage["layout"],
+    });
+  };
+
   return {
     loading,
     generatedPage,
+    themeVariants,
     generationHistory,
     generatePage,
     applyDesign,
+    applyThemeToPage,
     fetchHistory,
     setGeneratedPage,
   };

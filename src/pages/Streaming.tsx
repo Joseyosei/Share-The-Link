@@ -38,11 +38,11 @@ const Streaming = () => {
   const fetchRecordings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase
-      .from("stream_recordings")
+    const { data, error } = await (supabase.from("stream_recordings" as any)
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }) as any);
+    if (error) console.error("[v0] Recordings fetch error:", error);
     if (data) setRecordings(data as StreamRecording[]);
   };
 
