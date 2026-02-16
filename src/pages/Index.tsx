@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
+import { AIBuilderDemo } from "@/components/landing/AIBuilderDemo";
 import { Pricing } from "@/components/landing/Pricing";
 import { Footer } from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
@@ -98,6 +99,7 @@ const Index = () => {
       <Navbar />
       <Hero />
       <Features />
+      <AIBuilderDemo />
       <HowItWorks />
       <Pricing />
       <CTASection />
