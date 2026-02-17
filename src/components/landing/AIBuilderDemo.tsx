@@ -11,112 +11,175 @@ interface GeneratedPreview {
   layout: string;
 }
 
-// Lightweight local generator for demo purposes (no auth required)
+// Extract a real name from user input
+const extractName = (text: string): string => {
+  // Try to find "I'm [Name]" or "My name is [Name]"
+  const iAmMatch = text.match(/(?:I'm|I am|my name is|name is)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)/i);
+  if (iAmMatch) return iAmMatch[1].trim();
+
+  // Try to find capitalized proper nouns (2+ words starting with uppercase)
+  const properNouns = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g);
+  if (properNouns && properNouns.length > 0) {
+    // Filter out common non-name phrases
+    const filtered = properNouns.filter(n =>
+      !/(The|For|And|With|From|About|How|What|Where|New|Live|Free|Digital|Social|Based|Lead|Grace|Prayer|Alpha)/i.test(n.split(" ")[0]) || n.split(" ").length >= 2
+    );
+    return filtered[0] || properNouns[0];
+  }
+
+  return "";
+};
+
+// Extract organization/business name
+const extractOrg = (text: string): string => {
+  // Common patterns for org names
+  const orgPatterns = [
+    /(?:founder|lead|ceo|owner|creator|head|director)(?:\s+\w+)?\s+(?:of|at)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)/i,
+    /(?:called|named)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)/i,
+    /([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)\s+(?:Ministry|Church|Studio|Agency|Academy|School|Lab|Shop|Store|Band|Fitness|Coaching)/i,
+  ];
+  for (const pattern of orgPatterns) {
+    const match = text.match(pattern);
+    if (match) return match[1].trim();
+  }
+  return "";
+};
+
+// Create a bio from the user's actual description
+const createBio = (text: string, maxLen = 120): string => {
+  // Clean up the text -- remove URLs, trim
+  let cleaned = text.replace(/https?:\/\/\S+/g, "").trim();
+  // If it's short enough, use it directly
+  if (cleaned.length <= maxLen) return cleaned;
+  // Truncate to nearest sentence
+  const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim());
+  let bio = "";
+  for (const s of sentences) {
+    const next = bio ? bio + ". " + s.trim() : s.trim();
+    if (next.length > maxLen) break;
+    bio = next;
+  }
+  return (bio || sentences[0]?.trim().slice(0, maxLen) || cleaned.slice(0, maxLen)) + ".";
+};
+
+// Category detection with themed links
+interface CategoryConfig {
+  keywords: string[];
+  colors: { primary: string; secondary: string; bg: string; text: string };
+  links: Array<{ title: string; icon: string }>;
+  layout: string;
+  fallbackName: string;
+}
+
+const categories: CategoryConfig[] = [
+  {
+    keywords: ["photo", "video", "film", "camera", "cinemat"],
+    colors: { primary: "#1a1a2e", secondary: "#e94560", bg: "#0f0f1a", text: "#ffffff" },
+    links: [
+      { title: "Portfolio", icon: "camera" },
+      { title: "Book a Session", icon: "calendar" },
+      { title: "Instagram", icon: "instagram" },
+      { title: "YouTube", icon: "play" },
+    ],
+    layout: "bold",
+    fallbackName: "Creative Studio",
+  },
+  {
+    keywords: ["coach", "fitness", "trainer", "health", "wellness", "gym"],
+    colors: { primary: "#059669", secondary: "#34d399", bg: "#ecfdf5", text: "#064e3b" },
+    links: [
+      { title: "Free Consultation", icon: "phone" },
+      { title: "Programs & Pricing", icon: "star" },
+      { title: "Client Testimonials", icon: "heart" },
+      { title: "Follow on Instagram", icon: "instagram" },
+    ],
+    layout: "minimal",
+    fallbackName: "Wellness Hub",
+  },
+  {
+    keywords: ["music", "artist", "band", "dj", "singer", "rapper"],
+    colors: { primary: "#7c3aed", secondary: "#a78bfa", bg: "#1e1033", text: "#f5f3ff" },
+    links: [
+      { title: "Latest Release", icon: "music" },
+      { title: "Tour Dates", icon: "calendar" },
+      { title: "Merch Store", icon: "shopping-bag" },
+      { title: "Spotify", icon: "headphones" },
+    ],
+    layout: "bold",
+    fallbackName: "Artist Page",
+  },
+  {
+    keywords: ["shop", "store", "product", "sell", "ecommerce", "jewelry", "handmade"],
+    colors: { primary: "#d97706", secondary: "#fbbf24", bg: "#fffbeb", text: "#78350f" },
+    links: [
+      { title: "Shop All Products", icon: "shopping-bag" },
+      { title: "New Arrivals", icon: "sparkles" },
+      { title: "Shipping Info", icon: "truck" },
+      { title: "Contact Us", icon: "mail" },
+    ],
+    layout: "elegant",
+    fallbackName: "My Shop",
+  },
+  {
+    keywords: ["church", "pastor", "ministry", "faith", "sermon", "worship", "prayer", "christian"],
+    colors: { primary: "#7c3aed", secondary: "#c084fc", bg: "#faf5ff", text: "#3b0764" },
+    links: [
+      { title: "Watch Sermons", icon: "play" },
+      { title: "Prayer Requests", icon: "heart" },
+      { title: "Give / Donate", icon: "gift" },
+      { title: "Join Community", icon: "users" },
+    ],
+    layout: "elegant",
+    fallbackName: "Ministry Hub",
+  },
+  {
+    keywords: ["tech", "developer", "software", "startup", "saas", "coding", "engineer"],
+    colors: { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0c1222", text: "#e2e8f0" },
+    links: [
+      { title: "My Projects", icon: "code" },
+      { title: "GitHub", icon: "github" },
+      { title: "Blog", icon: "book" },
+      { title: "Hire Me", icon: "briefcase" },
+    ],
+    layout: "minimal",
+    fallbackName: "Tech Profile",
+  },
+];
+
+const defaultCategory: Omit<CategoryConfig, "keywords"> = {
+  colors: { primary: "#8b5cf6", secondary: "#a78bfa", bg: "#faf5ff", text: "#1e1b4b" },
+  links: [
+    { title: "About Me", icon: "user" },
+    { title: "My Work", icon: "briefcase" },
+    { title: "Get in Touch", icon: "mail" },
+    { title: "Follow Me", icon: "heart" },
+  ],
+  layout: "professional",
+  fallbackName: "My Page",
+};
+
+// Smart generator that uses ACTUAL user input
 const generatePreview = (description: string): GeneratedPreview => {
   const lower = description.toLowerCase();
 
-  if (lower.includes("photo") || lower.includes("video") || lower.includes("film") || lower.includes("camera")) {
-    return {
-      name: "Creative Studio",
-      bio: "Capturing moments that tell your story. Professional photography & videography for brands and events.",
-      colors: { primary: "#1a1a2e", secondary: "#e94560", bg: "#0f0f1a", text: "#ffffff" },
-      links: [
-        { title: "Portfolio", icon: "camera" },
-        { title: "Book a Session", icon: "calendar" },
-        { title: "Instagram", icon: "instagram" },
-        { title: "YouTube", icon: "play" },
-      ],
-      layout: "bold",
-    };
-  }
+  // Detect category
+  const matched = categories.find(cat => cat.keywords.some(kw => lower.includes(kw)));
+  const cat = matched || defaultCategory;
 
-  if (lower.includes("coach") || lower.includes("fitness") || lower.includes("trainer") || lower.includes("health")) {
-    return {
-      name: "Wellness Hub",
-      bio: "Transform your life with expert coaching. Personalized plans, group sessions, and online programs.",
-      colors: { primary: "#059669", secondary: "#34d399", bg: "#ecfdf5", text: "#064e3b" },
-      links: [
-        { title: "Free Consultation", icon: "phone" },
-        { title: "Programs & Pricing", icon: "star" },
-        { title: "Client Testimonials", icon: "heart" },
-        { title: "Follow on Instagram", icon: "instagram" },
-      ],
-      layout: "minimal",
-    };
-  }
+  // Extract real info from user input
+  const personName = extractName(description);
+  const orgName = extractOrg(description);
+  const bio = createBio(description);
 
-  if (lower.includes("music") || lower.includes("artist") || lower.includes("band") || lower.includes("dj")) {
-    return {
-      name: "Artist Page",
-      bio: "Listen to my latest tracks, book me for events, and follow my musical journey.",
-      colors: { primary: "#7c3aed", secondary: "#a78bfa", bg: "#1e1033", text: "#f5f3ff" },
-      links: [
-        { title: "Latest Release", icon: "music" },
-        { title: "Tour Dates", icon: "calendar" },
-        { title: "Merch Store", icon: "shopping-bag" },
-        { title: "Spotify", icon: "headphones" },
-      ],
-      layout: "bold",
-    };
-  }
+  // Use real name/org or fallback
+  const displayName = orgName || personName || cat.fallbackName;
 
-  if (lower.includes("shop") || lower.includes("store") || lower.includes("product") || lower.includes("sell") || lower.includes("ecommerce")) {
-    return {
-      name: "My Shop",
-      bio: "Handcrafted products made with love. Browse our collection and find something special.",
-      colors: { primary: "#d97706", secondary: "#fbbf24", bg: "#fffbeb", text: "#78350f" },
-      links: [
-        { title: "Shop All Products", icon: "shopping-bag" },
-        { title: "New Arrivals", icon: "sparkles" },
-        { title: "Shipping Info", icon: "truck" },
-        { title: "Contact Us", icon: "mail" },
-      ],
-      layout: "elegant",
-    };
-  }
-
-  if (lower.includes("church") || lower.includes("pastor") || lower.includes("ministry") || lower.includes("faith")) {
-    return {
-      name: "Ministry Hub",
-      bio: "Spreading the word and building community. Join us for worship, prayer, and fellowship.",
-      colors: { primary: "#7c3aed", secondary: "#c084fc", bg: "#faf5ff", text: "#3b0764" },
-      links: [
-        { title: "Watch Sermons", icon: "play" },
-        { title: "Prayer Requests", icon: "heart" },
-        { title: "Give / Donate", icon: "gift" },
-        { title: "Join Community", icon: "users" },
-      ],
-      layout: "elegant",
-    };
-  }
-
-  if (lower.includes("tech") || lower.includes("developer") || lower.includes("software") || lower.includes("startup")) {
-    return {
-      name: "Tech Profile",
-      bio: "Building the future with code. Full-stack developer, open source contributor, and startup founder.",
-      colors: { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0c1222", text: "#e2e8f0" },
-      links: [
-        { title: "My Projects", icon: "code" },
-        { title: "GitHub", icon: "github" },
-        { title: "Blog", icon: "book" },
-        { title: "Hire Me", icon: "briefcase" },
-      ],
-      layout: "minimal",
-    };
-  }
-
-  // Default
   return {
-    name: "My Page",
-    bio: "Welcome to my world. Explore my links, content, and everything I am building.",
-    colors: { primary: "#8b5cf6", secondary: "#a78bfa", bg: "#faf5ff", text: "#1e1b4b" },
-    links: [
-      { title: "About Me", icon: "user" },
-      { title: "My Work", icon: "briefcase" },
-      { title: "Get in Touch", icon: "mail" },
-      { title: "Follow Me", icon: "heart" },
-    ],
-    layout: "professional",
+    name: displayName,
+    bio,
+    colors: cat.colors,
+    links: cat.links,
+    layout: cat.layout,
   };
 };
 
