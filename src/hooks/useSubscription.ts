@@ -174,6 +174,66 @@ export const useSubscription = () => {
   };
 
   /**
+   * Cancel subscription at end of billing period
+   */
+  const cancelSubscription = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("Not authenticated");
+
+      const response = await fetch("/api/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, action: "cancel" }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Cancel failed");
+
+      toast.success("Subscription will cancel at end of billing period");
+      await checkSubscription();
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to cancel subscription";
+      toast.error(message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Reactivate a subscription that was set to cancel
+   */
+  const reactivateSubscription = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("Not authenticated");
+
+      const response = await fetch("/api/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, action: "reactivate" }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Reactivation failed");
+
+      toast.success("Subscription reactivated!");
+      await checkSubscription();
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to reactivate subscription";
+      toast.error(message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
    * Check if user has access to a specific tier's features
    */
   const hasAccess = (requiredTier: TierKey): boolean => {
@@ -227,6 +287,8 @@ export const useSubscription = () => {
     checkSubscription,
     startCheckout,
     openCustomerPortal,
+    cancelSubscription,
+    reactivateSubscription,
     hasAccess,
   };
 };
