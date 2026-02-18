@@ -49,6 +49,12 @@ export const Navbar = () => {
             >
               Pricing
             </Link>
+            <Link
+              to="/docs"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Docs
+            </Link>
           </div>
 
           {/* Desktop Actions */}
@@ -104,6 +110,13 @@ export const Navbar = () => {
                 onClick={() => setIsOpen(false)}
               >
                 Pricing
+              </Link>
+              <Link
+                to="/docs"
+                className="text-sm text-muted-foreground hover:text-foreground py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                Docs
               </Link>
               <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
                 <Button

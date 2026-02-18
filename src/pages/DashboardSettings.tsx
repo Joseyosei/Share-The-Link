@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Lock, Trash2, Camera, Twitter, Instagram, Youtube, Github, Globe, Linkedin } from "lucide-react";
+import { ArrowLeft, User, Lock, Trash2, Camera, Twitter, Instagram, Youtube, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
@@ -7,12 +7,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useSubscription, PRICING_TIERS } from "@/hooks/useSubscription";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
   const { profile, loading: profileLoading, refetch } = useUserProfile();
+  const { subscription, loading: subLoading, cancelSubscription, reactivateSubscription, openCustomerPortal } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const [profileData, setProfileData] = useState({
     username: "",
@@ -496,6 +499,155 @@ const DashboardSettings = () => {
                 {isLoading ? "Changing..." : "Change Password"}
               </Button>
             </form>
+          </div>
+
+          {/* Billing & Subscription */}
+          <div className="bg-card rounded-2xl p-6 shadow-lg mb-6">
+            <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Billing & Subscription
+            </h2>
+
+            {/* Current Plan Info */}
+            <div className="rounded-xl border-2 border-border p-4 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Plan</p>
+                  <p className="text-2xl font-bold text-foreground capitalize">
+                    {subscription?.tier || "Free"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {subscription?.cancelAtPeriodEnd ? (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-sm font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Cancels soon
+                    </span>
+                  ) : subscription?.subscribed ? (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-sm font-medium">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Active
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium">
+                      Free tier
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {subscription?.subscribed && subscription.tier !== "free" && (
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>
+                    Price: <span className="text-foreground font-medium">
+                      {subscription.tier === "pro" ? "\u00A37/mo" : subscription.tier === "business" ? "\u00A323/mo" : "\u00A3100/mo"}
+                    </span>
+                  </p>
+                  {subscription.currentPeriodEnd && (
+                    <p>
+                      {subscription.cancelAtPeriodEnd ? "Access until" : "Next billing date"}:{" "}
+                      <span className="text-foreground font-medium">
+                        {new Date(subscription.currentPeriodEnd).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {/* Manage Billing (Stripe Portal) */}
+              {subscription?.subscribed && subscription.tier !== "free" && (
+                <Button
+                  variant="outline"
+                  className="w-full py-5 justify-between"
+                  onClick={() => openCustomerPortal()}
+                  disabled={subLoading}
+                >
+                  <span className="flex items-center gap-2">
+                    <ExternalLink className="w-4 h-4" />
+                    Manage Billing & Invoices
+                  </span>
+                  <span className="text-muted-foreground text-xs">Opens Stripe Portal</span>
+                </Button>
+              )}
+
+              {/* Cancel / Reactivate */}
+              {subscription?.subscribed && subscription.tier !== "free" && (
+                <>
+                  {subscription.cancelAtPeriodEnd ? (
+                    <Button
+                      variant="outline"
+                      className="w-full py-5 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+                      onClick={async () => {
+                        await reactivateSubscription();
+                      }}
+                      disabled={subLoading}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {subLoading ? "Reactivating..." : "Reactivate Subscription"}
+                    </Button>
+                  ) : !showCancelConfirm ? (
+                    <Button
+                      variant="outline"
+                      className="w-full py-5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setShowCancelConfirm(true)}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Cancel Subscription
+                    </Button>
+                  ) : (
+                    <div className="rounded-xl border-2 border-destructive/20 bg-destructive/5 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-foreground">Are you sure you want to cancel?</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Your subscription will remain active until the end of your current billing period.
+                            After that, you will be downgraded to the Free plan and lose access to premium features.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowCancelConfirm(false)}
+                          className="flex-1 py-5"
+                        >
+                          Keep Subscription
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={async () => {
+                            const success = await cancelSubscription();
+                            if (success) setShowCancelConfirm(false);
+                          }}
+                          disabled={subLoading}
+                          className="flex-1 py-5"
+                        >
+                          {subLoading ? "Cancelling..." : "Yes, Cancel"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Upgrade CTA for free users */}
+              {(!subscription?.subscribed || subscription.tier === "free") && (
+                <Button
+                  asChild
+                  className="w-full py-5 gradient-button text-primary-foreground hover:opacity-90"
+                >
+                  <Link to="/pricing">Upgrade Your Plan</Link>
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Danger Zone */}
