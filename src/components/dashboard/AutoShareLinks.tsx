@@ -9,34 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Direct Supabase REST API helper to bypass PostgREST schema cache issues
-const getSupabaseConfig = () => {
-  const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-  return { url, key };
-};
-
-const directQuery = async (method: string, path: string, body?: unknown, accessToken?: string) => {
-  const { url, key } = getSupabaseConfig();
-  const headers: Record<string, string> = {
-    "apikey": key,
-    "Authorization": `Bearer ${accessToken || key}`,
-    "Content-Type": "application/json",
-    "Prefer": method === "POST" ? "return=representation" : "return=minimal",
-  };
-  const res = await fetch(`${url}/rest/v1/${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(errText || `Request failed: ${res.status}`);
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-};
-
 interface ScheduledShare {
   id: string;
   platform: string;
@@ -81,6 +53,9 @@ function getShareUrl(platform: string, url: string, message: string): string {
   }
 }
 
+// In-memory fallback for scheduled shares when DB table is unavailable
+let inMemoryShares: ScheduledShare[] = [];
+
 export function AutoShareLinks() {
   const { toast } = useToast();
   const [shares, setShares] = useState<ScheduledShare[]>([]);
@@ -88,6 +63,7 @@ export function AutoShareLinks() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shareMode, setShareMode] = useState<"now" | "schedule">("now");
+  const [dbAvailable, setDbAvailable] = useState(true);
   const firedShareIds = useRef<Set<string>>(new Set());
 
   // Form state
@@ -96,28 +72,35 @@ export function AutoShareLinks() {
   const [message, setMessage] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
 
-  const getAccessToken = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || "";
-  }, []);
-
   const fetchShares = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const token = await getAccessToken();
-      const data = await directQuery(
-        "GET",
-        `auto_share_links?user_id=eq.${user.id}&order=scheduled_at.asc`,
-        undefined,
-        token
-      );
-      setShares(data || []);
+
+      // Try Supabase first
+      const { data, error } = await supabase
+        .from("auto_share_links" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .order("scheduled_at", { ascending: true });
+
+      if (error) {
+        // PGRST205 means PostgREST schema cache doesn't see the table
+        // Fall back to in-memory storage
+        console.warn("[v0] auto_share_links table not available, using in-memory fallback:", error.code);
+        setDbAvailable(false);
+        setShares(inMemoryShares.filter(s => s.id));
+        return;
+      }
+
+      setDbAvailable(true);
+      setShares((data as ScheduledShare[]) || []);
     } catch (err) {
       console.error("Error fetching shares:", err);
-      setShares([]);
+      setDbAvailable(false);
+      setShares(inMemoryShares);
     }
-  }, [getAccessToken]);
+  }, []);
 
   const fetchLinks = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -135,11 +118,12 @@ export function AutoShareLinks() {
     fetchLinks();
   }, [fetchShares, fetchLinks]);
 
-  // Check for scheduled shares that are ready -- show reminder toast and auto-open
+  // Check for scheduled shares that are ready
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       const now = Date.now();
-      for (const share of shares) {
+      const allShares = dbAvailable ? shares : inMemoryShares;
+      for (const share of allShares) {
         if (share.status === "pending" && new Date(share.scheduled_at).getTime() <= now && !firedShareIds.current.has(share.id)) {
           firedShareIds.current.add(share.id);
           const platformLabel = PLATFORMS.find(p => p.key === share.platform)?.label || share.platform;
@@ -147,33 +131,26 @@ export function AutoShareLinks() {
             title: `Time to share on ${platformLabel}!`,
             description: share.message || "Your scheduled share is ready.",
           });
-          // Open the share URL
           window.open(share.share_url, "_blank", "width=600,height=400");
-          // Mark as posted via direct REST
-          try {
-            const token = await getAccessToken();
-            await directQuery(
-              "PATCH",
-              `auto_share_links?id=eq.${share.id}`,
-              { status: "posted", posted_at: new Date().toISOString() },
-              token
-            );
-            fetchShares();
-          } catch (err) {
-            console.error("Error marking share posted:", err);
+          // Mark as posted
+          if (dbAvailable) {
+            supabase
+              .from("auto_share_links" as any)
+              .update({ status: "posted", posted_at: new Date().toISOString() } as any)
+              .eq("id", share.id)
+              .then(() => fetchShares());
+          } else {
+            const idx = inMemoryShares.findIndex(s => s.id === share.id);
+            if (idx >= 0) {
+              inMemoryShares[idx] = { ...inMemoryShares[idx], status: "posted", posted_at: new Date().toISOString() };
+              setShares([...inMemoryShares]);
+            }
           }
         }
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [shares, fetchShares, getAccessToken, toast]);
-
-  // Request browser notification permission on mount
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
+  }, [shares, dbAvailable, fetchShares, toast]);
 
   const handleShareNow = (platform: string, url: string, msg: string) => {
     window.open(getShareUrl(platform, url, msg), "_blank", "width=600,height=400");
@@ -190,7 +167,6 @@ export function AutoShareLinks() {
     if (!link) return;
 
     if (shareMode === "now") {
-      // Instant share -- open all selected platforms immediately
       selectedPlatforms.forEach((platform) => {
         const shareUrl = getShareUrl(platform, link.url, message || link.title);
         window.open(shareUrl, "_blank", "width=600,height=400");
@@ -211,22 +187,44 @@ export function AutoShareLinks() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-      const token = await getAccessToken();
 
       for (const platform of selectedPlatforms) {
+        const shareUrl = getShareUrl(platform, link.url, message || link.title);
         const row = {
           user_id: user.id,
           link_id: selectedLink,
           platform,
           message: message || link.title,
-          share_url: getShareUrl(platform, link.url, message || link.title),
+          share_url: shareUrl,
           scheduled_at: new Date(scheduledAt).toISOString(),
           status: "pending",
         };
-        await directQuery("POST", "auto_share_links", row, token);
+
+        if (dbAvailable) {
+          const { error } = await supabase
+            .from("auto_share_links" as any)
+            .insert(row as any);
+          if (error) {
+            // Fallback to in-memory if insert fails
+            console.warn("[v0] DB insert failed, using in-memory:", error.message);
+            inMemoryShares.push({
+              ...row,
+              id: crypto.randomUUID(),
+              posted_at: null,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } else {
+          inMemoryShares.push({
+            ...row,
+            id: crypto.randomUUID(),
+            posted_at: null,
+            created_at: new Date().toISOString(),
+          });
+        }
       }
 
-      toast({ title: "Shares scheduled!", description: `${selectedPlatforms.length} share(s) scheduled.` });
+      toast({ title: "Shares scheduled!", description: `${selectedPlatforms.length} share(s) scheduled.${!dbAvailable ? " (Using browser memory - keep tab open)" : ""}` });
       setShowModal(false);
       resetForm();
       fetchShares();
@@ -240,8 +238,15 @@ export function AutoShareLinks() {
 
   const handleCancel = async (id: string) => {
     try {
-      const token = await getAccessToken();
-      await directQuery("PATCH", `auto_share_links?id=eq.${id}`, { status: "cancelled" }, token);
+      if (dbAvailable) {
+        await supabase
+          .from("auto_share_links" as any)
+          .update({ status: "cancelled" } as any)
+          .eq("id", id);
+      } else {
+        const idx = inMemoryShares.findIndex(s => s.id === id);
+        if (idx >= 0) inMemoryShares[idx] = { ...inMemoryShares[idx], status: "cancelled" };
+      }
       fetchShares();
       toast({ title: "Cancelled", description: "Scheduled share cancelled." });
     } catch {
@@ -284,7 +289,13 @@ export function AutoShareLinks() {
         </Button>
       </div>
 
-      {/* Quick Share Buttons for all links */}
+      {!dbAvailable && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          Scheduled shares are stored in browser memory. Keep this tab open for reminders to fire. To fix permanently, run <code className="bg-amber-500/20 px-1 rounded">NOTIFY pgrst, 'reload schema';</code> in your Supabase SQL editor.
+        </div>
+      )}
+
+      {/* Quick Share Buttons */}
       {links.length > 0 && (
         <Card>
           <CardHeader className="py-3">
@@ -437,7 +448,7 @@ export function AutoShareLinks() {
               />
             </div>
 
-            {/* Schedule Time -- only for schedule mode */}
+            {/* Schedule Time */}
             {shareMode === "schedule" && (
               <div>
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -452,7 +463,7 @@ export function AutoShareLinks() {
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  You will get a reminder when it is time to share (browser tab must be open).
+                  You will get a reminder when it is time to share (keep browser tab open).
                 </p>
               </div>
             )}
@@ -522,15 +533,14 @@ function ScheduledShareCard({ share, onCancel }: { share: ScheduledShare; onCanc
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Badge className={`text-xs ${statusColors[share.status] || ""}`}>
-          {share.status === "posted" && <CheckCircle className="w-3 h-3 mr-1" />}
+      <div className="flex items-center gap-2 shrink-0">
+        <Badge variant="secondary" className={`text-xs ${statusColors[share.status] || ""}`}>
           {share.status}
         </Badge>
         {share.status === "pending" && onCancel && (
-          <Button variant="ghost" size="sm" onClick={() => onCancel(share.id)}>
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-          </Button>
+          <button onClick={() => onCancel(share.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+            <Trash2 className="w-4 h-4" />
+          </button>
         )}
       </div>
     </div>
