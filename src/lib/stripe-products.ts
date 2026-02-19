@@ -7,6 +7,7 @@ export interface PricingPlan {
   currency: string;
   features: string[];
   highlighted?: boolean;
+  stripeProductId: string;
   stripeLinks: {
     monthly: string;
     yearly: string;
@@ -25,6 +26,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 0,
     yearlyPrice: 0,
     currency: "GBP",
+    stripeProductId: "prod_TuQRMlT6Gfn7Sv",
     features: [
       "1 profile page",
       "5 links",
@@ -49,6 +51,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     yearlyPrice: 56,
     currency: "GBP",
     highlighted: false,
+    stripeProductId: "prod_TuQTRlytxHScfY",
     features: [
       "Up to 5 profiles",
       "Unlimited links",
@@ -60,12 +63,12 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Countdown timers",
     ],
     stripeLinks: {
-      monthly: "https://buy.stripe.com/test_00w9AUbebcj258cefz67S02",
-      yearly: "https://buy.stripe.com/test_7sYaEY4PNeracAE8Vf67S01",
+      monthly: "",
+      yearly: "",
     },
     stripePriceIds: {
-      monthly: "price_1Sxo9pLk2fcyizRGPnTU7BWP",
-      yearly: "price_1Sxo9xLk2fcyizRG4lQ8V0F3",
+      monthly: "price_1SwbcFE2FuZ01nXUSQxTa1zF",
+      yearly: "",
     },
   },
   {
@@ -75,6 +78,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 23,
     yearlyPrice: 184,
     currency: "GBP",
+    highlighted: true,
+    stripeProductId: "prod_TuQUStzRn07sTU",
     features: [
       "Unlimited profiles",
       "Unlimited links",
@@ -87,12 +92,40 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Team collaboration",
     ],
     stripeLinks: {
-      monthly: "https://buy.stripe.com/test_14AbJ2gyv3Mw6cg2wR67S03",
-      yearly: "https://buy.stripe.com/test_bJedRabeb96Q9osfjD67S00",
+      monthly: "",
+      yearly: "",
     },
     stripePriceIds: {
-      monthly: "price_1Sxo9pLk2fcyizRG6DsOAh2v",
-      yearly: "price_1Sxo9yLk2fcyizRGDF6y1sjS",
+      monthly: "price_1SwbdIE2FuZ01nXUnGw4a2Yn",
+      yearly: "",
+    },
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    description: "For large organisations",
+    monthlyPrice: 100,
+    yearlyPrice: 800,
+    currency: "GBP",
+    stripeProductId: "prod_TuQWHzMKX8eKbS",
+    features: [
+      "Everything in Business",
+      "Unlimited team members",
+      "White-label solution",
+      "Custom integrations",
+      "SLA & uptime guarantee",
+      "SSO / SAML authentication",
+      "Dedicated infrastructure",
+      "Priority onboarding",
+      "Custom contracts",
+    ],
+    stripeLinks: {
+      monthly: "",
+      yearly: "",
+    },
+    stripePriceIds: {
+      monthly: "price_1SwbfRE2FuZ01nXU1UJvDqrO",
+      yearly: "",
     },
   },
 ];
