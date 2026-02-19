@@ -2,21 +2,24 @@ import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { PRICING_PLANS, formatPrice, getCheckoutUrl } from "@/lib/stripe-products";
+import { PRICING_PLANS, formatPrice } from "@/lib/stripe-products";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export const Pricing = () => {
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const navigate = useNavigate();
+  const { startCheckout } = useSubscription();
 
-  const handlePlanClick = (planId: string) => {
+  const handlePlanClick = async (planId: string) => {
     if (planId === "free") {
       navigate("/signup");
       return;
     }
-    const checkoutUrl = getCheckoutUrl(planId, interval);
-    if (checkoutUrl) {
-      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
+    if (planId === "enterprise") {
+      navigate("/contact");
+      return;
     }
+    await startCheckout(planId as "pro" | "business" | "enterprise");
   };
 
   return (
@@ -27,7 +30,7 @@ export const Pricing = () => {
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             Pricing
           </span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
             Simple, transparent pricing
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
@@ -61,7 +64,7 @@ export const Pricing = () => {
         </div>
 
         {/* Pricing Grid */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {PRICING_PLANS.map((plan) => {
             const price = interval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
             const perMonth = interval === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
@@ -69,40 +72,45 @@ export const Pricing = () => {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 ${
+                className={`relative rounded-2xl p-7 transition-all duration-300 hover:-translate-y-1 ${
                   plan.highlighted
-                    ? "bg-foreground text-background shadow-2xl md:scale-105"
+                    ? "bg-foreground text-background shadow-2xl lg:scale-105"
                     : "bg-card text-card-foreground shadow-lg"
                 }`}
               >
                 {/* Popular Badge */}
                 {plan.highlighted && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1.5 rounded-full text-sm font-semibold gradient-button text-white flex items-center gap-1.5">
+                    <span className="px-4 py-1.5 rounded-full text-sm font-semibold gradient-button text-white flex items-center gap-1.5 whitespace-nowrap">
                       <Sparkles className="w-3.5 h-3.5" />
                       MOST POPULAR
                     </span>
                   </div>
                 )}
 
-                <div className="text-center mb-8">
-                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold mb-1.5">{plan.name}</h3>
                   <p className={`text-sm mb-4 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
                     {plan.description}
                   </p>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-extrabold">
-                      {price === 0 ? "Free" : formatPrice(interval === "yearly" ? perMonth : price)}
+                    <span className="text-3xl font-extrabold">
+                      {price === 0 ? "Free" : plan.id === "enterprise" ? "Custom" : formatPrice(interval === "yearly" ? perMonth : price)}
                     </span>
-                    {price > 0 && (
+                    {price > 0 && plan.id !== "enterprise" && (
                       <span className={plan.highlighted ? "text-background/70" : "text-muted-foreground"}>
                         /month
                       </span>
                     )}
                   </div>
-                  {interval === "yearly" && price > 0 && (
+                  {interval === "yearly" && price > 0 && plan.id !== "enterprise" && (
                     <p className={`text-xs mt-1 ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
                       Billed {formatPrice(price)} per year
+                    </p>
+                  )}
+                  {plan.id === "enterprise" && (
+                    <p className={`text-xs mt-1 text-muted-foreground`}>
+                      Contact us for pricing
                     </p>
                   )}
                   {price === 0 && (
@@ -112,10 +120,10 @@ export const Pricing = () => {
                   )}
                 </div>
 
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-2.5 mb-6">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                    <li key={feature} className="flex items-center gap-2.5">
+                      <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center shrink-0 ${
                         plan.highlighted ? "bg-background/20" : "bg-primary/10"
                       }`}>
                         <Check className={`w-3 h-3 ${plan.highlighted ? "text-background" : "text-primary"}`} />
@@ -129,18 +137,20 @@ export const Pricing = () => {
 
                 <Button
                   onClick={() => handlePlanClick(plan.id)}
-                  className={`w-full py-6 font-semibold text-base ${
+                  className={`w-full py-5 font-semibold text-base ${
                     plan.highlighted
                       ? "bg-background text-foreground hover:bg-background/90"
                       : plan.id === "free"
                         ? "bg-primary/10 text-primary hover:bg-primary/20"
-                        : "gradient-button text-white hover:opacity-90"
+                        : plan.id === "enterprise"
+                          ? "border-2 border-primary text-primary bg-primary/5 hover:bg-primary/10"
+                          : "gradient-button text-white hover:opacity-90"
                   }`}
                 >
-                  {plan.id === "free" ? "Get Started Free" : `Subscribe to ${plan.name}`}
+                  {plan.id === "free" ? "Get Started Free" : plan.id === "enterprise" ? "Contact Sales" : `Subscribe to ${plan.name}`}
                 </Button>
 
-                {plan.id !== "free" && (
+                {plan.id !== "free" && plan.id !== "enterprise" && (
                   <p className={`text-center text-xs mt-3 ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
                     Secure checkout powered by Stripe
                   </p>
