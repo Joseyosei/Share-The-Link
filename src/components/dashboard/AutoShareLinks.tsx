@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Share2, Clock, Twitter, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Share2, Clock, Twitter, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock, ExternalLink, Bell, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,8 +9,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Use untyped client to avoid PostgREST schema cache issues with newer tables
-const autoShareTable = () => supabase.from("auto_share_links" as any);
+// Direct Supabase REST API helper to bypass PostgREST schema cache issues
+const getSupabaseConfig = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+  return { url, key };
+};
+
+const directQuery = async (method: string, path: string, body?: unknown, accessToken?: string) => {
+  const { url, key } = getSupabaseConfig();
+  const headers: Record<string, string> = {
+    "apikey": key,
+    "Authorization": `Bearer ${accessToken || key}`,
+    "Content-Type": "application/json",
+    "Prefer": method === "POST" ? "return=representation" : "return=minimal",
+  };
+  const res = await fetch(`${url}/rest/v1/${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(errText || `Request failed: ${res.status}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+};
 
 interface ScheduledShare {
   id: string;
@@ -62,6 +87,8 @@ export function AutoShareLinks() {
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [shareMode, setShareMode] = useState<"now" | "schedule">("now");
+  const firedShareIds = useRef<Set<string>>(new Set());
 
   // Form state
   const [selectedLink, setSelectedLink] = useState("");
@@ -69,34 +96,37 @@ export function AutoShareLinks() {
   const [message, setMessage] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
 
-  const fetchShares = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await autoShareTable()
-      .select("*")
-      .eq("user_id", user.id)
-      .order("scheduled_at", { ascending: true }) as any;
-
-    if (error) {
-      console.error("Error fetching shares:", error);
-      setShares([]);
-      return;
-    }
-
-    setShares(data || []);
+  const getAccessToken = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || "";
   }, []);
+
+  const fetchShares = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const token = await getAccessToken();
+      const data = await directQuery(
+        "GET",
+        `auto_share_links?user_id=eq.${user.id}&order=scheduled_at.asc`,
+        undefined,
+        token
+      );
+      setShares(data || []);
+    } catch (err) {
+      console.error("Error fetching shares:", err);
+      setShares([]);
+    }
+  }, [getAccessToken]);
 
   const fetchLinks = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     const { data } = await supabase
       .from("links")
       .select("id, title, url")
       .eq("user_id", user.id)
       .order("position", { ascending: true });
-
     setLinks(data || []);
   }, []);
 
@@ -105,31 +135,75 @@ export function AutoShareLinks() {
     fetchLinks();
   }, [fetchShares, fetchLinks]);
 
-  // Check for scheduled shares that need to fire (client-side timer)
+  // Check for scheduled shares that are ready -- show reminder toast and auto-open
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       const now = Date.now();
-      shares.forEach(async (share) => {
-        if (share.status === "pending" && new Date(share.scheduled_at).getTime() <= now) {
-          // Open the share URL in a new window
+      for (const share of shares) {
+        if (share.status === "pending" && new Date(share.scheduled_at).getTime() <= now && !firedShareIds.current.has(share.id)) {
+          firedShareIds.current.add(share.id);
+          const platformLabel = PLATFORMS.find(p => p.key === share.platform)?.label || share.platform;
+          toast({
+            title: `Time to share on ${platformLabel}!`,
+            description: share.message || "Your scheduled share is ready.",
+          });
+          // Open the share URL
           window.open(share.share_url, "_blank", "width=600,height=400");
-          // Mark as posted
-          const { error } = await autoShareTable()
-            .update({ status: "posted", posted_at: new Date().toISOString() })
-            .eq("id", share.id);
-          if (error) {
-            console.error("Error marking share as posted:", error);
+          // Mark as posted via direct REST
+          try {
+            const token = await getAccessToken();
+            await directQuery(
+              "PATCH",
+              `auto_share_links?id=eq.${share.id}`,
+              { status: "posted", posted_at: new Date().toISOString() },
+              token
+            );
+            fetchShares();
+          } catch (err) {
+            console.error("Error marking share posted:", err);
           }
-          fetchShares();
         }
-      });
-    }, 10000); // check every 10 seconds
+      }
+    }, 10000);
     return () => clearInterval(interval);
-  }, [shares, fetchShares]);
+  }, [shares, fetchShares, getAccessToken, toast]);
 
-  const handleSchedule = async () => {
-    if (!selectedLink || selectedPlatforms.length === 0 || !scheduledAt) {
-      toast({ title: "Missing fields", description: "Select a link, platform(s), and schedule time.", variant: "destructive" });
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const handleShareNow = (platform: string, url: string, msg: string) => {
+    window.open(getShareUrl(platform, url, msg), "_blank", "width=600,height=400");
+    toast({ title: "Share opened!", description: `Sharing on ${platform}` });
+  };
+
+  const handleScheduleOrShareNow = async () => {
+    if (!selectedLink || selectedPlatforms.length === 0) {
+      toast({ title: "Missing fields", description: "Select a link and at least one platform.", variant: "destructive" });
+      return;
+    }
+
+    const link = links.find((l) => l.id === selectedLink);
+    if (!link) return;
+
+    if (shareMode === "now") {
+      // Instant share -- open all selected platforms immediately
+      selectedPlatforms.forEach((platform) => {
+        const shareUrl = getShareUrl(platform, link.url, message || link.title);
+        window.open(shareUrl, "_blank", "width=600,height=400");
+      });
+      toast({ title: "Links shared!", description: `Opened ${selectedPlatforms.length} platform(s).` });
+      setShowModal(false);
+      resetForm();
+      return;
+    }
+
+    // Schedule mode
+    if (!scheduledAt) {
+      toast({ title: "Missing time", description: "Select a schedule time.", variant: "destructive" });
       return;
     }
 
@@ -137,54 +211,42 @@ export function AutoShareLinks() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+      const token = await getAccessToken();
 
-      const link = links.find((l) => l.id === selectedLink);
-      if (!link) throw new Error("Link not found");
-
-      const inserts = selectedPlatforms.map((platform) => ({
-        user_id: user.id,
-        link_id: selectedLink,
-        platform,
-        message: message || link.title,
-        share_url: getShareUrl(platform, link.url, message || link.title),
-        scheduled_at: new Date(scheduledAt).toISOString(),
-        status: "pending",
-      }));
-
-      // Insert one row per platform selected
-      for (const row of inserts) {
-        const { error } = await autoShareTable().insert(row);
-        if (error) {
-          console.error("[v0] Auto-share insert error:", error);
-          throw new Error(error.message || "Database insert failed");
-        }
+      for (const platform of selectedPlatforms) {
+        const row = {
+          user_id: user.id,
+          link_id: selectedLink,
+          platform,
+          message: message || link.title,
+          share_url: getShareUrl(platform, link.url, message || link.title),
+          scheduled_at: new Date(scheduledAt).toISOString(),
+          status: "pending",
+        };
+        await directQuery("POST", "auto_share_links", row, token);
       }
 
-      toast({ title: "Shares scheduled!", description: `${inserts.length} share(s) scheduled.` });
+      toast({ title: "Shares scheduled!", description: `${selectedPlatforms.length} share(s) scheduled.` });
       setShowModal(false);
       resetForm();
       fetchShares();
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to schedule.", variant: "destructive" });
+      const errMsg = err instanceof Error ? err.message : "Failed to schedule.";
+      toast({ title: "Error", description: errMsg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleShareNow = (platform: string, url: string, msg: string) => {
-    window.open(getShareUrl(platform, url, msg), "_blank", "width=600,height=400");
-  };
-
   const handleCancel = async (id: string) => {
-    const { error } = await autoShareTable()
-      .update({ status: "cancelled" })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: "Failed to cancel scheduled share.", variant: "destructive" });
-      return;
+    try {
+      const token = await getAccessToken();
+      await directQuery("PATCH", `auto_share_links?id=eq.${id}`, { status: "cancelled" }, token);
+      fetchShares();
+      toast({ title: "Cancelled", description: "Scheduled share cancelled." });
+    } catch {
+      toast({ title: "Error", description: "Failed to cancel.", variant: "destructive" });
     }
-    fetchShares();
-    toast({ title: "Cancelled", description: "Scheduled share cancelled." });
   };
 
   const resetForm = () => {
@@ -192,6 +254,7 @@ export function AutoShareLinks() {
     setSelectedPlatforms([]);
     setMessage("");
     setScheduledAt("");
+    setShareMode("now");
   };
 
   const togglePlatform = (key: string) => {
@@ -212,12 +275,12 @@ export function AutoShareLinks() {
             Auto-Share Links
           </h2>
           <p className="text-sm text-muted-foreground">
-            Schedule your links to be shared on social media automatically
+            Share your links instantly or schedule them for later
           </p>
         </div>
         <Button onClick={() => setShowModal(true)} size="sm">
           <Plus className="w-4 h-4 mr-2" />
-          Schedule Share
+          Share Link
         </Button>
       </div>
 
@@ -225,7 +288,10 @@ export function AutoShareLinks() {
       {links.length > 0 && (
         <Card>
           <CardHeader className="py-3">
-            <CardTitle className="text-sm font-medium">Quick Share</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Send className="w-4 h-4 text-primary" />
+              Quick Share
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {links.slice(0, 5).map((link) => (
@@ -284,21 +350,43 @@ export function AutoShareLinks() {
           <CardContent className="py-12 text-center">
             <Share2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-semibold mb-1">No links to share</h3>
-            <p className="text-sm text-muted-foreground">Add links first, then schedule them to be shared on social media.</p>
+            <p className="text-sm text-muted-foreground">Add links first, then share them on social media.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Schedule Modal */}
+      {/* Share Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Schedule Auto-Share
+              <Share2 className="w-5 h-5 text-primary" />
+              Share Link
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Mode Toggle */}
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              <button
+                onClick={() => setShareMode("now")}
+                className={`flex-1 py-2.5 px-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                  shareMode === "now" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                Share Now
+              </button>
+              <button
+                onClick={() => setShareMode("schedule")}
+                className={`flex-1 py-2.5 px-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                  shareMode === "schedule" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Schedule
+              </button>
+            </div>
+
             {/* Select Link */}
             <div>
               <label className="text-sm font-medium">Select Link</label>
@@ -349,25 +437,42 @@ export function AutoShareLinks() {
               />
             </div>
 
-            {/* Schedule Time */}
-            <div>
-              <label className="text-sm font-medium">Schedule Time</label>
-              <Input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-                className="mt-1"
-              />
-            </div>
+            {/* Schedule Time -- only for schedule mode */}
+            {shareMode === "schedule" && (
+              <div>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Bell className="w-3.5 h-3.5 text-muted-foreground" />
+                  Schedule Time
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  You will get a reminder when it is time to share (browser tab must be open).
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setShowModal(false)} className="flex-1">
+              <Button variant="outline" onClick={() => { setShowModal(false); resetForm(); }} className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={handleSchedule} disabled={loading} className="flex-1">
-                <Clock className="w-4 h-4 mr-2" />
-                {loading ? "Scheduling..." : "Schedule"}
+              <Button onClick={handleScheduleOrShareNow} disabled={loading} className="flex-1 gradient-button text-white">
+                {shareMode === "now" ? (
+                  <>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Share Now
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-4 h-4 mr-2" />
+                    {loading ? "Scheduling..." : "Schedule"}
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -382,9 +487,9 @@ function ScheduledShareCard({ share, onCancel }: { share: ScheduledShare; onCanc
   const Icon = platform?.icon || Link2;
 
   const statusColors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    posted: "bg-green-100 text-green-800",
-    failed: "bg-red-100 text-red-800",
+    pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    posted: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     cancelled: "bg-muted text-muted-foreground",
   };
 
@@ -396,7 +501,6 @@ function ScheduledShareCard({ share, onCancel }: { share: ScheduledShare; onCanc
       minute: "2-digit",
     });
 
-  // Time remaining
   const timeLeft = new Date(share.scheduled_at).getTime() - Date.now();
   const showCountdown = share.status === "pending" && timeLeft > 0;
   const minsLeft = Math.max(0, Math.floor(timeLeft / 60000));
@@ -418,14 +522,17 @@ function ScheduledShareCard({ share, onCancel }: { share: ScheduledShare; onCanc
           )}
         </div>
       </div>
-      <Badge className={`text-xs ${statusColors[share.status] || ""}`}>
-        {share.status}
-      </Badge>
-      {share.status === "pending" && onCancel && (
-        <Button variant="ghost" size="sm" onClick={() => onCancel(share.id)}>
-          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        <Badge className={`text-xs ${statusColors[share.status] || ""}`}>
+          {share.status === "posted" && <CheckCircle className="w-3 h-3 mr-1" />}
+          {share.status}
+        </Badge>
+        {share.status === "pending" && onCancel && (
+          <Button variant="ghost" size="sm" onClick={() => onCancel(share.id)}>
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -45,12 +45,45 @@ const extractOrg = (text: string): string => {
   return "";
 };
 
-// Create a bio from the user's actual description
-const createBio = (text: string, maxLen = 120): string => {
+// Create a personalized bio from the user's actual description
+const createBio = (text: string, category: string, maxLen = 120): string => {
   // Clean up the text -- remove URLs, trim
-  let cleaned = text.replace(/https?:\/\/\S+/g, "").trim();
-  // If it's short enough, use it directly
+  const cleaned = text.replace(/https?:\/\/\S+/g, "").trim();
+  const name = extractName(text);
+  const org = extractOrg(text);
+  const displayName = org || name;
+
+  // Category-specific bio templates that include the user's name
+  const templates: Record<string, (n: string) => string> = {
+    "photo": (n) => n ? `${n} - Capturing stories through a creative lens.` : "Capturing stunning stories and moments through a creative lens.",
+    "fitness": (n) => n ? `${n} - Helping you build strength and healthy habits.` : "Helping you build strength and sustainable healthy habits.",
+    "music": (n) => n ? `${n} - Making music that moves your soul.` : "Making music that moves your soul. New drops coming soon.",
+    "church": (n) => n ? `${n} - Spreading faith, hope, and love.` : "Spreading faith, hope, and love through our community.",
+    "tech": (n) => n ? `${n} - Building the future with code and innovation.` : "Building the future with code, design, and innovation.",
+    "shop": (n) => n ? `${n} - Curated products made with love.` : "Curated products made with love, care, and attention to detail.",
+    "food": (n) => n ? `${n} - Serving delicious food that brings joy.` : "Serving delicious food that brings people together.",
+    "beauty": (n) => n ? `${n} - Helping you look and feel your best.` : "Helping you look and feel your absolute best.",
+    "realestate": (n) => n ? `${n} - Your trusted partner in finding home.` : "Your trusted real estate partner for buying and selling.",
+    "consult": (n) => n ? `${n} - Helping businesses grow with strategy.` : "Helping businesses achieve breakthrough results.",
+    "education": (n) => n ? `${n} - Empowering learners to reach their potential.` : "Empowering learners to reach their full potential.",
+    "travel": (n) => n ? `${n} - Exploring the world one adventure at a time.` : "Exploring the world one adventure at a time.",
+    "nonprofit": (n) => n ? `${n} - Making a difference in our community.` : "Making a difference in our community, together.",
+    "content": (n) => n ? `${n} - Creating content that inspires and entertains.` : "Creating content that inspires, educates, and entertains.",
+    "art": (n) => n ? `${n} - Art that tells stories and sparks emotion.` : "Creating art that tells stories and sparks emotion.",
+  };
+
+  // Try to match a template
+  const lower = text.toLowerCase();
+  for (const [key, template] of Object.entries(templates)) {
+    if (lower.includes(key)) {
+      const bio = template(displayName);
+      if (bio.length <= maxLen) return bio;
+    }
+  }
+
+  // If no template matched but input is short enough, use it
   if (cleaned.length <= maxLen) return cleaned;
+
   // Truncate to nearest sentence
   const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim());
   let bio = "";
@@ -73,7 +106,7 @@ interface CategoryConfig {
 
 const categories: CategoryConfig[] = [
   {
-    keywords: ["photo", "video", "film", "camera", "cinemat"],
+    keywords: ["photo", "video", "film", "camera", "cinemat", "visual"],
     colors: { primary: "#1a1a2e", secondary: "#e94560", bg: "#0f0f1a", text: "#ffffff" },
     links: [
       { title: "Portfolio", icon: "camera" },
@@ -85,19 +118,19 @@ const categories: CategoryConfig[] = [
     fallbackName: "Creative Studio",
   },
   {
-    keywords: ["coach", "fitness", "trainer", "health", "wellness", "gym"],
+    keywords: ["coach", "fitness", "trainer", "health", "wellness", "gym", "yoga", "nutrition"],
     colors: { primary: "#059669", secondary: "#34d399", bg: "#ecfdf5", text: "#064e3b" },
     links: [
       { title: "Free Consultation", icon: "phone" },
       { title: "Programs & Pricing", icon: "star" },
-      { title: "Client Testimonials", icon: "heart" },
+      { title: "Client Results", icon: "heart" },
       { title: "Follow on Instagram", icon: "instagram" },
     ],
     layout: "minimal",
     fallbackName: "Wellness Hub",
   },
   {
-    keywords: ["music", "artist", "band", "dj", "singer", "rapper"],
+    keywords: ["music", "artist", "band", "dj", "singer", "rapper", "producer", "beat"],
     colors: { primary: "#7c3aed", secondary: "#a78bfa", bg: "#1e1033", text: "#f5f3ff" },
     links: [
       { title: "Latest Release", icon: "music" },
@@ -109,7 +142,7 @@ const categories: CategoryConfig[] = [
     fallbackName: "Artist Page",
   },
   {
-    keywords: ["shop", "store", "product", "sell", "ecommerce", "jewelry", "handmade"],
+    keywords: ["shop", "store", "product", "sell", "ecommerce", "jewelry", "handmade", "boutique", "fashion"],
     colors: { primary: "#d97706", secondary: "#fbbf24", bg: "#fffbeb", text: "#78350f" },
     links: [
       { title: "Shop All Products", icon: "shopping-bag" },
@@ -121,7 +154,7 @@ const categories: CategoryConfig[] = [
     fallbackName: "My Shop",
   },
   {
-    keywords: ["church", "pastor", "ministry", "faith", "sermon", "worship", "prayer", "christian"],
+    keywords: ["church", "pastor", "ministry", "faith", "sermon", "worship", "prayer", "christian", "gospel"],
     colors: { primary: "#7c3aed", secondary: "#c084fc", bg: "#faf5ff", text: "#3b0764" },
     links: [
       { title: "Watch Sermons", icon: "play" },
@@ -133,7 +166,7 @@ const categories: CategoryConfig[] = [
     fallbackName: "Ministry Hub",
   },
   {
-    keywords: ["tech", "developer", "software", "startup", "saas", "coding", "engineer"],
+    keywords: ["tech", "developer", "software", "startup", "saas", "coding", "engineer", "app"],
     colors: { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0c1222", text: "#e2e8f0" },
     links: [
       { title: "My Projects", icon: "code" },
@@ -143,6 +176,114 @@ const categories: CategoryConfig[] = [
     ],
     layout: "minimal",
     fallbackName: "Tech Profile",
+  },
+  {
+    keywords: ["food", "restaurant", "cafe", "cook", "recipe", "bakery", "chef", "catering"],
+    colors: { primary: "#ea580c", secondary: "#fb923c", bg: "#fff7ed", text: "#431407" },
+    links: [
+      { title: "View Menu", icon: "book" },
+      { title: "Order Online", icon: "shopping-bag" },
+      { title: "Reservations", icon: "calendar" },
+      { title: "Follow Us", icon: "instagram" },
+    ],
+    layout: "playful",
+    fallbackName: "Kitchen Hub",
+  },
+  {
+    keywords: ["real estate", "property", "realtor", "agent", "homes", "housing"],
+    colors: { primary: "#1e3a5f", secondary: "#3b82f6", bg: "#f8fafc", text: "#0f172a" },
+    links: [
+      { title: "View Listings", icon: "briefcase" },
+      { title: "Schedule a Showing", icon: "calendar" },
+      { title: "Market Report", icon: "book" },
+      { title: "Contact Me", icon: "mail" },
+    ],
+    layout: "professional",
+    fallbackName: "Property Pro",
+  },
+  {
+    keywords: ["beauty", "makeup", "skincare", "nail", "salon", "spa", "aesthetic"],
+    colors: { primary: "#be185d", secondary: "#f9a8d4", bg: "#fdf2f8", text: "#831843" },
+    links: [
+      { title: "Book Appointment", icon: "calendar" },
+      { title: "Services & Pricing", icon: "star" },
+      { title: "Before & After", icon: "camera" },
+      { title: "Instagram", icon: "instagram" },
+    ],
+    layout: "elegant",
+    fallbackName: "Beauty Studio",
+  },
+  {
+    keywords: ["consult", "mentor", "speaker", "life coach", "business coach", "advisor", "strategy"],
+    colors: { primary: "#0f172a", secondary: "#334155", bg: "#f8fafc", text: "#0f172a" },
+    links: [
+      { title: "Book a Call", icon: "phone" },
+      { title: "Services", icon: "briefcase" },
+      { title: "Testimonials", icon: "heart" },
+      { title: "LinkedIn", icon: "users" },
+    ],
+    layout: "professional",
+    fallbackName: "Strategy Hub",
+  },
+  {
+    keywords: ["education", "tutor", "teacher", "course", "school", "academy", "learn", "training"],
+    colors: { primary: "#7c3aed", secondary: "#a78bfa", bg: "#faf5ff", text: "#1e1b4b" },
+    links: [
+      { title: "Browse Courses", icon: "book" },
+      { title: "Free Resources", icon: "gift" },
+      { title: "Student Reviews", icon: "heart" },
+      { title: "Contact", icon: "mail" },
+    ],
+    layout: "playful",
+    fallbackName: "Learning Hub",
+  },
+  {
+    keywords: ["podcast", "blog", "writer", "author", "journalist", "content creator", "influencer"],
+    colors: { primary: "#dc2626", secondary: "#f87171", bg: "#18181b", text: "#fafafa" },
+    links: [
+      { title: "Latest Content", icon: "play" },
+      { title: "Collaborate With Me", icon: "users" },
+      { title: "Subscribe", icon: "mail" },
+      { title: "YouTube", icon: "play" },
+    ],
+    layout: "bold",
+    fallbackName: "Creator Hub",
+  },
+  {
+    keywords: ["travel", "adventure", "tour", "guide", "hotel", "hospitality"],
+    colors: { primary: "#0891b2", secondary: "#22d3ee", bg: "#ecfeff", text: "#164e63" },
+    links: [
+      { title: "Travel Guides", icon: "book" },
+      { title: "Book a Trip", icon: "calendar" },
+      { title: "Photo Gallery", icon: "camera" },
+      { title: "Follow My Journey", icon: "instagram" },
+    ],
+    layout: "playful",
+    fallbackName: "Travel Hub",
+  },
+  {
+    keywords: ["nonprofit", "charity", "ngo", "volunteer", "cause", "community", "foundation"],
+    colors: { primary: "#059669", secondary: "#f59e0b", bg: "#ffffff", text: "#1e293b" },
+    links: [
+      { title: "Donate Now", icon: "heart" },
+      { title: "Volunteer", icon: "users" },
+      { title: "Our Impact", icon: "star" },
+      { title: "Contact Us", icon: "mail" },
+    ],
+    layout: "minimal",
+    fallbackName: "Impact Hub",
+  },
+  {
+    keywords: ["art", "paint", "draw", "illustrat", "sculpt", "gallery", "creative"],
+    colors: { primary: "#dc2626", secondary: "#fca5a5", bg: "#fafaf9", text: "#1c1917" },
+    links: [
+      { title: "View Gallery", icon: "camera" },
+      { title: "Commission Work", icon: "star" },
+      { title: "Shop Prints", icon: "shopping-bag" },
+      { title: "Instagram", icon: "instagram" },
+    ],
+    layout: "elegant",
+    fallbackName: "Art Studio",
   },
 ];
 
@@ -169,7 +310,7 @@ const generatePreview = (description: string): GeneratedPreview => {
   // Extract real info from user input
   const personName = extractName(description);
   const orgName = extractOrg(description);
-  const bio = createBio(description);
+  const bio = createBio(description, lower);
 
   // Use real name/org or fallback
   const displayName = orgName || personName || cat.fallbackName;
@@ -184,12 +325,14 @@ const generatePreview = (description: string): GeneratedPreview => {
 };
 
 const quickPrompts = [
-  "I'm a fitness coach helping people transform their health",
-  "I'm a photographer capturing stunning moments",
-  "I run a handmade jewelry store",
-  "I'm a pastor building an online ministry",
-  "I'm a music artist releasing new tracks",
-  "I'm a developer building SaaS products",
+  "I'm a fitness coach helping busy professionals get in shape",
+  "I'm a photographer capturing stunning wedding moments",
+  "I run a handmade jewelry store called Luxe Gems",
+  "I'm Pastor James leading Grace Community Church",
+  "I'm a music artist releasing new tracks on Spotify",
+  "I'm a software developer building SaaS products",
+  "I'm a real estate agent helping families find dream homes",
+  "I'm a beauty salon owner specializing in skincare",
 ];
 
 export const AIBuilderDemo = () => {
