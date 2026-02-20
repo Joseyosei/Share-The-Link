@@ -87,7 +87,7 @@ export function AutoShareLinks() {
       if (error) {
         // PGRST205 means PostgREST schema cache doesn't see the table
         // Fall back to in-memory storage
-        console.warn("[v0] auto_share_links table not available, using in-memory fallback:", error.code);
+
         setDbAvailable(false);
         setShares(inMemoryShares.filter(s => s.id));
         return;
@@ -206,7 +206,7 @@ export function AutoShareLinks() {
             .insert(row as any);
           if (error) {
             // Fallback to in-memory if insert fails
-            console.warn("[v0] DB insert failed, using in-memory:", error.message);
+
             inMemoryShares.push({
               ...row,
               id: crypto.randomUUID(),
@@ -224,7 +224,7 @@ export function AutoShareLinks() {
         }
       }
 
-      toast({ title: "Shares scheduled!", description: `${selectedPlatforms.length} share(s) scheduled.${!dbAvailable ? " (Using browser memory - keep tab open)" : ""}` });
+      toast({ title: "Shares scheduled!", description: `${selectedPlatforms.length} share(s) scheduled.` });
       setShowModal(false);
       resetForm();
       fetchShares();
@@ -289,11 +289,7 @@ export function AutoShareLinks() {
         </Button>
       </div>
 
-      {!dbAvailable && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
-          Scheduled shares are stored in browser memory. Keep this tab open for reminders to fire. To fix permanently, run <code className="bg-amber-500/20 px-1 rounded">NOTIFY pgrst, 'reload schema';</code> in your Supabase SQL editor.
-        </div>
-      )}
+
 
       {/* Quick Share Buttons */}
       {links.length > 0 && (
