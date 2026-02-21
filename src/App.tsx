@@ -35,6 +35,7 @@ import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import HelpPage from "./pages/HelpPage";
 import DashboardMedia from "./pages/DashboardMedia";
 import DocsPage from "./pages/DocsPage";
+import TemplatesPage from "./pages/TemplatesPage";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import NotFound from "./pages/NotFound";
 
@@ -66,6 +67,7 @@ const App = () => (
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
           
           {/* Public storefront - anyone can view */}
           <Route path="/store/:accountId" element={<StorefrontPage />} />

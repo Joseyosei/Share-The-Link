@@ -214,7 +214,7 @@ const Profile = () => {
                   href={profile.social_links.twitter.startsWith("http") ? profile.social_links.twitter : `https://twitter.com/${profile.social_links.twitter}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-sky-500 text-white shadow-md"
                   aria-label="Twitter"
                 >
                   <Twitter className="w-4 h-4" />
@@ -225,7 +225,7 @@ const Profile = () => {
                   href={profile.social_links.instagram.startsWith("http") ? profile.social_links.instagram : `https://instagram.com/${profile.social_links.instagram}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-md"
                   aria-label="Instagram"
                 >
                   <Instagram className="w-4 h-4" />
@@ -236,7 +236,7 @@ const Profile = () => {
                   href={profile.social_links.youtube.startsWith("http") ? profile.social_links.youtube : `https://youtube.com/${profile.social_links.youtube}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-red-600 text-white shadow-md"
                   aria-label="YouTube"
                 >
                   <Youtube className="w-4 h-4" />
@@ -247,7 +247,7 @@ const Profile = () => {
                   href={profile.social_links.github.startsWith("http") ? profile.social_links.github : `https://github.com/${profile.social_links.github}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gray-800 text-white shadow-md"
                   aria-label="GitHub"
                 >
                   <Github className="w-4 h-4" />
@@ -258,7 +258,7 @@ const Profile = () => {
                   href={profile.social_links.linkedin.startsWith("http") ? profile.social_links.linkedin : `https://linkedin.com/in/${profile.social_links.linkedin}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-blue-700 text-white shadow-md"
                   aria-label="LinkedIn"
                 >
                   <Linkedin className="w-4 h-4" />
@@ -269,7 +269,7 @@ const Profile = () => {
                   href={profile.social_links.website.startsWith("http") ? profile.social_links.website : `https://${profile.social_links.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/10 backdrop-blur-sm ${currentTheme.textColor}`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/20 backdrop-blur-sm shadow-md ${currentTheme.textColor}`}
                   aria-label="Website"
                 >
                   <Globe className="w-4 h-4" />

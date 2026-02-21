@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Share2, Clock, Twitter, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock, ExternalLink, Bell, CheckCircle } from "lucide-react";
+import { Share2, Clock, Twitter, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock, ExternalLink, Bell, CheckCircle, Instagram, Youtube, Twitch, Music, Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,12 +31,19 @@ const PLATFORMS = [
   { key: "facebook", label: "Facebook", icon: Facebook, color: "bg-blue-600" },
   { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "bg-blue-700" },
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "bg-green-500" },
+  { key: "instagram", label: "Instagram", icon: Instagram, color: "bg-gradient-to-br from-purple-600 to-pink-500" },
+  { key: "youtube", label: "YouTube", icon: Youtube, color: "bg-red-600" },
+  { key: "tiktok", label: "TikTok", icon: Music, color: "bg-gray-900" },
+  { key: "twitch", label: "Twitch", icon: Twitch, color: "bg-purple-600" },
+  { key: "discord", label: "Discord", icon: Gamepad2, color: "bg-indigo-600" },
+  { key: "telegram", label: "Telegram", icon: Send, color: "bg-sky-600" },
   { key: "email", label: "Email", icon: Mail, color: "bg-orange-500" },
 ] as const;
 
 function getShareUrl(platform: string, url: string, message: string): string {
   const encodedUrl = encodeURIComponent(url);
   const encodedMsg = encodeURIComponent(message);
+  const fullText = encodeURIComponent(`${message} ${url}`);
   switch (platform) {
     case "twitter":
       return `https://twitter.com/intent/tweet?text=${encodedMsg}&url=${encodedUrl}`;
@@ -46,8 +53,21 @@ function getShareUrl(platform: string, url: string, message: string): string {
       return `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
     case "whatsapp":
       return `https://wa.me/?text=${encodedMsg}%20${encodedUrl}`;
+    case "instagram":
+      // Instagram doesn't have a direct share URL -- open the app/website
+      return `https://www.instagram.com/`;
+    case "youtube":
+      return `https://www.youtube.com/`;
+    case "tiktok":
+      return `https://www.tiktok.com/`;
+    case "twitch":
+      return `https://www.twitch.tv/`;
+    case "discord":
+      return `https://discord.com/channels/@me`;
+    case "telegram":
+      return `https://t.me/share/url?url=${encodedUrl}&text=${encodedMsg}`;
     case "email":
-      return `mailto:?subject=${encodedMsg}&body=${encodedMsg}%20${encodedUrl}`;
+      return `mailto:?subject=${encodedMsg}&body=${fullText}`;
     default:
       return url;
   }
@@ -65,6 +85,7 @@ export function AutoShareLinks() {
   const [shareMode, setShareMode] = useState<"now" | "schedule">("now");
   const [dbAvailable, setDbAvailable] = useState(true);
   const firedShareIds = useRef<Set<string>>(new Set());
+  const [readyShares, setReadyShares] = useState<ScheduledShare[]>([]);
 
   // Form state
   const [selectedLink, setSelectedLink] = useState("");
@@ -118,7 +139,7 @@ export function AutoShareLinks() {
     fetchLinks();
   }, [fetchShares, fetchLinks]);
 
-  // Check for scheduled shares that are ready -- batch-open all due at once
+  // Check for scheduled shares that are ready -- show notification banner
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -129,47 +150,72 @@ export function AutoShareLinks() {
 
       if (dueShares.length === 0) return;
 
-      // Mark all as fired
+      // Mark all as fired so we don't re-trigger
       dueShares.forEach((s) => firedShareIds.current.add(s.id));
 
-      // Open all platform share URLs automatically
-      const platformNames: string[] = [];
-      dueShares.forEach((share, i) => {
-        const platformLabel = PLATFORMS.find((p) => p.key === share.platform)?.label || share.platform;
-        platformNames.push(platformLabel);
-        // Stagger opens slightly to avoid popup blockers
-        setTimeout(() => {
-          window.open(share.share_url, "_blank", "width=600,height=400");
-        }, i * 800);
-      });
+      // Show banner with a user-clickable action (avoids popup blocker)
+      setReadyShares((prev) => [...prev, ...dueShares]);
 
-      // Single batch toast
+      const platformNames = dueShares.map(
+        (s) => PLATFORMS.find((p) => p.key === s.platform)?.label || s.platform
+      );
+
       toast({
-        title: `Sharing to ${platformNames.length} platform(s)!`,
-        description: platformNames.join(", "),
+        title: `Ready to share on ${platformNames.length} platform(s)!`,
+        description: "Click the share buttons below to open each platform.",
       });
-
-      // Mark all as posted in DB
-      dueShares.forEach((share) => {
-        if (dbAvailable) {
-          supabase
-            .from("auto_share_links" as any)
-            .update({ status: "posted", posted_at: new Date().toISOString() } as any)
-            .eq("id", share.id)
-            .then(() => {});
-        } else {
-          const idx = inMemoryShares.findIndex((s) => s.id === share.id);
-          if (idx >= 0) {
-            inMemoryShares[idx] = { ...inMemoryShares[idx], status: "posted", posted_at: new Date().toISOString() };
-          }
-        }
-      });
-
-      // Refresh after marking
-      setTimeout(() => fetchShares(), 2000);
     }, 5000);
     return () => clearInterval(interval);
-  }, [shares, dbAvailable, fetchShares, toast]);
+  }, [shares, dbAvailable, toast]);
+
+  // Handle opening a single ready share (user-triggered, avoids popup blocker)
+  const handleOpenReadyShare = (share: ScheduledShare) => {
+    window.open(share.share_url, "_blank", "width=600,height=400");
+
+    // Mark as posted
+    if (dbAvailable) {
+      supabase
+        .from("auto_share_links" as any)
+        .update({ status: "posted", posted_at: new Date().toISOString() } as any)
+        .eq("id", share.id)
+        .then(() => fetchShares());
+    } else {
+      const idx = inMemoryShares.findIndex((s) => s.id === share.id);
+      if (idx >= 0) {
+        inMemoryShares[idx] = { ...inMemoryShares[idx], status: "posted", posted_at: new Date().toISOString() };
+      }
+      fetchShares();
+    }
+
+    setReadyShares((prev) => prev.filter((s) => s.id !== share.id));
+  };
+
+  // Open ALL ready shares (user-triggered click cascade)
+  const handleOpenAllReadyShares = () => {
+    readyShares.forEach((share, i) => {
+      setTimeout(() => {
+        window.open(share.share_url, "_blank", "width=600,height=400");
+      }, i * 500);
+
+      // Mark as posted
+      if (dbAvailable) {
+        supabase
+          .from("auto_share_links" as any)
+          .update({ status: "posted", posted_at: new Date().toISOString() } as any)
+          .eq("id", share.id)
+          .then(() => {});
+      } else {
+        const idx = inMemoryShares.findIndex((s) => s.id === share.id);
+        if (idx >= 0) {
+          inMemoryShares[idx] = { ...inMemoryShares[idx], status: "posted", posted_at: new Date().toISOString() };
+        }
+      }
+    });
+
+    toast({ title: "All shares opened!", description: `Opened ${readyShares.length} platform(s).` });
+    setReadyShares([]);
+    setTimeout(() => fetchShares(), 2000);
+  };
 
   const handleShareNow = (platform: string, url: string, msg: string) => {
     window.open(getShareUrl(platform, url, msg), "_blank", "width=600,height=400");
@@ -308,7 +354,46 @@ export function AutoShareLinks() {
         </Button>
       </div>
 
-
+      {/* Ready-to-Share Banner */}
+      {readyShares.length > 0 && (
+        <Card className="border-green-500/40 bg-green-500/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5 text-green-500 animate-bounce" />
+                <span className="font-semibold text-sm text-green-700 dark:text-green-400">
+                  {readyShares.length} scheduled share(s) ready!
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleOpenAllReadyShares}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                Open All Platforms
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {readyShares.map((share) => {
+                const platform = PLATFORMS.find((p) => p.key === share.platform);
+                const Icon = platform?.icon || Link2;
+                return (
+                  <button
+                    key={share.id}
+                    onClick={() => handleOpenReadyShare(share)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white transition-all hover:scale-105 ${platform?.color || "bg-muted"}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {platform?.label || share.platform}
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Share Buttons */}
       {links.length > 0 && (
