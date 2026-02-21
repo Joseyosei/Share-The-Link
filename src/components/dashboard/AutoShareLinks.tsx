@@ -118,37 +118,56 @@ export function AutoShareLinks() {
     fetchLinks();
   }, [fetchShares, fetchLinks]);
 
-  // Check for scheduled shares that are ready
+  // Check for scheduled shares that are ready -- batch-open all due at once
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
       const allShares = dbAvailable ? shares : inMemoryShares;
-      for (const share of allShares) {
-        if (share.status === "pending" && new Date(share.scheduled_at).getTime() <= now && !firedShareIds.current.has(share.id)) {
-          firedShareIds.current.add(share.id);
-          const platformLabel = PLATFORMS.find(p => p.key === share.platform)?.label || share.platform;
-          toast({
-            title: `Time to share on ${platformLabel}!`,
-            description: share.message || "Your scheduled share is ready.",
-          });
+      const dueShares = allShares.filter(
+        (s) => s.status === "pending" && new Date(s.scheduled_at).getTime() <= now && !firedShareIds.current.has(s.id)
+      );
+
+      if (dueShares.length === 0) return;
+
+      // Mark all as fired
+      dueShares.forEach((s) => firedShareIds.current.add(s.id));
+
+      // Open all platform share URLs automatically
+      const platformNames: string[] = [];
+      dueShares.forEach((share, i) => {
+        const platformLabel = PLATFORMS.find((p) => p.key === share.platform)?.label || share.platform;
+        platformNames.push(platformLabel);
+        // Stagger opens slightly to avoid popup blockers
+        setTimeout(() => {
           window.open(share.share_url, "_blank", "width=600,height=400");
-          // Mark as posted
-          if (dbAvailable) {
-            supabase
-              .from("auto_share_links" as any)
-              .update({ status: "posted", posted_at: new Date().toISOString() } as any)
-              .eq("id", share.id)
-              .then(() => fetchShares());
-          } else {
-            const idx = inMemoryShares.findIndex(s => s.id === share.id);
-            if (idx >= 0) {
-              inMemoryShares[idx] = { ...inMemoryShares[idx], status: "posted", posted_at: new Date().toISOString() };
-              setShares([...inMemoryShares]);
-            }
+        }, i * 800);
+      });
+
+      // Single batch toast
+      toast({
+        title: `Sharing to ${platformNames.length} platform(s)!`,
+        description: platformNames.join(", "),
+      });
+
+      // Mark all as posted in DB
+      dueShares.forEach((share) => {
+        if (dbAvailable) {
+          supabase
+            .from("auto_share_links" as any)
+            .update({ status: "posted", posted_at: new Date().toISOString() } as any)
+            .eq("id", share.id)
+            .then(() => {});
+        } else {
+          const idx = inMemoryShares.findIndex((s) => s.id === share.id);
+          if (idx >= 0) {
+            inMemoryShares[idx] = { ...inMemoryShares[idx], status: "posted", posted_at: new Date().toISOString() };
           }
         }
-      }
-    }, 10000);
+      });
+
+      // Refresh after marking
+      setTimeout(() => fetchShares(), 2000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [shares, dbAvailable, fetchShares, toast]);
 

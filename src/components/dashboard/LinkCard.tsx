@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { GripVertical, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -8,9 +7,17 @@ interface LinkCardProps {
   url: string;
   clicks: number;
   isActive: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
   onToggle: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
 export const LinkCard = ({
@@ -19,17 +26,41 @@ export const LinkCard = ({
   url,
   clicks,
   isActive,
+  isDragging,
+  isDragOver,
   onToggle,
   onEdit,
   onDelete,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  onDragEnter,
+  onDragLeave,
 }: LinkCardProps) => {
   return (
-    <div className={`group bg-card rounded-xl p-4 shadow-md hover:shadow-lg transition-all border-2 ${
-      isActive ? "border-transparent" : "border-muted opacity-60"
-    }`}>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      className={`group bg-card rounded-xl p-4 shadow-md transition-all border-2 ${
+        isDragging
+          ? "opacity-40 scale-95 border-primary/50"
+          : isDragOver
+          ? "border-primary ring-2 ring-primary/20 shadow-lg translate-y-[-2px]"
+          : isActive
+          ? "border-transparent hover:shadow-lg"
+          : "border-muted opacity-60"
+      }`}
+      style={{ cursor: "grab" }}
+    >
       <div className="flex items-center gap-4">
         {/* Drag Handle */}
-        <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors">
+        <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none">
           <GripVertical className="w-5 h-5" />
         </button>
 

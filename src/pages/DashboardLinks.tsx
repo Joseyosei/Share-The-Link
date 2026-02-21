@@ -31,6 +31,58 @@ const DashboardLinks = () => {
     type: string;
   } | null>(null);
 
+  // Drag-and-drop state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (index: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnter = (index: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (dragIndex !== null && dragIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (dropIndex: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const reordered = [...links];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    reorderLinks(reordered);
+
+    setDragIndex(null);
+    setDragOverIndex(null);
+    toast({
+      title: "Links reordered",
+      description: "Your link order has been updated.",
+    });
+  };
+
   const handleToggle = async (id: string) => {
     try {
       await toggleLink(id);
@@ -151,7 +203,7 @@ const DashboardLinks = () => {
             </div>
           ) : links.length > 0 ? (
             <div className="space-y-3">
-              {links.map((link) => (
+              {links.map((link, index) => (
                 <LinkCard
                   key={link.id}
                   id={link.id}
@@ -159,9 +211,17 @@ const DashboardLinks = () => {
                   url={link.url}
                   clicks={link.clicks || 0}
                   isActive={link.is_active ?? true}
+                  isDragging={dragIndex === index}
+                  isDragOver={dragOverIndex === index}
                   onToggle={handleToggle}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onDragStart={handleDragStart(index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver(index)}
+                  onDrop={handleDrop(index)}
+                  onDragEnter={handleDragEnter(index)}
+                  onDragLeave={handleDragLeave}
                 />
               ))}
             </div>
