@@ -19,22 +19,32 @@ export interface Theme {
 }
 
 export const themes: Theme[] = [
+  // Free themes
   { id: "air", name: "Air", background: "bg-white", buttonStyle: "bg-gray-900", textColor: "text-gray-900" },
   { id: "agate", name: "Agate", background: "bg-gradient-to-br from-purple-500 to-pink-500", buttonStyle: "bg-white", textColor: "text-white" },
   { id: "bliss", name: "Bliss", background: "bg-gradient-to-br from-gray-200 to-gray-400", buttonStyle: "bg-gray-800", textColor: "text-gray-800" },
-  { id: "blocks", name: "Blocks", background: "bg-gradient-to-br from-violet-600 to-purple-700", buttonStyle: "bg-pink-500", textColor: "text-white", isPro: true },
-  { id: "bloom", name: "Bloom", background: "bg-gradient-to-br from-blue-900 to-slate-900", buttonStyle: "bg-pink-400", textColor: "text-white", isPro: true },
   { id: "breeze", name: "Breeze", background: "bg-gradient-to-br from-pink-200 to-pink-300", buttonStyle: "bg-white", textColor: "text-pink-900" },
   { id: "encore", name: "Encore", background: "bg-gradient-to-br from-amber-900 to-stone-800", buttonStyle: "bg-amber-100", textColor: "text-amber-100" },
   { id: "grid", name: "Grid", background: "bg-lime-100", buttonStyle: "bg-white", textColor: "text-lime-900" },
-  { id: "groove", name: "Groove", background: "bg-gradient-to-br from-cyan-400 to-purple-600", buttonStyle: "bg-lime-400", textColor: "text-white", isPro: true },
   { id: "haven", name: "Haven", background: "bg-gradient-to-br from-stone-200 to-stone-400", buttonStyle: "bg-white", textColor: "text-stone-800" },
   { id: "lake", name: "Lake", background: "bg-slate-900", buttonStyle: "bg-white", textColor: "text-white" },
   { id: "mineral", name: "Mineral", background: "bg-amber-50", buttonStyle: "bg-amber-200", textColor: "text-amber-900" },
+  { id: "twilight", name: "Twilight", background: "bg-gradient-to-br from-purple-300 to-pink-300", buttonStyle: "bg-pink-400", textColor: "text-purple-900" },
+  { id: "serenity", name: "Serenity", background: "bg-gradient-to-br from-sky-100 to-blue-200", buttonStyle: "bg-blue-600", textColor: "text-blue-900" },
+  { id: "midnight", name: "Midnight", background: "bg-gradient-to-br from-gray-900 to-slate-800", buttonStyle: "bg-white", textColor: "text-white" },
+  // Pro themes
+  { id: "blocks", name: "Blocks", background: "bg-gradient-to-br from-violet-600 to-purple-700", buttonStyle: "bg-pink-500", textColor: "text-white", isPro: true },
+  { id: "bloom", name: "Bloom", background: "bg-gradient-to-br from-blue-900 to-slate-900", buttonStyle: "bg-pink-400", textColor: "text-white", isPro: true },
+  { id: "groove", name: "Groove", background: "bg-gradient-to-br from-cyan-400 to-purple-600", buttonStyle: "bg-lime-400", textColor: "text-white", isPro: true },
   { id: "nourish", name: "Nourish", background: "bg-gradient-to-br from-orange-300 to-yellow-200", buttonStyle: "bg-lime-400", textColor: "text-orange-900", isPro: true },
   { id: "rise", name: "Rise", background: "bg-gradient-to-br from-orange-500 to-red-600", buttonStyle: "bg-lime-400", textColor: "text-white", isPro: true },
   { id: "sweat", name: "Sweat", background: "bg-gradient-to-br from-pink-500 to-blue-600", buttonStyle: "bg-blue-500", textColor: "text-white", isPro: true },
-  { id: "twilight", name: "Twilight", background: "bg-gradient-to-br from-purple-300 to-pink-300", buttonStyle: "bg-pink-400", textColor: "text-purple-900" },
+  { id: "ember", name: "Ember", background: "bg-gradient-to-br from-red-600 to-orange-500", buttonStyle: "bg-yellow-400", textColor: "text-white", isPro: true },
+  { id: "arctic", name: "Arctic", background: "bg-gradient-to-br from-cyan-200 to-blue-400", buttonStyle: "bg-white", textColor: "text-blue-900", isPro: true },
+  { id: "noir", name: "Noir", background: "bg-black", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
+  { id: "sunset", name: "Sunset", background: "bg-gradient-to-br from-rose-400 to-amber-400", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
+  { id: "forest", name: "Forest", background: "bg-gradient-to-br from-emerald-700 to-green-900", buttonStyle: "bg-lime-300", textColor: "text-lime-100", isPro: true },
+  { id: "royal", name: "Royal", background: "bg-gradient-to-br from-indigo-800 to-purple-900", buttonStyle: "bg-amber-400", textColor: "text-amber-100", isPro: true },
 ];
 
 const categories = [
@@ -585,8 +595,10 @@ const DashboardAppearance = () => {
                 username={username}
                 fullName={fullName}
                 bio={bio}
+                avatarUrl={profile?.avatar_url || undefined}
                 theme={selectedThemeData}
                 links={previewLinks}
+                socialLinks={profile?.social_links as any}
               />
             </div>
           </div>
