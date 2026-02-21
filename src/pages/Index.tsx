@@ -6,7 +6,7 @@ import { AIBuilderDemo } from "@/components/landing/AIBuilderDemo";
 import { Pricing } from "@/components/landing/Pricing";
 import { Footer } from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
-import { ArrowRight, Radio, Wand2, Share2 } from "lucide-react";
+import { ArrowRight, Radio, Wand2, Share2, Play, Eye, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const HowItWorks = () => (
@@ -58,6 +58,92 @@ const HowItWorks = () => (
   </section>
 );
 
+const MediaShowcase = () => {
+  const SAMPLE_MEDIA = [
+    { title: "How I Grew to 100K Followers", creator: "Alex Rivera", views: "12.4K", type: "Recording" },
+    { title: "Sunday Service Live", creator: "Grace Church", views: "3.2K", type: "Live Stream" },
+    { title: "Product Launch Event", creator: "TechStartup", views: "8.7K", type: "Recording" },
+    { title: "Music Production Session", creator: "DJ Pulse", views: "5.1K", type: "Live Stream" },
+    { title: "Fitness Workshop Q&A", creator: "Coach Pro", views: "2.9K", type: "Recording" },
+    { title: "Art & Design Process", creator: "Creative Studio", views: "4.3K", type: "Recording" },
+  ];
+
+  return (
+    <section className="py-24 bg-background">
+      <div className="container mx-auto px-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12">
+          <div>
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+              <Play className="w-4 h-4" />
+              Media Hub
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
+              Explore what creators are sharing
+            </h2>
+            <p className="text-muted-foreground mt-2 max-w-lg leading-relaxed">
+              Browse live streams, recordings, and content from creators on Share The Link.
+            </p>
+          </div>
+          <Button
+            asChild
+            variant="outline"
+            className="mt-4 md:mt-0 rounded-full px-6"
+          >
+            <Link to="/media">
+              Browse All Media
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {SAMPLE_MEDIA.map((item, i) => (
+            <Link
+              key={item.title}
+              to="/media"
+              className="group block rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300"
+            >
+              {/* Thumbnail placeholder */}
+              <div className="relative aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                <div className={`absolute inset-0 ${
+                  i % 3 === 0 ? "bg-gradient-to-br from-primary/20 to-purple-500/20"
+                  : i % 3 === 1 ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20"
+                  : "bg-gradient-to-br from-orange-500/20 to-red-500/20"
+                }`} />
+                <div className="relative w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Play className="w-6 h-6 text-foreground/70 ml-0.5" />
+                </div>
+                {item.type === "Live Stream" && (
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 px-2.5 py-1 rounded-full">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    <span className="text-xs font-semibold text-white">LIVE</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors truncate">
+                  {item.title}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-2">{item.creator}</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-3.5 h-3.5" />
+                    {item.views} views
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Trending
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const CTASection = () => (
   <section className="py-24 gradient-hero relative">
     <div className="container mx-auto px-6 text-center relative z-10">
@@ -104,6 +190,7 @@ const Index = () => {
       <Features />
       <HowItWorks />
       <Pricing />
+      <MediaShowcase />
       <CTASection />
       <Footer />
     </div>

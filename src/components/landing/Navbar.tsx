@@ -44,6 +44,12 @@ export const Navbar = () => {
               Features
             </Link>
             <Link
+              to="/templates"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Templates
+            </Link>
+            <Link
               to="/pricing"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -103,6 +109,13 @@ export const Navbar = () => {
                 onClick={() => setIsOpen(false)}
               >
                 Features
+              </Link>
+              <Link
+                to="/templates"
+                className="text-sm text-muted-foreground hover:text-foreground py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                Templates
               </Link>
               <Link
                 to="/pricing"
