@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { validateStreamContent, validateChatMessage } from "@/lib/content-moderation";
 
 export interface Stream {
   id: string;
@@ -69,6 +70,10 @@ export const useStreaming = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // Content moderation
+      const modErr = validateStreamContent(title, description);
+      if (modErr) throw new Error(modErr);
 
       const roomName = `stream-${user.id}-${Date.now()}`;
       const insertData: Record<string, unknown> = {
@@ -212,6 +217,9 @@ export const useStreaming = () => {
   // Send chat message
   const sendChatMessage = async (streamId: string, message: string, username: string) => {
     try {
+      const chatModErr = validateChatMessage(message);
+      if (chatModErr) throw new Error(chatModErr);
+
       const { data: { user } } = await supabase.auth.getUser();
       
       const { error } = await supabase.from("stream_chat").insert({

@@ -68,13 +68,13 @@ const MediaPage = () => {
         .eq("status", "live")
         .order("viewer_count", { ascending: false });
 
-      // Fetch public recordings
-      const { data: recData } = await supabase
-        .from("stream_recordings")
+      // Fetch public recordings (use 'as any' since type isn't auto-generated)
+      const { data: recData } = await (supabase
+        .from("stream_recordings" as any)
         .select("*")
         .eq("visibility", "public")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(50) as any);
 
       const recordingData: Recording[] = (recData || []) as Recording[];
 
@@ -315,10 +315,10 @@ const RecordingCard = ({ recording, formatDuration, formatTimeAgo }: RecordingCa
   const [playing, setPlaying] = useState(false);
 
   const incrementViews = async () => {
-    await supabase
-      .from("stream_recordings")
-      .update({ view_count: (recording.view_count || 0) + 1 })
-      .eq("id", recording.id);
+    await (supabase
+      .from("stream_recordings" as any)
+      .update({ view_count: (recording.view_count || 0) + 1 } as any)
+      .eq("id", recording.id) as any);
   };
 
   return (

@@ -36,13 +36,7 @@ export const Navbar = () => {
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/features"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Features
-            </Link>
+          <div className="hidden md:flex items-center gap-5">
             <Link
               to="/templates"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -54,12 +48,6 @@ export const Navbar = () => {
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Pricing
-            </Link>
-            <Link
-              to="/docs"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Docs
             </Link>
           </div>
 

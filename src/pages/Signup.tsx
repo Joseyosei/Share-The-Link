@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 import { supabase } from "@/integrations/supabase/client";
+import { TEMPLATES } from "@/pages/TemplatesPage";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get("template");
+  const selectedTemplate = templateId ? TEMPLATES.find((t) => t.id === templateId) : null;
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,7 +83,30 @@ const Signup = () => {
     }
     
     if (data.session) {
-      toast({ title: "Account created!", description: "Welcome to Share The Link." });
+      // Apply template if selected
+      if (selectedTemplate && data.session.user) {
+        try {
+          await supabase.from("appearance_settings").upsert({
+            user_id: data.session.user.id,
+            theme: selectedTemplate.id,
+            background_type: "gradient",
+          }, { onConflict: "user_id" });
+
+          // Add template links
+          for (let i = 0; i < selectedTemplate.links.length; i++) {
+            await supabase.from("links").insert({
+              user_id: data.session.user.id,
+              title: selectedTemplate.links[i],
+              url: "#",
+              position: i,
+              is_active: true,
+            });
+          }
+        } catch (err) {
+          // Non-critical -- template apply failed but account still created
+        }
+      }
+      toast({ title: "Account created!", description: selectedTemplate ? `Welcome! The "${selectedTemplate.name}" template has been applied.` : "Welcome to Share The Link." });
       navigate("/dashboard");
     } else if (data.user) {
       toast({ 
@@ -105,6 +132,17 @@ const Signup = () => {
         </div>
         <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">Create your account</h1>
+          {selectedTemplate && (
+            <div className={`mb-4 p-3 rounded-xl ${selectedTemplate.bg} flex items-center gap-3`}>
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <span className={`text-xs font-bold ${selectedTemplate.textColor}`}>{selectedTemplate.avatar}</span>
+              </div>
+              <div>
+                <p className={`text-sm font-semibold ${selectedTemplate.textColor}`}>Using "{selectedTemplate.name}" template</p>
+                <p className={`text-xs ${selectedTemplate.textColor} opacity-70`}>{selectedTemplate.description}</p>
+              </div>
+            </div>
+          )}
           <p className="text-muted-foreground mb-6">Already have an account? <Link to="/login" className="text-primary font-medium hover:underline">Log in</Link></p>
           <form onSubmit={handleSubmit} className="space-y-4">
             {[

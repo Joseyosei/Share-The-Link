@@ -11,7 +11,8 @@ import {
   Wand2,
   Store,
   Play,
-  HelpCircle
+  HelpCircle,
+  Zap
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ const navItems = [
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
   { icon: Store, label: "My Shop", href: "/connect", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
+  { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   { icon: HelpCircle, label: "Help", href: "/help" },
