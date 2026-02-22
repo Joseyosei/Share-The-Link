@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,8 +165,31 @@ const Profile = () => {
     );
   }
 
+  // Auto-detect social links from regular links if social_links isn't populated
+  const detectedSocials: SocialLinks = { ...(profile?.social_links || {}) };
+  const hasSocialsFromProfile = profile?.social_links && Object.values(profile.social_links).some(Boolean);
+  if (!hasSocialsFromProfile && links.length > 0) {
+    for (const link of links) {
+      const url = link.url?.toLowerCase() || "";
+      if (url.includes("twitter.com") || url.includes("x.com")) detectedSocials.twitter = link.url;
+      if (url.includes("instagram.com")) detectedSocials.instagram = link.url;
+      if (url.includes("youtube.com")) detectedSocials.youtube = link.url;
+      if (url.includes("github.com")) detectedSocials.github = link.url;
+      if (url.includes("linkedin.com")) detectedSocials.linkedin = link.url;
+    }
+  }
+  const hasAnySocials = Object.values(detectedSocials).some(Boolean);
+
   return (
     <div className={`min-h-screen ${currentTheme.background} py-12 px-4`}>
+      {/* Top-left logo */}
+      <Link
+        to="/"
+        className={`fixed top-4 left-4 z-10 opacity-60 hover:opacity-100 transition-opacity`}
+      >
+        <Logo textClassName={`${currentTheme.textColor} text-sm`} />
+      </Link>
+
       {/* Share Button */}
       <button
         onClick={handleShare}
@@ -207,71 +231,35 @@ const Profile = () => {
           )}
 
           {/* Social Media Icons */}
-          {profile?.social_links && Object.values(profile.social_links).some(Boolean) && (
+          {hasAnySocials && (
             <div className="flex items-center justify-center gap-3 mb-6">
-              {profile.social_links.twitter && (
-                <a
-                  href={profile.social_links.twitter.startsWith("http") ? profile.social_links.twitter : `https://twitter.com/${profile.social_links.twitter}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-sky-500 text-white shadow-md"
-                  aria-label="Twitter"
-                >
+              {detectedSocials.twitter && (
+                <a href={detectedSocials.twitter.startsWith("http") ? detectedSocials.twitter : `https://twitter.com/${detectedSocials.twitter}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-sky-500 text-white shadow-md" aria-label="Twitter">
                   <Twitter className="w-4 h-4" />
                 </a>
               )}
-              {profile.social_links.instagram && (
-                <a
-                  href={profile.social_links.instagram.startsWith("http") ? profile.social_links.instagram : `https://instagram.com/${profile.social_links.instagram}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-md"
-                  aria-label="Instagram"
-                >
+              {detectedSocials.instagram && (
+                <a href={detectedSocials.instagram.startsWith("http") ? detectedSocials.instagram : `https://instagram.com/${detectedSocials.instagram}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-md" aria-label="Instagram">
                   <Instagram className="w-4 h-4" />
                 </a>
               )}
-              {profile.social_links.youtube && (
-                <a
-                  href={profile.social_links.youtube.startsWith("http") ? profile.social_links.youtube : `https://youtube.com/${profile.social_links.youtube}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-red-600 text-white shadow-md"
-                  aria-label="YouTube"
-                >
+              {detectedSocials.youtube && (
+                <a href={detectedSocials.youtube.startsWith("http") ? detectedSocials.youtube : `https://youtube.com/${detectedSocials.youtube}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-red-600 text-white shadow-md" aria-label="YouTube">
                   <Youtube className="w-4 h-4" />
                 </a>
               )}
-              {profile.social_links.github && (
-                <a
-                  href={profile.social_links.github.startsWith("http") ? profile.social_links.github : `https://github.com/${profile.social_links.github}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gray-800 text-white shadow-md"
-                  aria-label="GitHub"
-                >
+              {detectedSocials.github && (
+                <a href={detectedSocials.github.startsWith("http") ? detectedSocials.github : `https://github.com/${detectedSocials.github}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gray-800 text-white shadow-md" aria-label="GitHub">
                   <Github className="w-4 h-4" />
                 </a>
               )}
-              {profile.social_links.linkedin && (
-                <a
-                  href={profile.social_links.linkedin.startsWith("http") ? profile.social_links.linkedin : `https://linkedin.com/in/${profile.social_links.linkedin}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-blue-700 text-white shadow-md"
-                  aria-label="LinkedIn"
-                >
+              {detectedSocials.linkedin && (
+                <a href={detectedSocials.linkedin.startsWith("http") ? detectedSocials.linkedin : `https://linkedin.com/in/${detectedSocials.linkedin}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-blue-700 text-white shadow-md" aria-label="LinkedIn">
                   <Linkedin className="w-4 h-4" />
                 </a>
               )}
-              {profile.social_links.website && (
-                <a
-                  href={profile.social_links.website.startsWith("http") ? profile.social_links.website : `https://${profile.social_links.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/20 backdrop-blur-sm shadow-md ${currentTheme.textColor}`}
-                  aria-label="Website"
-                >
+              {detectedSocials.website && (
+                <a href={detectedSocials.website.startsWith("http") ? detectedSocials.website : `https://${detectedSocials.website}`} target="_blank" rel="noopener noreferrer" className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-white/20 backdrop-blur-sm shadow-md ${currentTheme.textColor}`} aria-label="Website">
                   <Globe className="w-4 h-4" />
                 </a>
               )}

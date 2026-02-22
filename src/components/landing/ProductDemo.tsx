@@ -5,12 +5,12 @@ const DEMO_VIDEOS = [
   {
     id: "overview",
     label: "Platform Overview",
-    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Share%20The%20Link%20Demo%201%20%281%29%20%281%29-lA9NJxEbzNvQIwIn7l3GmmiB6J6gkm.mp4",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SHARE%20THE%20LINK%20PLATFORM%20OVERVIEW-eD8liUWt4yGZk5HonUbf0Ah9xJEYBb.mp4",
   },
   {
     id: "walkthrough",
     label: "Full Walkthrough",
-    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Share%20The%20Link%20Demo%202-QJoUjGksb8dLFsTJMCp4tsLhHeZeCs.mp4",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SHARE%20THE%20LINK%20WALKTHROUGH-AZ7rLxaQ3kYfU7vdFuxNOMmYTUbBt0.mp4",
   },
 ];
 

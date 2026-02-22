@@ -24,9 +24,9 @@ interface Integration {
 
 const INTEGRATIONS: Integration[] = [
   {
-    id: "adult-controls",
-    name: "Adult Controls",
-    description: "Add content warnings and age requirements to protect your profile. Blocks adult content links automatically.",
+    id: "content-warnings",
+    name: "Content Warnings",
+    description: "Add custom content or age warnings before visitors view your profile. Useful for sensitive but non-adult topics.",
     icon: Shield,
     iconBg: "bg-amber-100 dark:bg-amber-900/30",
     iconColor: "text-amber-600",
@@ -145,8 +145,8 @@ const DashboardIntegrations = () => {
   const [installedApps, setInstalledApps] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem("stl_installed_integrations");
-      return saved ? new Set(JSON.parse(saved)) : new Set(["adult-controls"]);
-    } catch { return new Set(["adult-controls"]); }
+      return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+    } catch { return new Set<string>(); }
   });
 
   const [activeCategory, setActiveCategory] = useState("All");
