@@ -13,6 +13,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 const productsTable = () => supabase.from("user_products" as any);
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { useToast } from "@/hooks/use-toast";
+import { isBlockedText, isBlockedUrl } from "@/lib/content-moderation";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   Store, Plus, Edit2, Trash2, ExternalLink, Package, DollarSign,
@@ -110,6 +111,14 @@ const ConnectDashboard = () => {
     }
     setSaving(true);
     try {
+      // Content moderation
+      if (isBlockedText(form.name) || isBlockedText(form.description)) {
+        throw new Error("Product name or description contains content that violates our community guidelines. Adult content is not allowed.");
+      }
+      if (form.external_url && isBlockedUrl(form.external_url)) {
+        throw new Error("Product URL points to a site that violates our community guidelines.");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 

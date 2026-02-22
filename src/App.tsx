@@ -37,6 +37,8 @@ import DashboardMedia from "./pages/DashboardMedia";
 import DocsPage from "./pages/DocsPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import DashboardIntegrations from "./pages/DashboardIntegrations";
+import TeamPage from "./pages/TeamPage";
+import AdminPage from "./pages/AdminPage";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import NotFound from "./pages/NotFound";
 
@@ -69,6 +71,7 @@ const App = () => (
           <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/team" element={<TeamPage />} />
           
           {/* Public storefront - anyone can view */}
           <Route path="/store/:accountId" element={<StorefrontPage />} />
@@ -95,6 +98,7 @@ const App = () => (
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><DashboardIntegrations /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}
           <Route path="/:username" element={<Profile />} />

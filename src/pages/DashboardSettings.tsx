@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSubscription, PRICING_TIERS } from "@/hooks/useSubscription";
+import { isBlockedText, isBlockedUrl } from "@/lib/content-moderation";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
@@ -89,6 +90,20 @@ const DashboardSettings = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // Content moderation checks
+      if (isBlockedText(profileData.bio)) {
+        throw new Error("Your bio contains content that violates our community guidelines. Adult and explicit content is not allowed.");
+      }
+      if (isBlockedText(profileData.fullName)) {
+        throw new Error("Your display name contains inappropriate content.");
+      }
+      // Check social links for adult URLs
+      for (const [, url] of Object.entries(socialLinks)) {
+        if (url && isBlockedUrl(url)) {
+          throw new Error("One of your social links points to a site that violates our community guidelines. Adult content links are not allowed.");
+        }
+      }
 
       // Filter out empty social links
       const filteredSocials: Record<string, string> = {};
