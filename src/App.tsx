@@ -36,6 +36,7 @@ import HelpPage from "./pages/HelpPage";
 import DashboardMedia from "./pages/DashboardMedia";
 import DocsPage from "./pages/DocsPage";
 import TemplatesPage from "./pages/TemplatesPage";
+import DashboardIntegrations from "./pages/DashboardIntegrations";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import NotFound from "./pages/NotFound";
 
@@ -93,6 +94,7 @@ const App = () => (
           <Route path="/connect" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+          <Route path="/dashboard/integrations" element={<ProtectedRoute><DashboardIntegrations /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}
           <Route path="/:username" element={<Profile />} />

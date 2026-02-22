@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles, Eye, Music, Camera, Church, Dumbbell, ShoppingBag, Laptop, Utensils, Palette, Mic, GraduationCap, Heart, MapPin } from "lucide-react";
+import { ArrowRight, Sparkles, Eye, Music, Camera, Church, Dumbbell, ShoppingBag, Laptop, Utensils, Palette, Mic, GraduationCap, Heart, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Template {
   id: string;
@@ -21,7 +22,7 @@ interface Template {
   bio: string;
 }
 
-const TEMPLATES: Template[] = [
+export const TEMPLATES: Template[] = [
   {
     id: "creator",
     name: "Creator",
@@ -206,7 +207,7 @@ const TEMPLATES: Template[] = [
 
 const CATEGORIES = ["All", "Content", "Music", "Creative", "Ministry", "Health", "Business", "Tech", "Food", "Education", "Cause", "Lifestyle"];
 
-function TemplateCard({ template }: { template: Template }) {
+function TemplateCard({ template, onPreview }: { template: Template; onPreview: (t: Template) => void }) {
   return (
     <div className="group relative">
       {/* Phone frame */}
@@ -230,12 +231,15 @@ function TemplateCard({ template }: { template: Template }) {
       <div className="absolute inset-0 rounded-3xl bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
         <div className="flex flex-col items-center gap-3">
           <Button asChild size="sm" className="rounded-full bg-white text-gray-900 hover:bg-white/90 font-semibold px-6">
-            <Link to="/signup">
+            <Link to={`/signup?template=${template.id}`}>
               Use Template
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </Button>
-          <button className="flex items-center gap-1 text-white/80 text-xs hover:text-white transition-colors">
+          <button
+            onClick={(e) => { e.stopPropagation(); onPreview(template); }}
+            className="flex items-center gap-1 text-white/80 text-xs hover:text-white transition-colors"
+          >
             <Eye className="w-3.5 h-3.5" />
             Preview
           </button>
@@ -252,6 +256,7 @@ function TemplateCard({ template }: { template: Template }) {
 
 const TemplatesPage = () => {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
 
   const filtered = activeCategory === "All"
     ? TEMPLATES
@@ -296,7 +301,7 @@ const TemplatesPage = () => {
           {/* Templates Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filtered.map((template) => (
-              <TemplateCard key={template.id} template={template} />
+              <TemplateCard key={template.id} template={template} onPreview={setPreviewTemplate} />
             ))}
           </div>
 
@@ -314,6 +319,58 @@ const TemplatesPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Preview Modal */}
+      <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          {previewTemplate && (
+            <div className="relative">
+              {/* Phone mockup */}
+              <div className="mx-auto w-[320px] rounded-[2.5rem] border-[6px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden">
+                <div className="relative w-full aspect-[9/19]">
+                  <div className={`absolute inset-0 ${previewTemplate.bg} flex flex-col items-center pt-12 px-6 overflow-y-auto`}>
+                    {/* Avatar */}
+                    <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 border-2 border-white/30">
+                      <span className={`text-lg font-bold ${previewTemplate.textColor}`}>{previewTemplate.avatar}</span>
+                    </div>
+                    <h2 className={`text-lg font-bold ${previewTemplate.textColor} mb-1`}>{previewTemplate.displayName}</h2>
+                    <p className={`text-sm ${previewTemplate.textColor} opacity-70 mb-6 text-center`}>{previewTemplate.bio}</p>
+                    {/* Links */}
+                    <div className="space-y-3 w-full">
+                      {previewTemplate.links.map((link) => (
+                        <div key={link} className={`${previewTemplate.cardBg} rounded-xl py-3.5 px-5 text-center`}>
+                          <span className={`text-sm font-medium ${previewTemplate.cardBg.includes("white/") ? previewTemplate.textColor : "text-gray-800"}`}>{link}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className={`text-xs ${previewTemplate.textColor} opacity-40 mt-8 mb-4`}>Powered by Share The Link</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions below */}
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewTemplate(null)}
+                  className="rounded-full bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Close
+                </Button>
+                <Button asChild size="sm" className="rounded-full bg-white text-gray-900 hover:bg-white/90 font-semibold px-6">
+                  <Link to={`/signup?template=${previewTemplate.id}`}>
+                    Use This Template
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );

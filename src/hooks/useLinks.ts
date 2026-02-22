@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { validateLinkContent } from "@/lib/content-moderation";
 
 export type Link = Tables<"links">;
 export type LinkInsert = TablesInsert<"links">;
@@ -47,6 +48,10 @@ export const useLinks = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
+    // Content moderation check
+    const moderationError = validateLinkContent(link.title || "", link.url || "");
+    if (moderationError) throw new Error(moderationError);
+
     // Get max position
     const maxPosition = links.length > 0 
       ? Math.max(...links.map(l => l.position || 0)) + 1 
@@ -68,6 +73,10 @@ export const useLinks = () => {
   };
 
   const updateLink = async (id: string, updates: LinkUpdate) => {
+    // Content moderation check on update
+    const modErr = validateLinkContent(updates.title || "", updates.url || "");
+    if (modErr) throw new Error(modErr);
+
     const { data, error } = await supabase
       .from("links")
       .update({ ...updates, updated_at: new Date().toISOString() })
