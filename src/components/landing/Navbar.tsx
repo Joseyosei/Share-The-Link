@@ -1,18 +1,30 @@
 import { Link } from "react-router-dom";
-import { Menu, X, Sun, Moon } from "lucide-react";
+import { Menu, X, Sun, Moon, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsSignedIn(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const toggleTheme = () => {
@@ -53,21 +65,36 @@ export const Navbar = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Link to="/login">Log in</Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-              className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-5 font-medium"
-            >
-              <Link to="/signup">Join for free</Link>
-            </Button>
+            {isSignedIn ? (
+              <Button
+                asChild
+                size="sm"
+                className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-5 font-medium"
+              >
+                <Link to="/dashboard" className="flex items-center gap-2">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Link to="/login">Log in</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-5 font-medium"
+                >
+                  <Link to="/signup">Join for free</Link>
+                </Button>
+              </>
+            )}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -120,23 +147,37 @@ export const Navbar = () => {
                 Docs
               </Link>
               <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
-                <Button
-                  variant="ghost"
-                  asChild
-                  className="w-full justify-center text-muted-foreground"
-                >
-                  <Link to="/login" onClick={() => setIsOpen(false)}>
-                    Log in
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium"
-                >
-                  <Link to="/signup" onClick={() => setIsOpen(false)}>
-                    Join for free
-                  </Link>
-                </Button>
+                {isSignedIn ? (
+                  <Button
+                    asChild
+                    className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium"
+                  >
+                    <Link to="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      asChild
+                      className="w-full justify-center text-muted-foreground"
+                    >
+                      <Link to="/login" onClick={() => setIsOpen(false)}>
+                        Log in
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium"
+                    >
+                      <Link to="/signup" onClick={() => setIsOpen(false)}>
+                        Join for free
+                      </Link>
+                    </Button>
+                  </>
+                )}
                 <button
                   onClick={toggleTheme}
                   className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

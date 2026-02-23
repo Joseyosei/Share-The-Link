@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Twitter, Instagram, Youtube, Github, Linkedin, Send } from "lucide-react";
+import { Twitter, Instagram, Youtube, Github, Linkedin, Send, Settings } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 const footerLinks = {
@@ -119,6 +119,13 @@ export const Footer = () => {
             <p className="text-background/40 text-sm">
               Made with <span className="text-pink-400">&#9829;</span> for creators worldwide
             </p>
+            <Link
+              to="/admin"
+              className="text-background/20 hover:text-background/50 transition-colors"
+              aria-label="Admin panel"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </div>

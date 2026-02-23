@@ -1,7 +1,14 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const RIGHT_NAV_LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/careers", label: "Careers" },
+  { href: "/team", label: "Team" },
+  { href: "/contact", label: "Contact" },
+];
 
 const SOCIAL_LINKS = [
   { href: "https://x.com/sharethelink", label: "X / Twitter", icon: (
@@ -20,6 +27,16 @@ const SOCIAL_LINKS = [
 
 export const Hero = () => {
   const [username, setUsername] = useState("");
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 
   return (
     <section className="relative min-h-screen gradient-bg flex items-center pt-24 pb-16 overflow-hidden">
@@ -43,6 +60,39 @@ export const Hero = () => {
             {social.icon}
           </a>
         ))}
+      </div>
+
+      {/* Right-side page navigation */}
+      <div className="hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-20 flex-col gap-2">
+        {RIGHT_NAV_LINKS.map((link) => (
+          <Link
+            key={link.label}
+            to={link.href}
+            className="px-3 py-2 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-white/20 transition-all text-xs font-medium text-center"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+
+      {/* Scroll up/down arrows - bottom right, always visible */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center"
+            aria-label="Scroll to top"
+          >
+            <ChevronUp className="w-6 h-6" />
+          </button>
+        )}
+        <button
+          onClick={scrollToBottom}
+          className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center"
+          aria-label="Scroll to bottom"
+        >
+          <ChevronDown className="w-6 h-6" />
+        </button>
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
