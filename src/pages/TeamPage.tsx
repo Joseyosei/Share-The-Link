@@ -28,24 +28,43 @@ const TeamPage = () => {
   const [content, setContent] = useState<SiteContent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const FALLBACK_FOUNDER: TeamMember = {
+    id: "founder",
+    name: "Pastor Jerry Uchechukwu Eze",
+    role: "Founder & CEO",
+    bio: "Visionary entrepreneur and founder of Share The Link. Building the ultimate link-in-bio platform for creators, entrepreneurs, and organizations worldwide.",
+    avatar_url: null,
+    social_links: {},
+    display_order: 0,
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      const [membersRes, contentRes] = await Promise.all([
-        supabase
-          .from("team_members" as never)
-          .select("*")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true }) as any,
-        supabase
-          .from("site_content" as never)
-          .select("*")
-          .eq("is_active", true)
-          .in("content_type", ["team_video", "team_image", "team_text"])
-          .order("display_order", { ascending: true }) as any,
-      ]);
+      try {
+        const [membersRes, contentRes] = await Promise.all([
+          supabase
+            .from("team_members")
+            .select("*")
+            .eq("is_active", true)
+            .order("display_order", { ascending: true }),
+          supabase
+            .from("site_content")
+            .select("*")
+            .eq("is_active", true)
+            .in("content_type", ["team_video", "team_image", "team_text"])
+            .order("display_order", { ascending: true }),
+        ]);
 
-      if (membersRes.data) setMembers(membersRes.data);
-      if (contentRes.data) setContent(contentRes.data);
+        const membersData = (membersRes.data as TeamMember[] | null) || [];
+        const contentData = (contentRes.data as SiteContent[] | null) || [];
+
+        // Use fallback if no members from DB
+        setMembers(membersData.length > 0 ? membersData : [FALLBACK_FOUNDER]);
+        setContent(contentData);
+      } catch {
+        // Fallback to hardcoded founder
+        setMembers([FALLBACK_FOUNDER]);
+      }
       setLoading(false);
     };
     fetchData();

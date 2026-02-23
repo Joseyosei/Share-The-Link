@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
-import { MapPin, Clock, ArrowRight, ChevronDown, ChevronUp, CheckCircle, Users, Zap, Heart, Globe, BookOpen, Gift, Home } from "lucide-react";
+import { MapPin, Clock, ArrowRight, ChevronDown, ChevronUp, CheckCircle, Users, Zap, Heart, Globe, BookOpen, Gift, Home, X, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface JobOpening {
   title: string;
@@ -174,11 +176,75 @@ const departmentColors: Record<string, string> = {
   Support: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
 };
 
+interface ApplicationForm {
+  full_name: string;
+  email: string;
+  phone: string;
+  linkedin_url: string;
+  portfolio_url: string;
+  cover_letter: string;
+}
+
+const emptyForm: ApplicationForm = {
+  full_name: "",
+  email: "",
+  phone: "",
+  linkedin_url: "",
+  portfolio_url: "",
+  cover_letter: "",
+};
+
 const CareersPage = () => {
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [applyingFor, setApplyingFor] = useState<string | null>(null);
+  const [form, setForm] = useState<ApplicationForm>(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const { toast } = useToast();
 
   const toggleJob = (title: string) => {
     setExpandedJob(expandedJob === title ? null : title);
+  };
+
+  const handleApply = (jobTitle: string) => {
+    setApplyingFor(jobTitle);
+    setForm(emptyForm);
+    setSubmitted(false);
+  };
+
+  const handleSubmitApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!applyingFor) return;
+
+    if (!form.full_name.trim() || !form.email.trim()) {
+      toast({ title: "Missing fields", description: "Please fill in your name and email.", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("job_applications")
+        .insert({
+          job_title: applyingFor,
+          full_name: form.full_name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || null,
+          linkedin_url: form.linkedin_url.trim() || null,
+          portfolio_url: form.portfolio_url.trim() || null,
+          cover_letter: form.cover_letter.trim() || null,
+        });
+
+      if (error) throw error;
+
+      setSubmitted(true);
+      toast({ title: "Application submitted!", description: `Your application for ${applyingFor} has been received. We'll be in touch.` });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      toast({ title: "Submission failed", description: message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -327,7 +393,10 @@ const CareersPage = () => {
 
                       {/* Apply Button */}
                       <div className="pt-4 border-t border-border">
-                        <Button className="gradient-button text-primary-foreground hover:opacity-90 w-full md:w-auto px-8 py-5">
+                        <Button
+                          onClick={() => handleApply(job.title)}
+                          className="gradient-button text-primary-foreground hover:opacity-90 w-full md:w-auto px-8 py-5"
+                        >
                           Apply for {job.title}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
@@ -340,6 +409,134 @@ const CareersPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Application Modal */}
+      {applyingFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Apply for Position</h3>
+                <p className="text-sm text-muted-foreground">{applyingFor}</p>
+              </div>
+              <button
+                onClick={() => setApplyingFor(null)}
+                className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {submitted ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-emerald-600" />
+                </div>
+                <h4 className="text-xl font-bold text-foreground mb-2">Application Received!</h4>
+                <p className="text-muted-foreground mb-6">
+                  Thank you for applying. We will review your application and get back to you soon.
+                </p>
+                <Button onClick={() => setApplyingFor(null)} variant="outline" className="rounded-full px-6">
+                  Close
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitApplication} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.full_name}
+                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Your full name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="+44 7700 000000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">LinkedIn Profile</label>
+                  <input
+                    type="url"
+                    value={form.linkedin_url}
+                    onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="https://linkedin.com/in/yourname"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Portfolio / Website</label>
+                  <input
+                    type="url"
+                    value={form.portfolio_url}
+                    onChange={(e) => setForm({ ...form, portfolio_url: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="https://yourportfolio.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Cover Letter / Why you?</label>
+                  <textarea
+                    rows={4}
+                    value={form.cover_letter}
+                    onChange={(e) => setForm({ ...form, cover_letter: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                    placeholder="Tell us why you'd be a great fit for this role..."
+                  />
+                </div>
+                <div className="flex items-center gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setApplyingFor(null)}
+                    className="flex-1 rounded-full"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 gradient-button text-primary-foreground hover:opacity-90 rounded-full"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Submit Application
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
