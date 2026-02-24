@@ -14,20 +14,36 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || "",
 );
 
-// Map Stripe price IDs to tier names
-const PRICE_TO_TIER: Record<string, string> = {
-  "price_1SwbcFE2FuZ01nXUSQxTa1zF": "pro",
-  "price_1SwbdIE2FuZ01nXUnGw4a2Yn": "business",
-  "price_1SwbfRE2FuZ01nXU1UJvDqrO": "enterprise",
-};
+/**
+ * Determine the tier from subscription metadata, price amount, or product name.
+ * The subscription_data.metadata.tier field set during checkout is the primary source.
+ * Falls back to amount-based detection for live mode where price IDs are dynamic.
+ */
+function detectTierFromSubscription(subscription: Stripe.Subscription): string {
+  // 1. Check subscription metadata (set by our checkout endpoint)
+  if (subscription.metadata?.tier) {
+    return subscription.metadata.tier;
+  }
 
-// Map Stripe product IDs to tier names
-const PRODUCT_TO_TIER: Record<string, string> = {
-  prod_TuQRMlT6Gfn7Sv: "free",
-  prod_TuQTRlytxHScfY: "pro",
-  prod_TuQUStzRn07sTU: "business",
-  prod_TuQWHzMKX8eKbS: "enterprise",
-};
+  // 2. Check the amount to detect tier
+  const amount = subscription.items.data[0]?.price?.unit_amount;
+  if (amount) {
+    if (amount === 700) return "pro";
+    if (amount === 2300) return "business";
+    if (amount === 10000) return "enterprise";
+  }
+
+  // 3. Check product name
+  const productName = (subscription.items.data[0]?.price?.product as any)?.name || "";
+  if (typeof productName === "string") {
+    const lower = productName.toLowerCase();
+    if (lower.includes("enterprise")) return "enterprise";
+    if (lower.includes("business")) return "business";
+    if (lower.includes("pro")) return "pro";
+  }
+
+  return "pro"; // default fallback
+}
 
 export const config = {
   api: {
@@ -167,11 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        const priceId = subscription.items.data[0]?.price.id;
-        const productId = (subscription.items.data[0]?.price as Stripe.Price)?.product as string;
-        
-        // Determine tier from price ID, product ID, or metadata
-        const tier = PRICE_TO_TIER[priceId] || PRODUCT_TO_TIER[productId] || subscription.metadata?.tier || "pro";
+        const tier = detectTierFromSubscription(subscription);
         const status = subscription.status;
 
         console.log("Subscription event:", {
@@ -179,7 +191,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           customerId: subscription.customer,
           tier,
           status,
-          priceId,
+          amount: subscription.items.data[0]?.price?.unit_amount,
+          metadata: subscription.metadata,
         });
 
         // Find the Supabase user
