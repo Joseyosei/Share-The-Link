@@ -12,8 +12,10 @@ import {
   Store,
   Play,
   HelpCircle,
-  Zap
+  Zap,
+  Shield
 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -35,12 +37,34 @@ const navItems = [
   { icon: HelpCircle, label: "Help", href: "/help" },
 ];
 
+const ADMIN_EMAILS = ["admin@sharethelink.io"];
+
 export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile, loading } = useUserProfile();
   const { subscription } = useSubscription();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // Check by email first (fast)
+      if (user.email && ADMIN_EMAILS.includes(user.email)) {
+        setIsAdmin(true);
+        return;
+      }
+      // Check admin_users table
+      try {
+        const { data } = await supabase.from("admin_users").select("id").eq("user_id", user.id).single();
+        if (data) setIsAdmin(true);
+      } catch { /* not admin */ }
+    };
+    checkAdmin();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -90,6 +114,21 @@ export const Sidebar = () => {
             </Link>
           );
         })}
+
+        {/* Admin Panel link - only visible to admins */}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mt-2 border border-destructive/20 ${
+              location.pathname === "/admin"
+                ? "bg-destructive text-destructive-foreground"
+                : "text-destructive hover:bg-destructive/10"
+            }`}
+          >
+            <Shield className="w-5 h-5" />
+            <span className="font-medium">Admin Panel</span>
+          </Link>
+        )}
       </nav>
 
       {/* User Profile - always visible at bottom */}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User } from "lucide-react";
+import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,19 @@ interface SiteContent {
   display_order: number;
 }
 
+interface JobApplication {
+  id: string;
+  job_title: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  linkedin_url: string | null;
+  portfolio_url: string | null;
+  cover_letter: string | null;
+  status: string;
+  created_at: string;
+}
+
 interface Stats {
   totalUsers: number;
   totalLinks: number;
@@ -42,28 +55,48 @@ const AdminPage = () => {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content" | "applications">("overview");
 
   // Data
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [content, setContent] = useState<SiteContent[]>([]);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalLinks: 0, totalStreams: 0, totalRecordings: 0 });
 
   // Forms
   const [newMember, setNewMember] = useState({ name: "", role: "", bio: "", avatar_url: "" });
   const [newContent, setNewContent] = useState({ content_type: "team_text", title: "", body: "", media_url: "" });
 
+  // Hard-coded admin emails as a fallback
+  const ADMIN_EMAILS = ["admin@sharethelink.io"];
+
   const checkAdmin = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    const { data } = await (supabase
-      .from("admin_users" as never)
-      .select("*")
-      .eq("user_id", user.id)
-      .single() as any);
+    // Check admin_users table first
+    let isAdminUser = false;
+    try {
+      const { data } = await supabase
+        .from("admin_users")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+      if (data) isAdminUser = true;
+    } catch {
+      // Table might not exist or query failed, check email fallback
+    }
 
-    if (!data) {
+    // Fallback: check if email is in the hard-coded admin list
+    if (!isAdminUser && user.email && ADMIN_EMAILS.includes(user.email)) {
+      isAdminUser = true;
+      // Try to insert them into admin_users table for future
+      try {
+        await supabase.from("admin_users").insert({ user_id: user.id, role: "super_admin" });
+      } catch { /* ignore if already exists */ }
+    }
+
+    if (!isAdminUser) {
       toast({ title: "Access denied", description: "You are not authorized to access this page.", variant: "destructive" });
       navigate("/dashboard");
       return;
@@ -85,6 +118,15 @@ const AdminPage = () => {
       .select("*")
       .order("display_order", { ascending: true }) as any);
     if (contentData) setContent(contentData);
+
+    // Fetch job applications
+    try {
+      const { data: appsData } = await supabase
+        .from("job_applications")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (appsData) setApplications(appsData as unknown as JobApplication[]);
+    } catch { /* table might not exist */ }
 
     // Fetch stats
     const [usersRes, linksRes, streamsRes, recordingsRes] = await Promise.all([
@@ -215,6 +257,7 @@ const AdminPage = () => {
             { id: "overview" as const, label: "Overview", icon: BarChart3 },
             { id: "team" as const, label: "Team Members", icon: Users },
             { id: "content" as const, label: "Site Content", icon: FileText },
+            { id: "applications" as const, label: `Applications (${applications.length})`, icon: Briefcase },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -368,6 +411,66 @@ const AdminPage = () => {
                 <p className="text-muted-foreground text-center py-8">No content added yet. Use the form above to add videos, images, or text blocks.</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Applications Tab */}
+        {activeTab === "applications" && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-foreground">Job Applications ({applications.length})</h3>
+            {applications.length === 0 ? (
+              <p className="text-muted-foreground text-center py-12">No applications received yet.</p>
+            ) : (
+              applications.map((app) => (
+                <div key={app.id} className="bg-background rounded-xl border border-border p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-bold text-foreground text-lg">{app.full_name}</h4>
+                      <p className="text-sm text-primary font-medium">{app.job_title}</p>
+                    </div>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                      app.status === "new" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                      app.status === "reviewed" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    }`}>
+                      {app.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
+                    <span className="flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5" />
+                      <a href={`mailto:${app.email}`} className="hover:text-primary transition-colors">{app.email}</a>
+                    </span>
+                    {app.phone && (
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />
+                        {app.phone}
+                      </span>
+                    )}
+                    {app.linkedin_url && (
+                      <a href={app.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        LinkedIn
+                      </a>
+                    )}
+                    {app.portfolio_url && (
+                      <a href={app.portfolio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        <Globe className="w-3.5 h-3.5" />
+                        Portfolio
+                      </a>
+                    )}
+                  </div>
+                  {app.cover_letter && (
+                    <div className="bg-muted/50 rounded-lg p-4 text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                      {app.cover_letter}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Applied {new Date(app.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

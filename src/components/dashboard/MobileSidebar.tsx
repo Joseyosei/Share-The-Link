@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -14,7 +14,8 @@ import {
   Wand2,
   Store,
   Play,
-  HelpCircle
+  HelpCircle,
+  Shield
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -35,12 +36,31 @@ const navItems = [
   { icon: HelpCircle, label: "Help", href: "/help" },
 ];
 
+const ADMIN_EMAILS = ["admin@sharethelink.io"];
+
 export const MobileSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile, loading } = useUserProfile();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      if (user.email && ADMIN_EMAILS.includes(user.email)) {
+        setIsAdmin(true);
+        return;
+      }
+      try {
+        const { data } = await supabase.from("admin_users").select("id").eq("user_id", user.id).single();
+        if (data) setIsAdmin(true);
+      } catch { /* not admin */ }
+    };
+    checkAdmin();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -121,6 +141,22 @@ export const MobileSidebar = () => {
               </Link>
             );
           })}
+
+          {/* Admin Panel link */}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              onClick={() => setIsOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mt-2 border border-destructive/20 ${
+                location.pathname === "/admin"
+                  ? "bg-destructive text-destructive-foreground"
+                  : "text-destructive hover:bg-destructive/10"
+              }`}
+            >
+              <Shield className="w-5 h-5" />
+              <span className="font-medium">Admin Panel</span>
+            </Link>
+          )}
         </nav>
 
         {/* User Profile */}

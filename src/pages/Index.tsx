@@ -60,12 +60,12 @@ const HowItWorks = () => (
 
 const MediaShowcase = () => {
   const SAMPLE_MEDIA = [
-    { title: "How I Grew to 100K Followers", creator: "Alex Rivera", views: "12.4K", type: "Recording" },
-    { title: "Sunday Service Live", creator: "Grace Church", views: "3.2K", type: "Live Stream" },
-    { title: "Product Launch Event", creator: "TechStartup", views: "8.7K", type: "Recording" },
-    { title: "Music Production Session", creator: "DJ Pulse", views: "5.1K", type: "Live Stream" },
-    { title: "Fitness Workshop Q&A", creator: "Coach Pro", views: "2.9K", type: "Recording" },
-    { title: "Art & Design Process", creator: "Creative Studio", views: "4.3K", type: "Recording" },
+    { title: "How I Grew to 100K Followers", creator: "Alex Rivera", views: "12.4K", type: "Recording", image: "/images/media-thumb-1.jpg" },
+    { title: "Sunday Service Live", creator: "Grace Church", views: "3.2K", type: "Live Stream", image: "/images/media-thumb-2.jpg" },
+    { title: "Product Launch Event", creator: "TechStartup", views: "8.7K", type: "Recording", image: "/images/media-thumb-3.jpg" },
+    { title: "Music Production Session", creator: "DJ Pulse", views: "5.1K", type: "Live Stream", image: "/images/media-thumb-4.jpg" },
+    { title: "Fitness Workshop Q&A", creator: "Coach Pro", views: "2.9K", type: "Recording", image: "/images/media-thumb-5.jpg" },
+    { title: "Art & Design Process", creator: "Creative Studio", views: "4.3K", type: "Recording", image: "/images/media-thumb-6.jpg" },
   ];
 
   return (
@@ -103,15 +103,16 @@ const MediaShowcase = () => {
               to="/media"
               className="group block rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300"
             >
-              {/* Thumbnail placeholder */}
+              {/* Thumbnail with image */}
               <div className="relative aspect-video bg-muted flex items-center justify-center overflow-hidden">
-                <div className={`absolute inset-0 ${
-                  i % 3 === 0 ? "bg-gradient-to-br from-primary/20 to-purple-500/20"
-                  : i % 3 === 1 ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20"
-                  : "bg-gradient-to-br from-orange-500/20 to-red-500/20"
-                }`} />
-                <div className="relative w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Play className="w-6 h-6 text-foreground/70 ml-0.5" />
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                <div className="relative w-14 h-14 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Play className="w-6 h-6 text-white ml-0.5" />
                 </div>
                 {item.type === "Live Stream" && (
                   <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 px-2.5 py-1 rounded-full">
