@@ -1,11 +1,25 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil",
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_J5kLuv09oEJtidB1lthpxOB3pOUzOFQd";
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+
+// Supabase admin client for DB writes
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+);
+
+// Map Stripe price IDs to tier names
+const PRICE_TO_TIER: Record<string, string> = {
+  "price_1SwbcFE2FuZ01nXUSQxTa1zF": "pro",
+  "price_1SwbdIE2FuZ01nXUnGw4a2Yn": "business",
+  "price_1SwbfRE2FuZ01nXU1UJvDqrO": "enterprise",
+};
 
 // Map Stripe product IDs to tier names
 const PRODUCT_TO_TIER: Record<string, string> = {
@@ -27,6 +41,95 @@ async function buffer(readable: any): Promise<Buffer> {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
   return Buffer.concat(chunks);
+}
+
+/**
+ * Find Supabase user_id from Stripe customer email or metadata
+ */
+async function findSupabaseUserId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null, metadata?: Record<string, string>): Promise<string | null> {
+  // Check metadata first
+  if (metadata?.supabase_user_id) {
+    return metadata.supabase_user_id;
+  }
+
+  if (!customer) return null;
+
+  // Get the customer's email
+  let email: string | null = null;
+  if (typeof customer === "string") {
+    const cust = await stripe.customers.retrieve(customer);
+    if ("deleted" in cust && cust.deleted) return null;
+    email = cust.email;
+  } else if ("email" in customer) {
+    email = customer.email;
+  }
+
+  if (!email) return null;
+
+  // Look up user in Supabase auth by email
+  const { data } = await supabaseAdmin.auth.admin.listUsers();
+  const user = data?.users?.find((u) => u.email === email);
+  return user?.id || null;
+}
+
+/**
+ * Upsert subscription in user_subscriptions table
+ */
+async function upsertSubscription(
+  userId: string,
+  subscription: Stripe.Subscription,
+  tier: string,
+) {
+  const priceId = subscription.items.data[0]?.price.id;
+  const planName = tier.charAt(0).toUpperCase() + tier.slice(1);
+
+  const { error } = await supabaseAdmin
+    .from("user_subscriptions")
+    .upsert(
+      {
+        user_id: userId,
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: priceId,
+        plan_name: planName,
+        status: subscription.status,
+        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (error) {
+    console.error("Failed to upsert subscription:", error);
+    // Try insert if upsert fails on conflict
+    await supabaseAdmin
+      .from("user_subscriptions")
+      .insert({
+        user_id: userId,
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: priceId,
+        plan_name: planName,
+        status: subscription.status,
+        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+      });
+  }
+}
+
+/**
+ * Mark subscription as cancelled in DB
+ */
+async function cancelSubscriptionInDB(userId: string, subscription: Stripe.Subscription) {
+  await supabaseAdmin
+    .from("user_subscriptions")
+    .update({
+      status: "canceled",
+      cancel_at_period_end: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -56,25 +159,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout completed for:", session.customer_email, "Tier:", session.metadata?.tier);
+
+        // If this is a subscription checkout, the subscription events will handle DB writes
         break;
       }
 
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
+        const priceId = subscription.items.data[0]?.price.id;
         const productId = (subscription.items.data[0]?.price as Stripe.Price)?.product as string;
-        const tier = PRODUCT_TO_TIER[productId] || subscription.metadata?.tier || "unknown";
+        
+        // Determine tier from price ID, product ID, or metadata
+        const tier = PRICE_TO_TIER[priceId] || PRODUCT_TO_TIER[productId] || subscription.metadata?.tier || "pro";
         const status = subscription.status;
-        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
 
         console.log("Subscription event:", {
           type: event.type,
           customerId: subscription.customer,
           tier,
           status,
-          cancelAtPeriodEnd,
-          currentPeriodEnd: new Date((subscription.current_period_end as number) * 1000).toISOString(),
+          priceId,
         });
+
+        // Find the Supabase user
+        const userId = await findSupabaseUserId(
+          subscription.customer as string,
+          subscription.metadata as Record<string, string>,
+        );
+
+        if (userId) {
+          await upsertSubscription(userId, subscription, tier);
+          console.log(`Subscription ${event.type} saved for user ${userId} (${tier})`);
+        } else {
+          console.warn("Could not find Supabase user for subscription:", subscription.customer);
+        }
         break;
       }
 
@@ -84,6 +203,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           customerId: subscription.customer,
           status: subscription.status,
         });
+
+        const userId = await findSupabaseUserId(
+          subscription.customer as string,
+          subscription.metadata as Record<string, string>,
+        );
+
+        if (userId) {
+          await cancelSubscriptionInDB(userId, subscription);
+          console.log(`Subscription cancelled for user ${userId}`);
+        }
         break;
       }
 
@@ -103,6 +232,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           customerId: invoice.customer,
           amount: invoice.amount_due,
         });
+
+        // Optionally mark subscription as past_due
+        if (invoice.subscription) {
+          const userId = await findSupabaseUserId(invoice.customer as string);
+          if (userId) {
+            await supabaseAdmin
+              .from("user_subscriptions")
+              .update({ status: "past_due", updated_at: new Date().toISOString() })
+              .eq("user_id", userId);
+          }
+        }
         break;
       }
 

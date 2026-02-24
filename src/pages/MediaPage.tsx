@@ -45,7 +45,7 @@ const MediaPage = () => {
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "live" | "recent" | "popular">("all");
+  const [filter, setFilter] = useState<"all" | "live" | "recent" | "popular">(() => "all");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -56,6 +56,26 @@ const MediaPage = () => {
 
   useEffect(() => {
     fetchContent();
+
+    // Subscribe to real-time updates for live streams
+    const channel = supabase
+      .channel("public-live-streams")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "streams",
+        },
+        () => {
+          fetchContent();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchContent = async () => {

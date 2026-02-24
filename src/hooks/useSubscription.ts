@@ -80,7 +80,7 @@ export const useSubscription = () => {
       const response = await fetch("/api/check-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email }),
+        body: JSON.stringify({ email: user.email, userId: user.id }),
       });
 
       const data = await response.json();
