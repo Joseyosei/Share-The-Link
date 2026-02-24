@@ -30,10 +30,10 @@ const TeamPage = () => {
 
   const FALLBACK_FOUNDER: TeamMember = {
     id: "founder",
-    name: "Pastor Jerry Uchechukwu Eze",
+    name: "Joseph Osei-Bonsu",
     role: "Founder & CEO",
     bio: "Visionary entrepreneur and founder of Share The Link. Building the ultimate link-in-bio platform for creators, entrepreneurs, and organizations worldwide.",
-    avatar_url: null,
+    avatar_url: "/images/joseph-osei-bonsu.jpg",
     social_links: {},
     display_order: 0,
   };

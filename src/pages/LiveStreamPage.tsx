@@ -5,10 +5,11 @@
  * Route: /live/:username
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ViewerPlayer, StreamChat, TipJar, StreamStats } from "@/components/streaming/StreamingComponents";
+import { setActiveStream, setActiveStream as clearActiveStream } from "@/components/dashboard/LiveMiniPlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,30 @@ const LiveStreamPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewerName, setViewerName] = useState("Anonymous");
+  const streamRef = useRef<LiveStreamData | null>(null);
+  const streamerRef = useRef<StreamerProfile | null>(null);
+
+  // Keep refs in sync with state for cleanup
+  useEffect(() => { streamRef.current = stream; }, [stream]);
+  useEffect(() => { streamerRef.current = streamer; }, [streamer]);
+
+  // Clear mini player when entering this page (viewing full stream)
+  // Activate mini player when leaving (if stream still live)
+  useEffect(() => {
+    clearActiveStream(null);
+    return () => {
+      const s = streamRef.current;
+      const p = streamerRef.current;
+      if (s && p) {
+        setActiveStream({
+          id: s.id,
+          title: s.title,
+          username: p.username,
+          viewerCount: s.viewer_count,
+        });
+      }
+    };
+  }, []);
 
   // Fetch active stream for this user
   useEffect(() => {
@@ -119,6 +144,7 @@ const LiveStreamPage = () => {
           const updated = payload.new as Record<string, unknown>;
           if (updated.status === "ended") {
             setError("stream_ended");
+            streamRef.current = null;
             setStream(null);
           } else {
             setStream((prev) =>
