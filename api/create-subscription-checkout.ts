@@ -5,19 +5,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil",
 });
 
-// Server-side pricing tiers (source of truth)
-const TIERS: Record<string, { priceId: string; name: string }> = {
+// Server-side pricing tiers (source of truth for pricing)
+// Uses price_data so it works in both test and live Stripe modes
+const TIERS: Record<string, { name: string; monthlyPriceInPence: number; currency: string }> = {
   pro: {
-    priceId: "price_1SwbcFE2FuZ01nXUSQxTa1zF",
-    name: "Pro",
+    name: "Share The Link Pro",
+    monthlyPriceInPence: 700, // £7/month
+    currency: "gbp",
   },
   business: {
-    priceId: "price_1SwbdIE2FuZ01nXUnGw4a2Yn",
-    name: "Business",
+    name: "Share The Link Business",
+    monthlyPriceInPence: 2300, // £23/month
+    currency: "gbp",
   },
   enterprise: {
-    priceId: "price_1SwbfRE2FuZ01nXU1UJvDqrO",
-    name: "Enterprise",
+    name: "Share The Link Enterprise",
+    monthlyPriceInPence: 10000, // £100/month
+    currency: "gbp",
   },
 };
 
@@ -38,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const tierConfig = TIERS[tier];
-    const origin = req.headers.origin || "https://sharethelink.com";
+    const origin = req.headers.origin || req.headers.referer?.replace(/\/$/, "") || "https://share-the-link.vercel.app";
 
     // Find or create Stripe customer
     const customers = await stripe.customers.list({
@@ -49,6 +53,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let customerId: string;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      // Update metadata if needed
+      if (userId) {
+        await stripe.customers.update(customerId, {
+          metadata: { supabase_user_id: userId },
+        });
+      }
     } else {
       const customer = await stripe.customers.create({
         email,
@@ -57,26 +67,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customerId = customer.id;
     }
 
-    // Create Stripe Checkout Session for subscription
+    // Create Stripe Checkout Session using price_data (no pre-created price IDs needed)
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       line_items: [
         {
-          price: tierConfig.priceId,
+          price_data: {
+            currency: tierConfig.currency,
+            product_data: {
+              name: tierConfig.name,
+              metadata: { tier },
+            },
+            unit_amount: tierConfig.monthlyPriceInPence,
+            recurring: {
+              interval: "month",
+            },
+          },
           quantity: 1,
         },
       ],
       subscription_data: {
         metadata: {
-          ...(userId ? { supabase_user_id: userId } : {}),
+          supabase_user_id: userId || "",
           tier,
         },
       },
-      success_url: `${origin}/dashboard?subscription=success`,
+      success_url: `${origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pricing?subscription=cancelled`,
       metadata: {
-        ...(userId ? { supabase_user_id: userId } : {}),
+        supabase_user_id: userId || "",
         tier,
       },
     });

@@ -80,7 +80,7 @@ export const useSubscription = () => {
       const response = await fetch("/api/check-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email }),
+        body: JSON.stringify({ email: user.email, userId: user.id }),
       });
 
       const data = await response.json();
@@ -122,9 +122,9 @@ export const useSubscription = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Checkout failed");
 
-      // Open checkout in new tab
+      // Redirect to Stripe checkout (same window for better UX)
       if (data.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
         return data.url;
       }
 

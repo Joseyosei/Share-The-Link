@@ -32,7 +32,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const session = await stripe.billingPortal.sessions.create({
       customer: customers.data[0].id,
       return_url: `${origin}/dashboard`,
-      configuration: "bpc_1T2LYgE2FuZ01nXUTrRkozXK",
     });
 
     return res.status(200).json({ url: session.url });

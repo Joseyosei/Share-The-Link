@@ -95,6 +95,25 @@ const Profile = () => {
           if (appearanceData?.theme) {
             setThemeId(appearanceData.theme);
           }
+
+          // Track profile view
+          try {
+            const visitorId = localStorage.getItem("stl_visitor_id") || 
+              `v_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+            if (!localStorage.getItem("stl_visitor_id")) {
+              localStorage.setItem("stl_visitor_id", visitorId);
+            }
+            fetch("/api/track-event", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                event_type: "profile_view",
+                user_id: profileRecord.user_id,
+                visitor_id: visitorId,
+                referrer: document.referrer || null,
+              }),
+            }).catch(() => {}); // fire and forget
+          } catch {}
         }
       } catch (err) {
         console.error('Unexpected error:', err);
@@ -128,13 +147,38 @@ const Profile = () => {
   };
 
   const handleLinkClick = async (linkId: string, url: string) => {
-    // Track the click
+    // Track the click in legacy system
     try {
       await supabase.rpc('increment_link_click' as never, { link_id: linkId } as never);
     } catch (err) {
-      // Silently fail - don't block the user
       console.error('Click tracking failed:', err);
     }
+
+    // Track click in analytics_events
+    try {
+      const { data: profileRecord } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("username", username)
+        .single();
+
+      if (profileRecord) {
+        const visitorId = localStorage.getItem("stl_visitor_id") || 
+          `v_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        fetch("/api/track-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event_type: "link_click",
+            user_id: profileRecord.user_id,
+            link_id: linkId,
+            visitor_id: visitorId,
+            referrer: document.referrer || null,
+          }),
+        }).catch(() => {});
+      }
+    } catch {}
+
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

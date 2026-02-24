@@ -1,9 +1,15 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil",
 });
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+);
 
 // Price-to-tier mapping (source of truth)
 const PRICE_TO_TIER: Record<string, string> = {
@@ -18,13 +24,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email } = req.body;
+    const { email, userId } = req.body;
 
     if (!email) {
       return res.status(200).json({ subscribed: false, tier: "free" });
     }
 
-    // Find customer by email
+    // First, check Supabase user_subscriptions table for faster response
+    if (userId) {
+      const { data: dbSub } = await supabaseAdmin
+        .from("user_subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .in("status", ["active", "trialing"])
+        .single();
+
+      if (dbSub) {
+        const tier = PRICE_TO_TIER[dbSub.stripe_price_id] || dbSub.plan_name?.toLowerCase() || "pro";
+        return res.status(200).json({
+          subscribed: true,
+          tier,
+          planName: tier.charAt(0).toUpperCase() + tier.slice(1),
+          subscriptionId: dbSub.stripe_subscription_id,
+          status: dbSub.status,
+          currentPeriodStart: dbSub.current_period_start,
+          currentPeriodEnd: dbSub.current_period_end,
+          cancelAtPeriodEnd: dbSub.cancel_at_period_end,
+        });
+      }
+    }
+
+    // Fallback: Check Stripe directly
     const customers = await stripe.customers.list({
       email,
       limit: 1,
@@ -59,6 +89,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const priceId = sub.items.data[0]?.price.id;
       const tier = PRICE_TO_TIER[priceId] || "pro";
 
+      // Also save to DB for next time
+      if (userId) {
+        await supabaseAdmin.from("user_subscriptions").upsert({
+          user_id: userId,
+          stripe_subscription_id: sub.id,
+          stripe_price_id: priceId,
+          plan_name: tier.charAt(0).toUpperCase() + tier.slice(1),
+          status: sub.status,
+          current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: sub.cancel_at_period_end,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+      }
+
       return res.status(200).json({
         subscribed: true,
         tier,
@@ -73,8 +118,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const sub = subscriptions.data[0];
     const priceId = sub.items.data[0]?.price.id;
-    // Default to "pro" if price not in our mapping (covers test/sandbox prices)
     const tier = PRICE_TO_TIER[priceId] || "pro";
+
+    // Save to DB for next time
+    if (userId) {
+      await supabaseAdmin.from("user_subscriptions").upsert({
+        user_id: userId,
+        stripe_subscription_id: sub.id,
+        stripe_price_id: priceId,
+        plan_name: tier.charAt(0).toUpperCase() + tier.slice(1),
+        status: sub.status,
+        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: sub.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+    }
 
     return res.status(200).json({
       subscribed: true,
