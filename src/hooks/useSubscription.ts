@@ -77,37 +77,25 @@ export function useSubscription() {
 
   const startCheckout = async (planId: "pro" | "business" | "enterprise") => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
-        toast({
-          title: "Sign in required",
-          description: "Please sign in to subscribe.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const plan = PRICING_PLANS.find((p) => p.id === planId);
       if (!plan) throw new Error("Plan not found");
 
-      const resp = await fetch("/api/create-subscription-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          userId: user.id,
-          planId,
-          priceId: plan.stripePriceIds.monthly,
-        }),
-      });
-
-      const data = await resp.json();
-      if (data.url) {
-        window.location.href = data.url;
-        return data.url;
-      } else {
-        throw new Error(data.error || "No checkout URL returned");
+      // Use Stripe Payment Links directly -- no API call needed
+      const paymentLink = plan.stripeLinks.monthly;
+      if (!paymentLink) {
+        throw new Error("Payment link not configured for this plan");
       }
+
+      // Optionally prefill the customer's email via query parameter
+      const { data: { user } } = await supabase.auth.getUser();
+      let url = paymentLink;
+      if (user?.email) {
+        const separator = url.includes("?") ? "&" : "?";
+        url = `${url}${separator}prefilled_email=${encodeURIComponent(user.email)}`;
+      }
+
+      window.location.href = url;
+      return url;
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast({

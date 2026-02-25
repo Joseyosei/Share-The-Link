@@ -38,8 +38,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Community support",
     ],
     stripeLinks: {
-      monthly: "",
-      yearly: "",
+      monthly: "https://buy.stripe.com/5kQ14n7DH2Ie2v2bHG3AY03",
+      yearly: "https://buy.stripe.com/5kQ14n7DH2Ie2v2bHG3AY03",
     },
     stripePriceIds: {
       monthly: "",
@@ -68,8 +68,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       "SEO & UTM controls",
     ],
     stripeLinks: {
-      monthly: "",
-      yearly: "",
+      monthly: "https://buy.stripe.com/3cI14ncY1fv0edKaDC3AY00",
+      yearly: "https://buy.stripe.com/3cI14ncY1fv0edKaDC3AY00",
     },
     stripePriceIds: {
       monthly: "price_1SwbcFE2FuZ01nXUSQxTa1zF",
@@ -98,8 +98,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Dedicated account manager",
     ],
     stripeLinks: {
-      monthly: "",
-      yearly: "",
+      monthly: "https://buy.stripe.com/5kQcN5f69ciO5Heh203AY01",
+      yearly: "https://buy.stripe.com/5kQcN5f69ciO5Heh203AY01",
     },
     stripePriceIds: {
       monthly: "price_1SwbdIE2FuZ01nXUnGw4a2Yn",
@@ -126,8 +126,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Priority onboarding",
     ],
     stripeLinks: {
-      monthly: "",
-      yearly: "",
+      monthly: "https://buy.stripe.com/cNi7sL9LP82y7Pm8vu3AY04",
+      yearly: "https://buy.stripe.com/cNi7sL9LP82y7Pm8vu3AY04",
     },
     stripePriceIds: {
       monthly: "price_1SwbfRE2FuZ01nXU1UJvDqrO",
@@ -140,10 +140,11 @@ export function getPlanById(id: string): PricingPlan | undefined {
   return PRICING_PLANS.find((plan) => plan.id === id);
 }
 
-export function getCheckoutUrl(planId: string, interval: "monthly" | "yearly"): string {
+export function getCheckoutUrl(planId: string, interval: "monthly" | "yearly" = "monthly"): string {
   const plan = getPlanById(planId);
   if (!plan) return "";
-  return plan.stripeLinks[interval];
+  // Payment Links are the same for monthly/yearly since Stripe handles the billing interval
+  return plan.stripeLinks[interval] || plan.stripeLinks.monthly || "";
 }
 
 export function formatPrice(amount: number, currency: string = "GBP"): string {
