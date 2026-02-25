@@ -146,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .slice(0, 5)
         .map(([id, clickCount]) => ({
           id,
-          name: linkTitleMap.get(id) || "Unknown Link",
+          name: String(linkTitleMap.get(id) || "Unknown Link"),
           clicks: clickCount,
         }));
     }
