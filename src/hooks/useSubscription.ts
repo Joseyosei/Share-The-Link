@@ -1,294 +1,195 @@
-/**
- * useSubscription Hook
- * 
- * Manages user subscription state and checkout flows.
- * Provides:
- * - Current subscription status
- * - Checkout for plans
- * - Customer portal access
- * - Auto-refresh on login and periodically
- */
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
+import { PRICING_PLANS } from "@/lib/stripe-products";
 
-// Platform pricing tiers
-export const PRICING_TIERS = {
-  free: {
-    name: "Free",
-    price: 0,
-    priceId: "price_1SwbaTE2FuZ01nXUfyaL9wSS",
-    productId: "prod_TuQRMlT6Gfn7Sv",
-    period: "forever",
-  },
-  pro: {
-    name: "Pro",
-    price: 700, // in pence
-    priceId: "price_1SwbcFE2FuZ01nXUSQxTa1zF",
-    productId: "prod_TuQTRlytxHScfY",
-    period: "month",
-  },
-  business: {
-    name: "Business",
-    price: 2300, // in pence
-    priceId: "price_1SwbdIE2FuZ01nXUnGw4a2Yn",
-    productId: "prod_TuQUStzRn07sTU",
-    period: "month",
-  },
-  enterprise: {
-    name: "Enterprise",
-    price: 10000, // in pence
-    priceId: "price_1SwbfRE2FuZ01nXU1UJvDqrO",
-    productId: "prod_TuQWHzMKX8eKbS",
-    period: "month",
-  },
-} as const;
+export type SubscriptionTier = "free" | "pro" | "business" | "enterprise";
 
-export type TierKey = keyof typeof PRICING_TIERS;
-
-interface SubscriptionStatus {
+export interface SubscriptionData {
   subscribed: boolean;
-  tier: TierKey;
-  planName?: string;
+  tier: SubscriptionTier;
+  planName: string;
   subscriptionId?: string;
   status?: string;
-  currentPeriodEnd?: string;
   currentPeriodStart?: string;
+  currentPeriodEnd?: string;
   cancelAtPeriodEnd?: boolean;
 }
 
-export const useSubscription = () => {
-  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+// Re-export pricing tiers for components that import PRICING_TIERS from here
+export const PRICING_TIERS = PRICING_PLANS;
 
-  /**
-   * Check current subscription status
-   */
+const TIER_LIMITS: Record<SubscriptionTier, { links: number; profiles: number }> = {
+  free: { links: 5, profiles: 1 },
+  pro: { links: Infinity, profiles: 5 },
+  business: { links: Infinity, profiles: Infinity },
+  enterprise: { links: Infinity, profiles: Infinity },
+};
+
+export function useSubscription() {
+  const { toast } = useToast();
+  const [subscription, setSubscription] = useState<SubscriptionData>({
+    subscribed: false,
+    tier: "free",
+    planName: "Free",
+  });
+  const [loading, setLoading] = useState(true);
+
   const checkSubscription = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setSubscription(null);
-        setIsAuthenticated(false);
+      if (!user?.email) {
+        setSubscription({ subscribed: false, tier: "free", planName: "Free" });
+        setLoading(false);
         return;
       }
 
-      setIsAuthenticated(true);
-
-      const response = await fetch("/api/check-subscription", {
+      const resp = await fetch("/api/check-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email, userId: user.id }),
       });
 
-      const data = await response.json();
+      if (!resp.ok) throw new Error("Failed to check subscription");
 
-      if (!response.ok || data.error) {
-        console.error("Subscription check error:", data.error);
-        setSubscription({ subscribed: false, tier: "free" });
-        return;
-      }
-
-      setSubscription(data);
-    } catch (err) {
-      console.error("Error checking subscription:", err);
-      setSubscription({ subscribed: false, tier: "free" });
-    }
-  }, []);
-
-  /**
-   * Start checkout for a specific tier
-   */
-  const startCheckout = async (tier: TierKey) => {
-    setLoading(true);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("Please log in to subscribe");
-        setLoading(false);
-        return null;
-      }
-
-      const response = await fetch("/api/create-subscription-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier, email: user.email, userId: user.id }),
+      const data = await resp.json();
+      setSubscription({
+        subscribed: data.subscribed || false,
+        tier: (data.tier as SubscriptionTier) || "free",
+        planName: data.planName || "Free",
+        subscriptionId: data.subscriptionId,
+        status: data.status,
+        currentPeriodStart: data.currentPeriodStart,
+        currentPeriodEnd: data.currentPeriodEnd,
+        cancelAtPeriodEnd: data.cancelAtPeriodEnd,
       });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Checkout failed");
-
-      // Redirect to Stripe checkout (same window for better UX)
-      if (data.url) {
-        window.location.href = data.url;
-        return data.url;
-      }
-
-      return null;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to start checkout";
-      toast.error(message);
-      return null;
+    } catch (error) {
+      console.error("Subscription check error:", error);
+      setSubscription({ subscribed: false, tier: "free", planName: "Free" });
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    checkSubscription();
+  }, [checkSubscription]);
+
+  const startCheckout = async (planId: "pro" | "business" | "enterprise") => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to subscribe.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const plan = PRICING_PLANS.find((p) => p.id === planId);
+      if (!plan) throw new Error("Plan not found");
+
+      const resp = await fetch("/api/create-subscription-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          userId: user.id,
+          planId,
+          priceId: plan.stripePriceIds.monthly,
+        }),
+      });
+
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return data.url;
+      } else {
+        throw new Error(data.error || "No checkout URL returned");
+      }
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Checkout failed",
+        description: error.message || "Unable to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  /**
-   * Open the customer portal for subscription management
-   */
-  const openCustomerPortal = async () => {
-    setLoading(true);
+  const cancelSubscription = async () => {
+    try {
+      if (!subscription.subscriptionId) throw new Error("No active subscription");
 
+      const resp = await fetch("/api/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: subscription.subscriptionId }),
+      });
+
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      toast({ title: "Subscription cancelled", description: "Your subscription will end at the current billing period." });
+      await checkSubscription();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const reactivateSubscription = async () => {
+    try {
+      if (!subscription.subscriptionId) throw new Error("No subscription to reactivate");
+
+      const resp = await fetch("/api/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: subscription.subscriptionId, reactivate: true }),
+      });
+
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      toast({ title: "Subscription reactivated", description: "Your subscription has been reactivated." });
+      await checkSubscription();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const openCustomerPortal = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) throw new Error("Not authenticated");
 
-      const response = await fetch("/api/customer-portal", {
+      const resp = await fetch("/api/customer-portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Portal failed");
-
-      // Open portal in new tab
+      const data = await resp.json();
       if (data.url) {
         window.open(data.url, "_blank");
-        return data.url;
+      } else {
+        throw new Error(data.error || "No portal URL returned");
       }
-
-      return null;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to open billing portal";
-      toast.error(message);
-      return null;
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
-  /**
-   * Cancel subscription at end of billing period
-   */
-  const cancelSubscription = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("Not authenticated");
-
-      const response = await fetch("/api/cancel-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, action: "cancel" }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Cancel failed");
-
-      toast.success("Subscription will cancel at end of billing period");
-      await checkSubscription();
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to cancel subscription";
-      toast.error(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Reactivate a subscription that was set to cancel
-   */
-  const reactivateSubscription = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("Not authenticated");
-
-      const response = await fetch("/api/cancel-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, action: "reactivate" }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Reactivation failed");
-
-      toast.success("Subscription reactivated!");
-      await checkSubscription();
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to reactivate subscription";
-      toast.error(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Check if user has access to a specific tier's features
-   */
-  const hasAccess = (requiredTier: TierKey): boolean => {
-    if (!subscription?.subscribed) return requiredTier === "free";
-
-    const tierOrder: TierKey[] = ["free", "pro", "business", "enterprise"];
-    const userTierIndex = tierOrder.indexOf(subscription.tier);
-    const requiredTierIndex = tierOrder.indexOf(requiredTier);
-
-    return userTierIndex >= requiredTierIndex;
-  };
-
-  // Check subscription on mount and auth changes
-  useEffect(() => {
-    checkSubscription();
-
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(() => {
-      checkSubscription();
-    });
-
-    return () => authSub.unsubscribe();
-  }, [checkSubscription]);
-
-  // Re-check subscription after returning from checkout
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("subscription") === "success") {
-      // Delay to allow Stripe to finalize the subscription
-      const timer = setTimeout(() => {
-        checkSubscription();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [checkSubscription]);
-
-  // Periodic refresh every 60 seconds
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const interval = setInterval(checkSubscription, 60000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, checkSubscription]);
+  const tierLimits = TIER_LIMITS[subscription.tier];
 
   return {
     subscription,
     loading,
-    isAuthenticated,
-    tiers: PRICING_TIERS,
-    checkSubscription,
     startCheckout,
-    openCustomerPortal,
     cancelSubscription,
     reactivateSubscription,
-    hasAccess,
+    openCustomerPortal,
+    checkSubscription,
+    tierLimits,
   };
-};
+}
