@@ -148,15 +148,18 @@ const AdminPage = () => {
     } catch { /* table might not exist */ }
 
     // Fetch all users with their link and stream counts
-    const { data: allProfilesData } = await supabase
+    const { data: allProfilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false });
 
+    console.log("[v0] Admin fetchData - allProfilesData:", allProfilesData?.length, "error:", profilesError);
+
     if (allProfilesData) {
       // Get link counts per user
-      const { data: allLinksData } = await supabase.from("links").select("user_id");
-      const { data: allStreamsData } = await supabase.from("streams").select("user_id");
+      const { data: allLinksData, error: linksErr } = await supabase.from("links").select("user_id");
+      const { data: allStreamsData, error: streamsErr } = await supabase.from("streams").select("user_id");
+      console.log("[v0] Admin links:", allLinksData?.length, linksErr, "streams:", allStreamsData?.length, streamsErr);
 
       const linkCounts: Record<string, number> = {};
       const streamCounts: Record<string, number> = {};
@@ -168,11 +171,13 @@ const AdminPage = () => {
         streamCounts[s.user_id] = (streamCounts[s.user_id] || 0) + 1;
       });
 
-      setAllUsers(allProfilesData.map((p) => ({
+      const mappedUsers = allProfilesData.map((p) => ({
         ...p,
         linkCount: linkCounts[p.user_id] || 0,
         streamCount: streamCounts[p.user_id] || 0,
-      })));
+      }));
+      console.log("[v0] Admin setting allUsers:", mappedUsers.length, "first:", mappedUsers[0]);
+      setAllUsers(mappedUsers);
     }
 
     // Fetch stats
