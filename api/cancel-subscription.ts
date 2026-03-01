@@ -1,15 +1,28 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { handleCors } from "./_lib/cors";
+import { verifyAuth, unauthorized } from "./_lib/auth";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { isOneOf, badRequest } from "./_lib/validate";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil" as any,
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  if (isRateLimited(getClientIp(req), 10)) return tooManyRequests(res);
+
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
+
   try {
-    const { email, action } = req.body;
+    const { action } = req.body;
+    if (action && !isOneOf(action, ["cancel", "reactivate"])) return badRequest(res, "Invalid action");
+
+    const email = auth.email;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const customers = await stripe.customers.list({ email, limit: 1 });

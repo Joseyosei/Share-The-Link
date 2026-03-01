@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { handleCors } from "./_lib/cors";
+import { verifyAuth, unauthorized } from "./_lib/auth";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil" as any,
@@ -18,32 +21,39 @@ const PRICE_TO_TIER: Record<string, string> = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // Rate limit: 30 req/min per IP
+  if (isRateLimited(getClientIp(req), 30)) return tooManyRequests(res);
+
+  // Auth: verify identity from JWT, never trust req.body
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
+
   try {
-    const { email, userId } = req.body;
+    const email = auth.email;
+    const userId = auth.userId;
     if (!email) return res.status(200).json({ subscribed: false, tier: "free" });
 
-    if (userId) {
-      const { data: dbSub } = await supabaseAdmin
-        .from("user_subscriptions")
-        .select("*")
-        .eq("user_id", userId)
-        .in("status", ["active", "trialing"])
-        .single();
+    const { data: dbSub } = await supabaseAdmin
+      .from("user_subscriptions")
+      .select("*")
+      .eq("user_id", userId)
+      .in("status", ["active", "trialing"])
+      .single();
 
-      if (dbSub) {
-        const tier = PRICE_TO_TIER[dbSub.stripe_price_id] || dbSub.plan_name?.toLowerCase() || "pro";
-        return res.status(200).json({
-          subscribed: true, tier,
-          planName: tier.charAt(0).toUpperCase() + tier.slice(1),
-          subscriptionId: dbSub.stripe_subscription_id,
-          status: dbSub.status,
-          currentPeriodStart: dbSub.current_period_start,
-          currentPeriodEnd: dbSub.current_period_end,
-          cancelAtPeriodEnd: dbSub.cancel_at_period_end,
-        });
-      }
+    if (dbSub) {
+      const tier = PRICE_TO_TIER[dbSub.stripe_price_id] || dbSub.plan_name?.toLowerCase() || "pro";
+      return res.status(200).json({
+        subscribed: true, tier,
+        planName: tier.charAt(0).toUpperCase() + tier.slice(1),
+        subscriptionId: dbSub.stripe_subscription_id,
+        status: dbSub.status,
+        currentPeriodStart: dbSub.current_period_start,
+        currentPeriodEnd: dbSub.current_period_end,
+        cancelAtPeriodEnd: dbSub.cancel_at_period_end,
+      });
     }
 
     const customers = await stripe.customers.list({ email, limit: 1 });
@@ -58,8 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const priceId = sub.items.data[0]?.price.id;
         const tier = PRICE_TO_TIER[priceId] || sub.metadata?.tier || "pro";
 
-        if (userId) {
-          await supabaseAdmin.from("user_subscriptions").upsert({
+        await supabaseAdmin.from("user_subscriptions").upsert({
             user_id: userId,
             stripe_subscription_id: sub.id,
             stripe_price_id: priceId,
@@ -69,8 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
-          }, { onConflict: "user_id" });
-        }
+        }, { onConflict: "user_id" });
 
         return res.status(200).json({
           subscribed: true, tier,
