@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface AccountStatus {
   hasAccount: boolean;
@@ -35,7 +36,7 @@ interface ConnectProduct {
  * Helper to call Vercel API routes (Stripe-only operations)
  */
 async function callStripeApi(endpoint: string, body: Record<string, unknown>) {
-  const response = await fetch(`/api/${endpoint}`, {
+  const response = await authFetch(`/api/${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -118,7 +119,8 @@ export const useStripeConnect = () => {
     try {
       if (!accountStatus?.accountId) throw new Error("No connected account found");
 
-      const data = await callStripeApi("create-account-link", {
+      const data = await callStripeApi("create-connected-account", {
+        action: "create-link",
         accountId: accountStatus.accountId,
       });
 
@@ -158,7 +160,8 @@ export const useStripeConnect = () => {
 
       // Fetch fresh status from Stripe via API
       try {
-        const stripeStatus = await callStripeApi("get-account-status", {
+        const stripeStatus = await callStripeApi("create-connected-account", {
+          action: "get-status",
           accountId: account.stripe_account_id,
         });
 

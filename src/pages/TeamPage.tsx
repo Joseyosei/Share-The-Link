@@ -28,16 +28,6 @@ const TeamPage = () => {
   const [content, setContent] = useState<SiteContent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const FALLBACK_FOUNDER: TeamMember = {
-    id: "founder",
-    name: "Joseph Osei-Bonsu",
-    role: "Founder & CEO",
-    bio: "Visionary entrepreneur and founder of Share The Link. Building the ultimate link-in-bio platform for creators, entrepreneurs, and organizations worldwide.",
-    avatar_url: "/images/joseph-osei-bonsu.jpg",
-    social_links: {},
-    display_order: 0,
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -58,12 +48,10 @@ const TeamPage = () => {
         const membersData = (membersRes.data as TeamMember[] | null) || [];
         const contentData = (contentRes.data as SiteContent[] | null) || [];
 
-        // Use fallback if no members from DB
-        setMembers(membersData.length > 0 ? membersData : [FALLBACK_FOUNDER]);
+        setMembers(membersData);
         setContent(contentData);
       } catch {
-        // Fallback to hardcoded founder
-        setMembers([FALLBACK_FOUNDER]);
+        setMembers([]);
       }
       setLoading(false);
     };
@@ -109,6 +97,15 @@ const TeamPage = () => {
           {loading ? (
             <div className="flex justify-center py-20">
               <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          ) : members.length === 0 ? (
+            <div className="text-center py-16 mb-16">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-lg text-muted-foreground">
+                Team members will appear here soon.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto mb-16">

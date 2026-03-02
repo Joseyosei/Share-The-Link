@@ -1,12 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { handleCors } from "./_lib/cors";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil" as any,
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  if (isRateLimited(getClientIp(req), 30)) return tooManyRequests(res);
 
   try {
     const { accountId } = req.body;

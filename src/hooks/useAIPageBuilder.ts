@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { authFetch } from "@/lib/auth-fetch";
 
 export interface GeneratedPage {
   bio: string;
@@ -63,7 +64,7 @@ export const useAIPageBuilder = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const response = await fetch("/api/ai-page-builder", {
+      const response = await authFetch("/api/ai-page-builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ businessDescription, websiteUrl }),

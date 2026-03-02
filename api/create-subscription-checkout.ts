@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { handleCors } from "./_lib/cors";
+import { verifyAuth, unauthorized } from "./_lib/auth";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { isOneOf, badRequest } from "./_lib/validate";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil" as any,
@@ -12,12 +16,20 @@ const TIERS: Record<string, { name: string; monthlyPriceInPence: number; currenc
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  if (isRateLimited(getClientIp(req), 10)) return tooManyRequests(res);
+
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
+
   try {
-    const { tier, email, userId } = req.body;
-    if (!tier || !TIERS[tier]) return res.status(400).json({ error: "Invalid tier" });
-    if (!email) return res.status(400).json({ error: "Email is required" });
+    const { tier } = req.body;
+    if (!isOneOf(tier, ["pro", "business", "enterprise"])) return badRequest(res, "Invalid tier");
+
+    const email = auth.email;
+    const userId = auth.userId;
 
     const tierConfig = TIERS[tier];
     const origin = req.headers.origin || req.headers.referer?.replace(/\/$/, "") || "https://share-the-link.vercel.app";

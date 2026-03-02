@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
+import { handleCors } from "./_lib/cors";
+import { verifyAuth, unauthorized } from "./_lib/auth";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { isOneOf } from "./_lib/validate";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -7,16 +11,21 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  if (isRateLimited(getClientIp(req), 30)) return tooManyRequests(res);
+
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
+
   try {
-    const { user_id, range } = req.body;
-    if (!user_id) return res.status(400).json({ error: "user_id required" });
+    // Use authenticated userId -- never trust req.body for identity
+    const user_id = auth.userId;
+    const { range } = req.body;
+    if (range && !isOneOf(range, ["7 days", "30 days", "90 days", "All time"])) {
+      return res.status(400).json({ error: "Invalid range" });
+    }
 
     // Calculate date range
     let daysBack = 7;
