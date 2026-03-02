@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { authFetch } from "@/lib/auth-fetch";
 
 const timeRanges = ["7 days", "30 days", "90 days", "All time"];
 
@@ -55,10 +56,10 @@ const Analytics = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const response = await fetch("/api/analytics-data", {
+      const response = await authFetch("/api/analytics-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, range: selectedRange }),
+        body: JSON.stringify({ range: selectedRange }),
       });
 
       if (!response.ok) throw new Error("Failed to fetch analytics");

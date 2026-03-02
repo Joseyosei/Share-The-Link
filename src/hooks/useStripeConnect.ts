@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface AccountStatus {
   hasAccount: boolean;
@@ -35,7 +36,7 @@ interface ConnectProduct {
  * Helper to call Vercel API routes (Stripe-only operations)
  */
 async function callStripeApi(endpoint: string, body: Record<string, unknown>) {
-  const response = await fetch(`/api/${endpoint}`, {
+  const response = await authFetch(`/api/${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
