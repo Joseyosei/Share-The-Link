@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSubscription, PRICING_TIERS } from "@/hooks/useSubscription";
 import { isBlockedText, isBlockedUrl } from "@/lib/content-moderation";
+import { authFetch } from "@/lib/auth-fetch";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
@@ -193,10 +194,20 @@ const DashboardSettings = () => {
   const handleDeleteAccount = async () => {
     setIsLoading(true);
     try {
+      const resp = await authFetch("/api/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.error) {
+        throw new Error(data.error || "Failed to delete account");
+      }
+      // Sign out locally after server-side deletion
       await supabase.auth.signOut();
       toast({
         title: "Account deleted",
-        description: "Your account has been permanently deleted.",
+        description: "Your account and all associated data have been permanently deleted.",
         variant: "destructive",
       });
       window.location.href = "/";
@@ -204,7 +215,7 @@ const DashboardSettings = () => {
       console.error("Error deleting account:", error);
       toast({
         title: "Error",
-        description: "Failed to delete account. Please contact support.",
+        description: error instanceof Error ? error.message : "Failed to delete account. Please contact support.",
         variant: "destructive",
       });
       setIsLoading(false);

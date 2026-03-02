@@ -37,7 +37,7 @@ import DashboardMedia from "./pages/DashboardMedia";
 import DocsPage from "./pages/DocsPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import DashboardIntegrations from "./pages/DashboardIntegrations";
-import TeamPage from "./pages/TeamPage";
+// TeamPage removed from navigation
 import AdminPage from "./pages/AdminPage";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import NotFound from "./pages/NotFound";
@@ -71,7 +71,7 @@ const App = () => (
           <Route path="/changelog" element={<ChangelogPage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/team" element={<TeamPage />} />
+          {/* Team page removed */}
           
           {/* Public storefront - anyone can view */}
           <Route path="/store/:accountId" element={<StorefrontPage />} />
