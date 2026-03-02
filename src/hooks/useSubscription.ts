@@ -111,10 +111,10 @@ export function useSubscription() {
     try {
       if (!subscription.subscriptionId) throw new Error("No active subscription");
 
-      const resp = await authFetch("/api/cancel-subscription", {
+      const resp = await authFetch("/api/check-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscriptionId: subscription.subscriptionId }),
+        body: JSON.stringify({ action: "cancel" }),
       });
 
       const data = await resp.json();
@@ -131,10 +131,10 @@ export function useSubscription() {
     try {
       if (!subscription.subscriptionId) throw new Error("No subscription to reactivate");
 
-      const resp = await authFetch("/api/cancel-subscription", {
+      const resp = await authFetch("/api/check-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscriptionId: subscription.subscriptionId, reactivate: true }),
+        body: JSON.stringify({ action: "reactivate" }),
       });
 
       const data = await resp.json();
@@ -152,10 +152,10 @@ export function useSubscription() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) throw new Error("Not authenticated");
 
-      const resp = await authFetch("/api/customer-portal", {
+      const resp = await authFetch("/api/check-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ action: "portal" }),
       });
 
       const data = await resp.json();

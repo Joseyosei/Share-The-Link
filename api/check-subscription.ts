@@ -24,13 +24,80 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Rate limit: 30 req/min per IP
   if (isRateLimited(getClientIp(req), 30)) return tooManyRequests(res);
 
-  // Auth: verify identity from JWT, never trust req.body
   const auth = await verifyAuth(req);
   if (!auth) return unauthorized(res);
 
+  const { action } = req.body || {};
+
+  // --- ACTION: cancel / reactivate subscription ---
+  if (action === "cancel" || action === "reactivate") {
+    try {
+      const email = auth.email;
+      if (!email) return res.status(400).json({ error: "Email is required" });
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      if (customers.data.length === 0) return res.status(404).json({ error: "No customer found" });
+      const subs = await stripe.subscriptions.list({ customer: customers.data[0].id, status: "active", limit: 1 });
+      if (subs.data.length === 0) return res.status(404).json({ error: "No active subscription found" });
+      const updated: any = await stripe.subscriptions.update(subs.data[0].id, {
+        cancel_at_period_end: action !== "reactivate",
+      });
+      return res.status(200).json({
+        success: true,
+        message: action === "reactivate" ? "Subscription reactivated" : "Subscription will cancel at end of billing period",
+        cancelAtPeriodEnd: updated.cancel_at_period_end,
+        currentPeriodEnd: updated.current_period_end ? new Date(updated.current_period_end * 1000).toISOString() : null,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || "Failed to update subscription" });
+    }
+  }
+
+  // --- ACTION: customer portal ---
+  if (action === "portal") {
+    try {
+      const email = auth.email;
+      if (!email) return res.status(400).json({ error: "Email is required" });
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      if (customers.data.length === 0) return res.status(404).json({ error: "No customer found" });
+      const origin = req.headers.origin || "https://sharethelink.com";
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customers.data[0].id,
+        return_url: `${origin}/dashboard`,
+      });
+      return res.status(200).json({ url: session.url });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || "Failed to create portal session" });
+    }
+  }
+
+  // --- ACTION: create tip PaymentIntent ---
+  if (action === "create-tip") {
+    try {
+      const { amount, streamId, tipperName, tipMessage } = req.body;
+      if (!amount || amount < 1 || amount > 10000) return res.status(400).json({ error: "Invalid tip amount" });
+      if (!streamId) return res.status(400).json({ error: "streamId required" });
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to pence/cents
+        currency: "gbp",
+        metadata: {
+          type: "stream_tip",
+          stream_id: streamId,
+          tipper_id: auth.userId,
+          tipper_name: tipperName || "Anonymous",
+          tip_message: tipMessage || "",
+        },
+      });
+
+      return res.status(200).json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message || "Failed to create payment" });
+    }
+  }
+
+  // --- DEFAULT: check subscription status ---
   try {
     const email = auth.email;
     const userId = auth.userId;
