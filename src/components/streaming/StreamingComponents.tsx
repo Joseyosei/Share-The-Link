@@ -668,24 +668,187 @@ interface TipJarProps {
   tipperName: string;
 }
 
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { authFetch } from "@/lib/auth-fetch";
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
+);
+
+// Inner form that uses Stripe hooks (must be inside <Elements>)
+const TipPaymentForm = ({
+  amount,
+  streamId,
+  tipperName,
+  tipMessage,
+  onSuccess,
+  onCancel,
+}: {
+  amount: number;
+  streamId: string;
+  tipperName: string;
+  tipMessage: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setPaying(true);
+    setError("");
+
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message || "Payment failed");
+      setPaying(false);
+      return;
+    }
+
+    const result = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+      },
+      redirect: "if_required",
+    });
+
+    if (result.error) {
+      setError(result.error.message || "Payment failed");
+      setPaying(false);
+    } else if (result.paymentIntent?.status === "succeeded") {
+      // Record tip in Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("stream_tips").insert({
+        stream_id: streamId,
+        tipper_id: user?.id || null,
+        tipper_name: tipperName,
+        amount,
+        message: tipMessage || null,
+        stripe_payment_id: result.paymentIntent.id,
+      });
+      // Also post a tip message to chat
+      await supabase.from("stream_chat").insert({
+        stream_id: streamId,
+        user_id: user?.id || null,
+        username: tipperName,
+        message: `Tipped $${amount}${tipMessage ? ` - ${tipMessage}` : ""}`,
+        message_type: "tip",
+        is_highlighted: true,
+      });
+      // Update stream total tips
+      await supabase.rpc("increment_stream_tips", {
+        p_stream_id: streamId,
+        p_amount: amount,
+      });
+      onSuccess();
+    }
+    setPaying(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="text-center py-2 bg-muted rounded-lg">
+        <span className="text-lg font-bold">${amount.toFixed(2)}</span>
+        <span className="text-sm text-muted-foreground ml-1">tip</span>
+      </div>
+      <PaymentElement options={{ layout: "tabs" }} />
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="flex-1">
+          Cancel
+        </Button>
+        <Button type="submit" size="sm" disabled={paying || !stripe} className="flex-1 gradient-button">
+          {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : `Pay $${amount.toFixed(2)}`}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
 export const TipJar = ({ streamId, tipperName }: TipJarProps) => {
-  const { sendTip } = useStreaming();
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState(0);
+  const [tipSuccess, setTipSuccess] = useState(false);
 
   const tipAmounts = [5, 10, 25, 50, 100];
 
   const handleTip = async (tipAmount: number) => {
+    if (tipAmount < 1) return;
     setLoading(true);
+    setTipSuccess(false);
     try {
-      await sendTip(streamId, tipAmount, tipperName, message);
-      setMessage("");
-      setAmount("");
+      const resp = await authFetch("/api/check-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create-tip",
+          amount: tipAmount,
+          streamId,
+          tipperName,
+          tipMessage: message,
+        }),
+      });
+      const data = await resp.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+        setSelectedAmount(tipAmount);
+      } else {
+        console.error("Failed to create tip:", data.error);
+      }
+    } catch (err) {
+      console.error("Tip error:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Show payment form if we have a clientSecret
+  if (clientSecret) {
+    return (
+      <div className="bg-card rounded-2xl border border-border p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <DollarSign className="w-5 h-5 text-accent" />
+          <h3 className="font-semibold">Complete Payment</h3>
+        </div>
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret,
+            appearance: {
+              theme: "stripe",
+              variables: {
+                borderRadius: "8px",
+              },
+            },
+          }}
+        >
+          <TipPaymentForm
+            amount={selectedAmount}
+            streamId={streamId}
+            tipperName={tipperName}
+            tipMessage={message}
+            onSuccess={() => {
+              setClientSecret(null);
+              setTipSuccess(true);
+              setMessage("");
+              setAmount("");
+              setTimeout(() => setTipSuccess(false), 5000);
+            }}
+            onCancel={() => setClientSecret(null)}
+          />
+        </Elements>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-2xl border border-border p-4">
@@ -694,6 +857,12 @@ export const TipJar = ({ streamId, tipperName }: TipJarProps) => {
         <h3 className="font-semibold">Support the Creator</h3>
         <Badge variant="secondary" className="text-xs">90% goes to creator</Badge>
       </div>
+
+      {tipSuccess && (
+        <div className="bg-green-500/15 border border-green-500/30 text-green-700 text-sm p-3 rounded-lg mb-4 text-center">
+          Tip sent successfully! Thank you for your support.
+        </div>
+      )}
 
       <div className="grid grid-cols-5 gap-2 mb-4">
         {tipAmounts.map((tip) => (

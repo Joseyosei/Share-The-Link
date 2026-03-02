@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 const RIGHT_NAV_LINKS = [
   { href: "/about", label: "About" },
   { href: "/careers", label: "Careers" },
-  { href: "/team", label: "Team" },
   { href: "/contact", label: "Contact" },
 ];
 
