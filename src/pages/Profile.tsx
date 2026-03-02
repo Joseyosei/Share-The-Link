@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -129,6 +130,49 @@ const Profile = () => {
   // Get theme data
   const currentTheme = themes.find((t) => t.id === themeId) || themes[0];
 
+  // -- ALL HOOKS MUST BE ABOVE CONDITIONAL RETURNS --
+
+  // Flipbook: split links into pages of 4
+  const LINKS_PER_PAGE = 4;
+  const linkPages = useMemo(() => {
+    const pages: LinkData[][] = [];
+    for (let i = 0; i < links.length; i += LINKS_PER_PAGE) {
+      pages.push(links.slice(i, i + LINKS_PER_PAGE));
+    }
+    return pages;
+  }, [links]);
+
+  const totalPages = 1 + Math.max(linkPages.length, 1) + 1;
+  const [currentPage, setCurrentPage] = useState(0);
+  const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+
+  const goToPage = useCallback((direction: "next" | "prev") => {
+    if (isFlipping) return;
+    const nextIdx = direction === "next" ? currentPage + 1 : currentPage - 1;
+    if (nextIdx < 0 || nextIdx >= totalPages) return;
+    setFlipDirection(direction);
+    setIsFlipping(true);
+    setTimeout(() => {
+      setCurrentPage(nextIdx);
+      setFlipDirection(null);
+      setIsFlipping(false);
+    }, 500);
+  }, [currentPage, totalPages, isFlipping]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === " ") goToPage("next");
+      if (e.key === "ArrowLeft") goToPage("prev");
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [goToPage]);
+
+  // -- END HOOKS -- conditional returns below are now safe --
+
   const handleShare = async () => {
     const url = window.location.href;
     try {
@@ -147,21 +191,17 @@ const Profile = () => {
   };
 
   const handleLinkClick = async (linkId: string, url: string) => {
-    // Track the click in legacy system
     try {
       await supabase.rpc('increment_link_click' as never, { link_id: linkId } as never);
     } catch (err) {
       console.error('Click tracking failed:', err);
     }
-
-    // Track click in analytics_events
     try {
       const { data: profileRecord } = await supabase
         .from("profiles")
         .select("user_id")
         .eq("username", username)
         .single();
-
       if (profileRecord) {
         const visitorId = localStorage.getItem("stl_visitor_id") || 
           `v_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -178,7 +218,6 @@ const Profile = () => {
         }).catch(() => {});
       }
     } catch {}
-
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -196,7 +235,7 @@ const Profile = () => {
         <div className="text-center text-primary-foreground">
           <h1 className="text-4xl font-bold mb-4">Profile not found</h1>
           <p className="text-primary-foreground/70 mb-6">
-            This username doesn't exist yet.
+            {"This username doesn't exist yet."}
           </p>
           <Link
             to="/signup"
@@ -224,37 +263,6 @@ const Profile = () => {
   }
   const hasAnySocials = Object.values(detectedSocials).some(Boolean);
 
-  // -- Flipbook: split links into pages of 4 --
-  const LINKS_PER_PAGE = 4;
-  const linkPages = useMemo(() => {
-    const pages: LinkData[][] = [];
-    for (let i = 0; i < links.length; i += LINKS_PER_PAGE) {
-      pages.push(links.slice(i, i + LINKS_PER_PAGE));
-    }
-    return pages;
-  }, [links]);
-
-  // Total pages: cover + link pages + footer
-  const totalPages = 1 + Math.max(linkPages.length, 1) + 1;
-  const [currentPage, setCurrentPage] = useState(0);
-  const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
-  const [isFlipping, setIsFlipping] = useState(false);
-
-  const goToPage = useCallback((direction: "next" | "prev") => {
-    if (isFlipping) return;
-    const nextIdx = direction === "next" ? currentPage + 1 : currentPage - 1;
-    if (nextIdx < 0 || nextIdx >= totalPages) return;
-    setFlipDirection(direction);
-    setIsFlipping(true);
-    setTimeout(() => {
-      setCurrentPage(nextIdx);
-      setFlipDirection(null);
-      setIsFlipping(false);
-    }, 500);
-  }, [currentPage, totalPages, isFlipping]);
-
-  // Swipe support for mobile
-  const [touchStart, setTouchStart] = useState(0);
   const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStart - e.changedTouches[0].clientX;
@@ -262,16 +270,6 @@ const Profile = () => {
       goToPage(diff > 0 ? "next" : "prev");
     }
   };
-
-  // Keyboard support
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") goToPage("next");
-      if (e.key === "ArrowLeft") goToPage("prev");
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [goToPage]);
 
   // Button text color helper
   const btnTextColor = currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white";
@@ -340,30 +338,37 @@ const Profile = () => {
       );
     }
 
-    // Last page: Footer
+    // Last page: Footer with QR Code
     if (pageIndex === totalPages - 1) {
       return (
-        <div className="flex flex-col items-center justify-center h-full px-6">
-          <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : (
-              <User className={`w-10 h-10 ${currentTheme.textColor} opacity-50`} />
-            )}
+        <div className="flex flex-col items-center justify-center h-full px-6 py-6">
+          {/* QR Code for scanning */}
+          <div className="bg-white rounded-2xl p-3 shadow-lg mb-4">
+            <QRCodeSVG
+              value={`${window.location.origin}/${username}`}
+              size={120}
+              level="H"
+              includeMargin={false}
+              bgColor="#FFFFFF"
+              fgColor="#000000"
+            />
           </div>
-          <p className={`${currentTheme.textColor} opacity-70 text-center mb-6 text-pretty`}>
-            Thanks for visiting!
+          <p className={`${currentTheme.textColor} text-sm font-semibold mb-1`}>
+            Scan to connect
+          </p>
+          <p className={`${currentTheme.textColor} opacity-50 text-xs mb-4`}>
+            @{username}
           </p>
           <button
             onClick={handleShare}
-            className={`px-6 py-3 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors ${currentTheme.textColor} font-semibold flex items-center gap-2`}
+            className={`px-5 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors ${currentTheme.textColor} font-semibold flex items-center gap-2 text-sm`}
           >
             <Share2 className="w-4 h-4" />
             Share Profile
           </button>
           <Link
             to="/"
-            className={`mt-8 text-sm ${currentTheme.textColor} opacity-40 hover:opacity-60 transition-colors`}
+            className={`mt-auto pt-4 text-xs ${currentTheme.textColor} opacity-30 hover:opacity-50 transition-colors`}
           >
             Powered by Share The Link
           </Link>
