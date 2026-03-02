@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Twitter, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { themes } from "@/pages/DashboardAppearance";
@@ -224,59 +224,81 @@ const Profile = () => {
   }
   const hasAnySocials = Object.values(detectedSocials).some(Boolean);
 
-  return (
-    <div className={`min-h-screen ${currentTheme.background} py-12 px-4`}>
-      {/* Top-left logo */}
-      <Link
-        to="/"
-        className={`fixed top-4 left-4 z-10 opacity-60 hover:opacity-100 transition-opacity`}
-      >
-        <Logo textClassName={`${currentTheme.textColor} text-sm`} />
-      </Link>
+  // -- Flipbook: split links into pages of 4 --
+  const LINKS_PER_PAGE = 4;
+  const linkPages = useMemo(() => {
+    const pages: LinkData[][] = [];
+    for (let i = 0; i < links.length; i += LINKS_PER_PAGE) {
+      pages.push(links.slice(i, i + LINKS_PER_PAGE));
+    }
+    return pages;
+  }, [links]);
 
-      {/* Share Button */}
-      <button
-        onClick={handleShare}
-        className={`fixed top-4 right-4 p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-colors z-10 ${currentTheme.textColor} bg-white/10`}
-        aria-label="Share profile"
-      >
-        <Share2 className="w-5 h-5" />
-      </button>
+  // Total pages: cover + link pages + footer
+  const totalPages = 1 + Math.max(linkPages.length, 1) + 1;
+  const [currentPage, setCurrentPage] = useState(0);
+  const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
 
-      <div className="max-w-lg mx-auto">
-        {/* Profile Card */}
-        <div className="text-center mb-8 animate-fade-in">
-          {/* Avatar */}
-          <div className={`w-28 h-28 rounded-full backdrop-blur-lg mx-auto mb-4 flex items-center justify-center border-4 shadow-xl overflow-hidden bg-white/20 border-white/30`}>
+  const goToPage = useCallback((direction: "next" | "prev") => {
+    if (isFlipping) return;
+    const nextIdx = direction === "next" ? currentPage + 1 : currentPage - 1;
+    if (nextIdx < 0 || nextIdx >= totalPages) return;
+    setFlipDirection(direction);
+    setIsFlipping(true);
+    setTimeout(() => {
+      setCurrentPage(nextIdx);
+      setFlipDirection(null);
+      setIsFlipping(false);
+    }, 500);
+  }, [currentPage, totalPages, isFlipping]);
+
+  // Swipe support for mobile
+  const [touchStart, setTouchStart] = useState(0);
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      goToPage(diff > 0 ? "next" : "prev");
+    }
+  };
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === " ") goToPage("next");
+      if (e.key === "ArrowLeft") goToPage("prev");
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [goToPage]);
+
+  // Button text color helper
+  const btnTextColor = currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white";
+
+  const renderPage = (pageIndex: number) => {
+    // Page 0: Cover page (avatar + name + bio + socials)
+    if (pageIndex === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full px-6 py-8">
+          <div className="w-28 h-28 rounded-full backdrop-blur-lg mx-auto mb-5 flex items-center justify-center border-4 shadow-xl overflow-hidden bg-white/20 border-white/30">
             {profile?.avatar_url ? (
-              <img 
-                src={profile.avatar_url} 
-                alt={profile.full_name} 
-                className="w-full h-full object-cover"
-              />
+              <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
             ) : (
               <User className={`w-14 h-14 ${currentTheme.textColor}`} />
             )}
           </div>
-
-          {/* Name */}
-          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1`}>
+          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1 text-balance text-center`}>
             {profile?.full_name || username}
           </h1>
-
-          {/* Username */}
           <p className={`${currentTheme.textColor} opacity-70 mb-3`}>@{username}</p>
-
-          {/* Bio */}
           {profile?.bio && (
-            <p className={`${currentTheme.textColor} opacity-90 max-w-sm mx-auto mb-4`}>
+            <p className={`${currentTheme.textColor} opacity-90 max-w-xs text-center mb-5 text-pretty leading-relaxed`}>
               {profile.bio}
             </p>
           )}
-
-          {/* Social Media Icons */}
           {hasAnySocials && (
-            <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="flex items-center justify-center gap-3">
               {detectedSocials.twitter && (
                 <a href={detectedSocials.twitter.startsWith("http") ? detectedSocials.twitter : `https://twitter.com/${detectedSocials.twitter}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-sky-500 text-white shadow-md" aria-label="Twitter">
                   <Twitter className="w-4 h-4" />
@@ -309,55 +331,191 @@ const Profile = () => {
               )}
             </div>
           )}
+          {/* Page turn hint */}
+          <div className={`mt-auto pt-6 ${currentTheme.textColor} opacity-40 text-xs flex items-center gap-1`}>
+            Swipe or tap arrow to flip
+            <ChevronRight className="w-3 h-3" />
+          </div>
         </div>
+      );
+    }
 
-        {/* Links */}
-        <div className="space-y-4">
-          {links.length > 0 ? (
-            links.map((link, index) => (
-              <button
-                key={link.id}
-                onClick={() => handleLinkClick(link.id, link.url)}
-                className={`w-full text-left rounded-2xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl animate-fade-in ${currentTheme.buttonStyle}`}
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <span className={`font-semibold block ${currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white"}`}>
-                      {link.title}
-                    </span>
-                    {link.link_type === "product" && (
-                      <span className="text-xs text-accent font-medium">
-                        🛒 Product
-                      </span>
-                    )}
-                    {link.link_type === "video" && (
-                      <span className="text-xs text-destructive font-medium">
-                        ▶️ Video
-                      </span>
-                    )}
-                  </div>
-                  <ExternalLink className={`w-5 h-5 opacity-70 ${currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white"}`} />
-                </div>
-              </button>
-            ))
-          ) : (
-            <div className={`text-center ${currentTheme.textColor} opacity-50 py-8`}>
-              No links yet
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-12">
+    // Last page: Footer
+    if (pageIndex === totalPages - 1) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full px-6">
+          <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+            ) : (
+              <User className={`w-10 h-10 ${currentTheme.textColor} opacity-50`} />
+            )}
+          </div>
+          <p className={`${currentTheme.textColor} opacity-70 text-center mb-6 text-pretty`}>
+            Thanks for visiting!
+          </p>
+          <button
+            onClick={handleShare}
+            className={`px-6 py-3 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors ${currentTheme.textColor} font-semibold flex items-center gap-2`}
+          >
+            <Share2 className="w-4 h-4" />
+            Share Profile
+          </button>
           <Link
             to="/"
-            className={`text-sm ${currentTheme.textColor} opacity-40 hover:opacity-60 transition-colors`}
+            className={`mt-8 text-sm ${currentTheme.textColor} opacity-40 hover:opacity-60 transition-colors`}
           >
             Powered by Share The Link
           </Link>
         </div>
+      );
+    }
+
+    // Middle pages: Links
+    const linkPageIdx = pageIndex - 1;
+    const pageLinks = linkPages[linkPageIdx] || [];
+    return (
+      <div className="flex flex-col h-full px-6 py-8">
+        <p className={`text-xs ${currentTheme.textColor} opacity-40 mb-4 text-center`}>
+          Links {linkPageIdx * LINKS_PER_PAGE + 1}-{Math.min((linkPageIdx + 1) * LINKS_PER_PAGE, links.length)} of {links.length}
+        </p>
+        <div className="flex-1 flex flex-col gap-4 justify-center">
+          {pageLinks.length > 0 ? (
+            pageLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => handleLinkClick(link.id, link.url)}
+                className={`w-full text-left rounded-2xl p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${currentTheme.buttonStyle}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <span className={`font-semibold block ${btnTextColor}`}>{link.title}</span>
+                    {link.link_type === "product" && <span className="text-xs text-accent font-medium">Product</span>}
+                    {link.link_type === "video" && <span className="text-xs text-destructive font-medium">Video</span>}
+                  </div>
+                  <ExternalLink className={`w-5 h-5 opacity-70 ${btnTextColor}`} />
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className={`text-center ${currentTheme.textColor} opacity-50 py-8`}>No links yet</div>
+          )}
+        </div>
       </div>
+    );
+  };
+
+  // Flipbook flip animation class
+  const getFlipClass = () => {
+    if (!flipDirection) return "";
+    return flipDirection === "next"
+      ? "animate-[flipNext_0.5s_ease-in-out]"
+      : "animate-[flipPrev_0.5s_ease-in-out]";
+  };
+
+  return (
+    <div className={`min-h-screen ${currentTheme.background} flex flex-col items-center justify-center py-8 px-4`}>
+      {/* Top-left logo */}
+      <Link to="/" className="fixed top-4 left-4 z-10 opacity-60 hover:opacity-100 transition-opacity">
+        <Logo textClassName={`${currentTheme.textColor} text-sm`} />
+      </Link>
+
+      {/* Share Button */}
+      <button
+        onClick={handleShare}
+        className={`fixed top-4 right-4 p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-colors z-10 ${currentTheme.textColor} bg-white/10`}
+        aria-label="Share profile"
+      >
+        <Share2 className="w-5 h-5" />
+      </button>
+
+      {/* Flipbook container */}
+      <div
+        className="relative w-full max-w-md"
+        style={{ perspective: "1200px" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* The "book" page */}
+        <div
+          className={`relative w-full bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden min-h-[520px] flex flex-col ${getFlipClass()}`}
+          style={{
+            transformStyle: "preserve-3d",
+            backfaceVisibility: "hidden",
+          }}
+        >
+          {renderPage(currentPage)}
+        </div>
+
+        {/* Navigation arrows */}
+        <div className="flex items-center justify-between mt-6 px-2">
+          <button
+            onClick={() => goToPage("prev")}
+            disabled={currentPage === 0 || isFlipping}
+            className={`p-3 rounded-full backdrop-blur-sm transition-all ${
+              currentPage === 0
+                ? "opacity-0 cursor-default"
+                : `bg-white/10 hover:bg-white/20 ${currentTheme.textColor}`
+            }`}
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {/* Page dots */}
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  if (i !== currentPage && !isFlipping) {
+                    setFlipDirection(i > currentPage ? "next" : "prev");
+                    setIsFlipping(true);
+                    setTimeout(() => {
+                      setCurrentPage(i);
+                      setFlipDirection(null);
+                      setIsFlipping(false);
+                    }, 500);
+                  }
+                }}
+                className={`rounded-full transition-all duration-300 ${
+                  i === currentPage
+                    ? `w-6 h-2.5 bg-white/80`
+                    : `w-2.5 h-2.5 bg-white/30 hover:bg-white/50`
+                }`}
+                aria-label={`Go to page ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => goToPage("next")}
+            disabled={currentPage === totalPages - 1 || isFlipping}
+            className={`p-3 rounded-full backdrop-blur-sm transition-all ${
+              currentPage === totalPages - 1
+                ? "opacity-0 cursor-default"
+                : `bg-white/10 hover:bg-white/20 ${currentTheme.textColor}`
+            }`}
+            aria-label="Next page"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Flipbook CSS animations */}
+      <style>{`
+        @keyframes flipNext {
+          0% { transform: rotateY(0deg); opacity: 1; }
+          50% { transform: rotateY(-90deg); opacity: 0.5; }
+          100% { transform: rotateY(0deg); opacity: 1; }
+        }
+        @keyframes flipPrev {
+          0% { transform: rotateY(0deg); opacity: 1; }
+          50% { transform: rotateY(90deg); opacity: 0.5; }
+          100% { transform: rotateY(0deg); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };
