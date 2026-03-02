@@ -1,13 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { handleCors } from "./_lib/cors";
+import { verifyAuth, unauthorized } from "./_lib/auth";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "authorization, content-type");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  if (isRateLimited(getClientIp(req), 10)) return tooManyRequests(res);
+
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
 
   try {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;

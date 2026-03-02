@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
+import { handleCors } from "./_lib/cors";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { sanitize, isOneOf, badRequest } from "./_lib/validate";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -31,18 +34,11 @@ function getOS(ua: string): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Allow CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (handleCors(req, res)) return;
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  // Rate limit: 60 req/min per IP (public endpoint for page views)
+  if (isRateLimited(getClientIp(req), 60)) return tooManyRequests(res);
 
   try {
     const { event_type, user_id, link_id, visitor_id, referrer } = req.body;
@@ -50,6 +46,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!event_type || !user_id) {
       return res.status(400).json({ error: "event_type and user_id are required" });
     }
+
+    // Validate event_type to prevent arbitrary data injection
+    const allowedEvents = ["page_view", "profile_view", "link_click", "share", "qr_scan"];
+    if (!isOneOf(event_type, allowedEvents)) return badRequest(res, "Invalid event_type");
 
     const ua = (req.headers["user-agent"] || "") as string;
     const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||

@@ -1,12 +1,36 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { handleCors } from "./_lib/cors";
+import { verifyAuth, unauthorized } from "./_lib/auth";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { sanitize, badRequest } from "./_lib/validate";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (handleCors(req, res)) return;
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Strict rate limit: 5 req/min (AI calls are expensive)
+  if (isRateLimited(getClientIp(req), 5)) return tooManyRequests(res);
+
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
 
   try {
     const { businessDescription, websiteUrl } = req.body;
+
+    // Validate and sanitize user input
+    if (typeof businessDescription !== "string" || businessDescription.length > 2000) {
+      return badRequest(res, "Business description must be under 2000 characters");
+    }
+    if (websiteUrl && typeof websiteUrl === "string") {
+      try {
+        const parsed = new URL(websiteUrl);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          return badRequest(res, "Invalid website URL");
+        }
+      } catch {
+        return badRequest(res, "Invalid website URL");
+      }
+    }
 
     if (!businessDescription) {
       return res.status(400).json({ error: "Business description is required" });
