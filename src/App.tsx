@@ -37,6 +37,7 @@ import DashboardMedia from "./pages/DashboardMedia";
 import DocsPage from "./pages/DocsPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import DashboardIntegrations from "./pages/DashboardIntegrations";
+import DashboardQRCode from "./pages/DashboardQRCode";
 // TeamPage removed from navigation
 import AdminPage from "./pages/AdminPage";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
@@ -91,6 +92,7 @@ const App = () => (
           <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/dashboard/appearance" element={<ProtectedRoute><DashboardAppearance /></ProtectedRoute>} />
           <Route path="/dashboard/media" element={<ProtectedRoute><DashboardMedia /></ProtectedRoute>} />
+          <Route path="/dashboard/qr-code" element={<ProtectedRoute><DashboardQRCode /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
           <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />

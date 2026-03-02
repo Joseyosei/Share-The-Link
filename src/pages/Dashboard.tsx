@@ -17,6 +17,7 @@ import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import { NavigationGuide } from "@/components/dashboard/NavigationGuide";
 import { UpgradePopup } from "@/components/dashboard/UpgradePopup";
+import { QRCodeWidget } from "@/components/dashboard/QRCodeWidget";
 import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
 
@@ -310,7 +311,7 @@ const Dashboard = () => {
             </div>
 
             {/* Preview Sidebar - reflects the user's selected theme */}
-            <div className="hidden lg:block">
+            <div className="hidden lg:block space-y-6">
               <ThemedProfilePreview
                 username={username}
                 fullName={displayName}
@@ -320,6 +321,7 @@ const Dashboard = () => {
                 links={previewLinks}
                 socialLinks={socialLinks}
               />
+              <QRCodeWidget username={username} size="medium" />
             </div>
           </div>
         </div>
