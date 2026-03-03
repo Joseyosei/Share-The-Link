@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { themes } from "@/pages/DashboardAppearance";
+import { BookingWidget } from "@/components/BookingWidget";
 
 interface SocialLinks {
   twitter?: string;
@@ -40,6 +41,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [themeId, setThemeId] = useState<string>("air");
+  const [creatorId, setCreatorId] = useState<string | null>(null);
+  const [hasBookingServices, setHasBookingServices] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -97,6 +100,18 @@ const Profile = () => {
             setThemeId(appearanceData.theme);
           }
 
+          // Store creator ID for booking widget
+          setCreatorId(profileRecord.user_id);
+
+          // Check if creator has booking services
+          const { data: bookingSvcs } = await supabase
+            .from("booking_services")
+            .select("id")
+            .eq("creator_id", profileRecord.user_id)
+            .eq("is_active", true)
+            .limit(1);
+          setHasBookingServices(!!(bookingSvcs && bookingSvcs.length > 0));
+
           // Track profile view
           try {
             const visitorId = localStorage.getItem("stl_visitor_id") || 
@@ -142,7 +157,8 @@ const Profile = () => {
     return pages;
   }, [links]);
 
-  const totalPages = 1 + Math.max(linkPages.length, 1) + 1;
+  // Pages: cover + link pages + (optional booking) + footer
+  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasBookingServices ? 1 : 0) + 1;
   const [currentPage, setCurrentPage] = useState(0);
   const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -372,6 +388,19 @@ const Profile = () => {
           >
             Powered by Share The Link
           </Link>
+        </div>
+      );
+    }
+
+    // Booking page: inserted between links and footer
+    if (hasBookingServices && creatorId && pageIndex === totalPages - 2) {
+      return (
+        <div className="flex flex-col h-full px-4 py-6 overflow-y-auto">
+          <BookingWidget
+            creatorId={creatorId}
+            creatorName={profile?.full_name || username || ""}
+            themeTextColor={currentTheme.textColor}
+          />
         </div>
       );
     }

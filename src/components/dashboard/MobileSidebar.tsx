@@ -16,7 +16,8 @@ import {
   Play,
   HelpCircle,
   Shield,
-  QrCode
+  QrCode,
+  CalendarCheck
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const navItems = [
   { icon: Play, label: "Media", href: "/dashboard/media", isNew: true },
   { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
   { icon: Store, label: "My Shop", href: "/connect", isNew: true },
+  { icon: CalendarCheck, label: "Bookings", href: "/dashboard/bookings", isNew: true },
   { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },

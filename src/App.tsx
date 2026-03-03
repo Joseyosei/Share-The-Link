@@ -38,9 +38,11 @@ import DocsPage from "./pages/DocsPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import DashboardIntegrations from "./pages/DashboardIntegrations";
 import DashboardQRCode from "./pages/DashboardQRCode";
+import DashboardBookings from "./pages/DashboardBookings";
 // TeamPage removed from navigation
 import AdminPage from "./pages/AdminPage";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 
@@ -61,6 +63,7 @@ const App = () => (
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/careers" element={<CareersPage />} />
@@ -93,6 +96,7 @@ const App = () => (
           <Route path="/dashboard/appearance" element={<ProtectedRoute><DashboardAppearance /></ProtectedRoute>} />
           <Route path="/dashboard/media" element={<ProtectedRoute><DashboardMedia /></ProtectedRoute>} />
           <Route path="/dashboard/qr-code" element={<ProtectedRoute><DashboardQRCode /></ProtectedRoute>} />
+          <Route path="/dashboard/bookings" element={<ProtectedRoute><DashboardBookings /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
           <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
