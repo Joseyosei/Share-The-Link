@@ -68,7 +68,7 @@ const features = [
   {
     icon: Share2,
     title: "Auto-Share Links",
-    description: "Schedule your links to be shared on Twitter, Facebook, LinkedIn, and WhatsApp automatically at the perfect time.",
+    description: "Schedule your links to be shared on X, Facebook, LinkedIn, and WhatsApp automatically at the perfect time.",
     gradient: "from-secondary to-accent",
   },
   {

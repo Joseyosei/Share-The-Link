@@ -315,8 +315,8 @@ const Profile = () => {
           {hasAnySocials && (
             <div className="flex items-center justify-center gap-3">
               {detectedSocials.twitter && (
-                <a href={detectedSocials.twitter.startsWith("http") ? detectedSocials.twitter : `https://twitter.com/${detectedSocials.twitter}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-sky-500 text-white shadow-md" aria-label="Twitter">
-                  <Twitter className="w-4 h-4" />
+                <a href={detectedSocials.twitter.startsWith("http") ? detectedSocials.twitter : `https://x.com/${detectedSocials.twitter}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-black text-white shadow-md" aria-label="X">
+                  <XIcon className="w-4 h-4" />
                 </a>
               )}
               {detectedSocials.instagram && (

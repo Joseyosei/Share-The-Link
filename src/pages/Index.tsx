@@ -33,7 +33,7 @@ const HowItWorks = () => (
             icon: Share2,
             step: "02",
             title: "Share to 7 Platforms",
-            desc: "One click distributes to Instagram, TikTok, Twitter, LinkedIn, Facebook, WhatsApp & Telegram.",
+            desc: "One click distributes to Instagram, TikTok, X, LinkedIn, Facebook, WhatsApp & Telegram.",
           },
           {
             icon: Radio,

@@ -10,7 +10,7 @@ const features = [
   {
     icon: Share2,
     title: "One-Click Distribution",
-    description: "Share to Instagram, TikTok, Twitter, LinkedIn, Facebook, WhatsApp, and Telegram -- instantly.",
+    description: "Share to Instagram, TikTok, X, LinkedIn, Facebook, WhatsApp, and Telegram -- instantly.",
     gradient: "from-pink-500 to-orange-500",
   },
   {

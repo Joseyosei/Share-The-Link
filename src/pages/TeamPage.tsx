@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Users, Linkedin, Twitter, Globe } from "lucide-react";
+import { Users, Linkedin, Globe } from "lucide-react";
+import { XIcon } from "@/components/icons/XIcon";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,7 +145,7 @@ const TeamPage = () => {
                       <div className="flex items-center justify-center gap-2">
                         {member.social_links.twitter && (
                           <a href={member.social_links.twitter} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" aria-label="Twitter">
-                            <Twitter className="w-3.5 h-3.5" />
+                            <XIcon className="w-3.5 h-3.5" />
                           </a>
                         )}
                         {member.social_links.linkedin && (
