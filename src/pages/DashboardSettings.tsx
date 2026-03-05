@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Lock, Trash2, Camera, Twitter, Instagram, Youtube, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, User, Lock, Trash2, Camera, Instagram, Youtube, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { XIcon } from "@/components/icons/XIcon";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
@@ -376,7 +377,7 @@ const DashboardSettings = () => {
                 <h3 className="text-sm font-semibold text-foreground mb-3">Social Media Handles</h3>
                 <div className="space-y-3">
                   <div className="relative">
-                    <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <XIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       name="twitter"

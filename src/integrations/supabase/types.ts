@@ -104,6 +104,213 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_services: {
+        Row: {
+          id: string
+          creator_id: string
+          title: string
+          description: string | null
+          duration: number
+          price: number
+          currency: string
+          type: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          title: string
+          description?: string | null
+          duration?: number
+          price?: number
+          currency?: string
+          type?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          title?: string
+          description?: string | null
+          duration?: number
+          price?: number
+          currency?: string
+          type?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          id: string
+          creator_id: string
+          service_id: string | null
+          client_name: string
+          client_email: string
+          client_notes: string | null
+          booking_date: string
+          booking_time: string
+          duration: number
+          status: string
+          amount: number
+          currency: string
+          payment_status: string
+          stripe_payment_id: string | null
+          meeting_link: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          service_id?: string | null
+          client_name: string
+          client_email: string
+          client_notes?: string | null
+          booking_date: string
+          booking_time: string
+          duration?: number
+          status?: string
+          amount?: number
+          currency?: string
+          payment_status?: string
+          stripe_payment_id?: string | null
+          meeting_link?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          service_id?: string | null
+          client_name?: string
+          client_email?: string
+          client_notes?: string | null
+          booking_date?: string
+          booking_time?: string
+          duration?: number
+          status?: string
+          amount?: number
+          currency?: string
+          payment_status?: string
+          stripe_payment_id?: string | null
+          meeting_link?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_availability: {
+        Row: {
+          id: string
+          creator_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          day_of_week: number
+          start_time?: string
+          end_time?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          day_of_week?: number
+          start_time?: string
+          end_time?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      creator_blocked_dates: {
+        Row: {
+          id: string
+          creator_id: string
+          blocked_date: string
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          blocked_date: string
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          blocked_date?: string
+          reason?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          id: string
+          user_id: string
+          reviewer_name: string
+          reviewer_email: string | null
+          reviewer_company: string | null
+          reviewer_role: string | null
+          reviewer_avatar_url: string | null
+          rating: number
+          title: string | null
+          content: string
+          is_approved: boolean
+          is_featured: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          reviewer_name: string
+          reviewer_email?: string | null
+          reviewer_company?: string | null
+          reviewer_role?: string | null
+          reviewer_avatar_url?: string | null
+          rating: number
+          title?: string | null
+          content: string
+          is_approved?: boolean
+          is_featured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          reviewer_name?: string
+          reviewer_email?: string | null
+          reviewer_company?: string | null
+          reviewer_role?: string | null
+          reviewer_avatar_url?: string | null
+          rating?: number
+          title?: string | null
+          content?: string
+          is_approved?: boolean
+          is_featured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       connect_products: {
         Row: {
           connected_account_id: string

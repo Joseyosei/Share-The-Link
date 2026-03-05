@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Share2, Clock, Twitter, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock, ExternalLink, Bell, CheckCircle, Instagram, Youtube, Twitch, Music, Gamepad2 } from "lucide-react";
+import { Share2, Clock, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock, ExternalLink, Bell, CheckCircle, Instagram, Youtube, Twitch, Music, Gamepad2 } from "lucide-react";
+import { XIcon } from "@/components/icons/XIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +28,7 @@ interface LinkItem {
 }
 
 const PLATFORMS = [
-  { key: "twitter", label: "Twitter / X", icon: Twitter, color: "bg-sky-500" },
+  { key: "twitter", label: "X (Twitter)", icon: XIcon, color: "bg-black" },
   { key: "facebook", label: "Facebook", icon: Facebook, color: "bg-blue-600" },
   { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "bg-blue-700" },
   { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "bg-green-500" },

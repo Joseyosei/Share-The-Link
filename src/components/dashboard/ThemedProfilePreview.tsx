@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { User, ExternalLink, Twitter, Instagram, Youtube, Github, Linkedin, Globe, Share2, Music, MessageCircle } from "lucide-react";
+import { User, ExternalLink, Instagram, Youtube, Github, Linkedin, Globe, Share2, Music, MessageCircle } from "lucide-react";
+import { XIcon } from "@/components/icons/XIcon";
 import type { Theme } from "@/pages/DashboardAppearance";
 
 interface PreviewLink {
@@ -32,7 +33,7 @@ interface ThemedProfilePreviewProps {
 }
 
 const socialIcons = [
-  { key: "twitter", Icon: Twitter, label: "Twitter", color: "#1DA1F2" },
+  { key: "twitter", Icon: XIcon, label: "X", color: "#000000" },
   { key: "instagram", Icon: Instagram, label: "Instagram", color: "#E4405F" },
   { key: "youtube", Icon: Youtube, label: "YouTube", color: "#FF0000" },
   { key: "github", Icon: Github, label: "GitHub", color: "#333" },

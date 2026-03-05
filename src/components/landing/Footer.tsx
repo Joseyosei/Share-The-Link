@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Twitter, Instagram, Youtube, Github, Linkedin, Send, Settings } from "lucide-react";
+import { Instagram, Youtube, Github, Linkedin, Send, Settings } from "lucide-react";
+import { XIcon } from "@/components/icons/XIcon";
 import { Logo } from "@/components/Logo";
 
 const footerLinks = {
@@ -24,7 +25,7 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: Twitter, href: "https://x.com/sharethelink", label: "X (Twitter)" },
+  { icon: XIcon, href: "https://x.com/sharethelink", label: "X" },
   { icon: Instagram, href: "https://instagram.com/sharethelink", label: "Instagram" },
   { icon: Youtube, href: "https://youtube.com/@sharethelink", label: "YouTube" },
   { icon: Github, href: "https://github.com/Joseyosei/Share-The-Link", label: "GitHub" },
