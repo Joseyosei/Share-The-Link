@@ -4,6 +4,7 @@ import { ProductDemo } from "@/components/landing/ProductDemo";
 import { Features } from "@/components/landing/Features";
 import { AIBuilderDemo } from "@/components/landing/AIBuilderDemo";
 import { Pricing } from "@/components/landing/Pricing";
+import { Reviews } from "@/components/landing/Reviews";
 import { Footer } from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
 import { ArrowRight, Radio, Wand2, Share2, Play, Eye, TrendingUp } from "lucide-react";
@@ -191,6 +192,7 @@ const Index = () => {
       <HowItWorks />
       <MediaShowcase />
       <AIBuilderDemo />
+      <Reviews />
       <Pricing />
       <CTASection />
       <Footer />

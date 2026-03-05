@@ -260,6 +260,57 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          id: string
+          user_id: string
+          reviewer_name: string
+          reviewer_email: string | null
+          reviewer_company: string | null
+          reviewer_role: string | null
+          reviewer_avatar_url: string | null
+          rating: number
+          title: string | null
+          content: string
+          is_approved: boolean
+          is_featured: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          reviewer_name: string
+          reviewer_email?: string | null
+          reviewer_company?: string | null
+          reviewer_role?: string | null
+          reviewer_avatar_url?: string | null
+          rating: number
+          title?: string | null
+          content: string
+          is_approved?: boolean
+          is_featured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          reviewer_name?: string
+          reviewer_email?: string | null
+          reviewer_company?: string | null
+          reviewer_role?: string | null
+          reviewer_avatar_url?: string | null
+          rating?: number
+          title?: string | null
+          content?: string
+          is_approved?: boolean
+          is_featured?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       connect_products: {
         Row: {
           connected_account_id: string
