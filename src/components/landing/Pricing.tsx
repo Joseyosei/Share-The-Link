@@ -95,22 +95,17 @@ export const Pricing = () => {
                   </p>
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-3xl font-extrabold">
-                      {price === 0 ? "Free" : plan.id === "enterprise" ? "Custom" : formatPrice(interval === "yearly" ? perMonth : price)}
+                      {price === 0 ? "Free" : formatPrice(interval === "yearly" ? perMonth : price)}
                     </span>
-                    {price > 0 && plan.id !== "enterprise" && (
+                    {price > 0 && (
                       <span className={plan.highlighted ? "text-background/70" : "text-muted-foreground"}>
                         /month
                       </span>
                     )}
                   </div>
-                  {interval === "yearly" && price > 0 && plan.id !== "enterprise" && (
+                  {interval === "yearly" && price > 0 && (
                     <p className={`text-xs mt-1 ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
                       Billed {formatPrice(price)} per year
-                    </p>
-                  )}
-                  {plan.id === "enterprise" && (
-                    <p className={`text-xs mt-1 text-muted-foreground`}>
-                      Contact us for pricing
                     </p>
                   )}
                   {price === 0 && (
@@ -142,17 +137,15 @@ export const Pricing = () => {
                       ? "bg-background text-foreground hover:bg-background/90"
                       : plan.id === "free"
                         ? "bg-primary/10 text-primary hover:bg-primary/20"
-                        : plan.id === "enterprise"
-                          ? "border-2 border-primary text-primary bg-primary/5 hover:bg-primary/10"
-                          : "gradient-button text-white hover:opacity-90"
+  : "gradient-button text-white hover:opacity-90"
                   }`}
                 >
-                  {plan.id === "free" ? "Get Started Free" : plan.id === "enterprise" ? "Contact Sales" : `Subscribe to ${plan.name}`}
+                  {plan.id === "free" ? "Get Started Free" : `Subscribe to ${plan.name}`}
                 </Button>
 
-                {plan.id !== "free" && plan.id !== "enterprise" && (
-                  <p className={`text-center text-xs mt-3 ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
-                    Secure checkout powered by Stripe
+  {plan.id !== "free" && (
+  <p className={`text-center text-xs mt-3 ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
+  Secure checkout powered by Stripe
                   </p>
                 )}
               </div>
