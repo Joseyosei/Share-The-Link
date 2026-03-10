@@ -41,6 +41,7 @@ import DashboardQRCode from "./pages/DashboardQRCode";
 import DashboardBookings from "./pages/DashboardBookings";
 import DashboardReviews from "./pages/DashboardReviews";
 import AdminPage from "./pages/AdminPage";
+import AIAgentDashboard from "./pages/AIAgentDashboard";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
@@ -103,6 +104,7 @@ const App = () => (
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><DashboardIntegrations /></ProtectedRoute>} />
+          <Route path="/dashboard/ai-agent" element={<ProtectedRoute><AIAgentDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}

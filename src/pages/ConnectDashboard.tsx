@@ -66,19 +66,29 @@ const ConnectDashboard = () => {
   });
 
   const fetchProducts = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
 
-    const { data, error } = await supabase
-      .from("user_products")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("user_products")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-    if (error) console.error("[v0] Products fetch error:", error);
-    setProducts((data || []) as Product[]);
-    setLoading(false);
-  }, [navigate]);
+      if (error) {
+        console.error("[v0] Products fetch error:", error);
+        toast({ title: "Error loading products", description: error.message, variant: "destructive" });
+      } else {
+        setProducts((data || []) as Product[]);
+      }
+    } catch (err) {
+      console.error("[v0] Products fetch exception:", err);
+      toast({ title: "Error", description: "Failed to load products", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate, toast]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 

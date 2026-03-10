@@ -16,7 +16,8 @@ import {
   Shield,
   QrCode,
   CalendarCheck,
-  MessageSquareQuote
+  MessageSquareQuote,
+  Bot
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
@@ -37,6 +38,7 @@ const navItems = [
   { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
+  { icon: Bot, label: "AI Agent", href: "/dashboard/ai-agent", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },

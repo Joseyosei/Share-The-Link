@@ -104,25 +104,42 @@ const DashboardBookings = () => {
   }, [toast]);
 
   const handleCreateService = async () => {
-    if (!userId || !newService.title) return;
+    if (!userId || !newService.title.trim()) {
+      toast({ title: "Error", description: "Please enter a service title", variant: "destructive" });
+      return;
+    }
     setSaving(true);
-    const { data, error } = await supabase.from("booking_services").insert({
-      creator_id: userId,
-      title: newService.title,
-      description: newService.description,
-      duration: newService.duration,
-      price: newService.price,
-      type: newService.type,
-    }).select().single();
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    
+    try {
+      const { data, error } = await supabase.from("booking_services").insert({
+        creator_id: userId,
+        title: newService.title.trim(),
+        description: newService.description.trim(),
+        duration: newService.duration || 30,
+        price: newService.price || 0,
+        type: newService.type || "video",
+        currency: "USD",
+        is_active: true,
+      }).select().single();
+      
+      if (error) {
+        throw error;
+      }
+      
       setServices((prev) => [...prev, data as BookingService]);
       setNewService({ title: "", description: "", duration: 30, price: 0, type: "video" });
       setShowNewService(false);
       toast({ title: "Service created", description: `"${newService.title}" is now available for booking.` });
+    } catch (err: any) {
+      console.error("[v0] Create service error:", err);
+      toast({ 
+        title: "Error", 
+        description: err?.message || "Failed to create service. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDeleteService = async (id: string) => {
@@ -144,19 +161,27 @@ const DashboardBookings = () => {
 
   const handleToggleAvailability = async (dayOfWeek: number) => {
     if (!userId) return;
-    const existing = availability.find((a) => a.day_of_week === dayOfWeek);
-    if (existing) {
-      await supabase.from("creator_availability").update({ is_active: !existing.is_active }).eq("id", existing.id);
-      setAvailability((prev) => prev.map((a) => a.id === existing.id ? { ...a, is_active: !a.is_active } : a));
-    } else {
-      const { data } = await supabase.from("creator_availability").insert({
-        creator_id: userId,
-        day_of_week: dayOfWeek,
-        start_time: "09:00",
-        end_time: "17:00",
-        is_active: true,
-      }).select().single();
-      if (data) setAvailability((prev) => [...prev, data as Availability]);
+    
+    try {
+      const existing = availability.find((a) => a.day_of_week === dayOfWeek);
+      if (existing) {
+        const { error } = await supabase.from("creator_availability").update({ is_active: !existing.is_active }).eq("id", existing.id);
+        if (error) throw error;
+        setAvailability((prev) => prev.map((a) => a.id === existing.id ? { ...a, is_active: !a.is_active } : a));
+      } else {
+        const { data, error } = await supabase.from("creator_availability").insert({
+          creator_id: userId,
+          day_of_week: dayOfWeek,
+          start_time: "09:00",
+          end_time: "17:00",
+          is_active: true,
+        }).select().single();
+        if (error) throw error;
+        if (data) setAvailability((prev) => [...prev, data as Availability]);
+      }
+    } catch (err: any) {
+      console.error("[v0] Availability toggle error:", err);
+      toast({ title: "Error", description: err?.message || "Failed to update availability", variant: "destructive" });
     }
   };
 
