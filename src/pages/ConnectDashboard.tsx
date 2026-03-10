@@ -1,6 +1,6 @@
 /**
  * Product Shop Dashboard
- * 
+ *
  * Simple product management for entrepreneurs and content creators.
  * Users can list products/services, manage them, and share their shop link.
  */
