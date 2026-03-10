@@ -71,18 +71,37 @@ const DashboardBookings = () => {
       if (!user) return;
       setUserId(user.id);
 
-      const [svcRes, bookRes, availRes] = await Promise.all([
-        supabase.from("booking_services").select("*").eq("creator_id", user.id).order("created_at"),
-        supabase.from("bookings").select("*").eq("creator_id", user.id).order("booking_date", { ascending: false }),
-        supabase.from("creator_availability").select("*").eq("creator_id", user.id).order("day_of_week"),
-      ]);
-      setServices((svcRes.data || []) as BookingService[]);
-      setBookings((bookRes.data || []) as Booking[]);
-      setAvailability((availRes.data || []) as Availability[]);
+      try {
+        const [svcRes, bookRes, availRes] = await Promise.all([
+          supabase.from("booking_services").select("*").eq("creator_id", user.id).order("created_at"),
+          supabase.from("bookings").select("*").eq("creator_id", user.id).order("booking_date", { ascending: false }),
+          supabase.from("creator_availability").select("*").eq("creator_id", user.id).order("day_of_week"),
+        ]);
+
+        if (svcRes.error) {
+          toast({ title: "Error", description: svcRes.error.message, variant: "destructive" });
+        } else {
+          setServices((svcRes.data || []) as BookingService[]);
+        }
+
+        if (bookRes.error) {
+          toast({ title: "Error", description: bookRes.error.message, variant: "destructive" });
+        } else {
+          setBookings((bookRes.data || []) as Booking[]);
+        }
+
+        if (availRes.error) {
+          toast({ title: "Error", description: availRes.error.message, variant: "destructive" });
+        } else {
+          setAvailability((availRes.data || []) as Availability[]);
+        }
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to load booking data", variant: "destructive" });
+      }
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [toast]);
 
   const handleCreateService = async () => {
     if (!userId || !newService.title) return;

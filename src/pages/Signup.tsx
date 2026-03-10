@@ -4,7 +4,6 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
-import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
 
@@ -173,7 +172,6 @@ const Signup = () => {
               {isLoading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
-          <SocialAuthButtons type="signup" />
           <Link to="/" className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />Back to home
           </Link>

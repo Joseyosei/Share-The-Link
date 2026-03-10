@@ -1,17 +1,35 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [error, setError] = useState("");
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Supabase automatically handles the OAuth code exchange
-        // when the page loads with the hash fragment from the redirect
+        // Get the authorization code from URL parameters (PKCE flow)
+        const code = searchParams.get("code");
+        const errorParam = searchParams.get("error");
+        const errorDescription = searchParams.get("error_description");
+
+        // Handle OAuth error from provider
+        if (errorParam) {
+          throw new Error(errorDescription || errorParam);
+        }
+
+        // If there's a code, exchange it for a session (PKCE flow)
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            throw exchangeError;
+          }
+        }
+
+        // Now get the session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -58,24 +76,18 @@ const AuthCallback = () => {
 
           navigate("/dashboard", { replace: true });
         } else {
-          // No session -- might still be processing, wait a moment
-          setTimeout(async () => {
-            const { data: { session: retrySession } } = await supabase.auth.getSession();
-            if (retrySession) {
-              navigate("/dashboard", { replace: true });
-            } else {
-              setError("Authentication failed. Please try again.");
-            }
-          }, 2000);
+          // No session and no code - authentication failed
+          setError("Authentication failed. Please try again.");
         }
       } catch (err) {
         console.error("Auth callback error:", err);
-        setError("Authentication failed. Please try again.");
+        const message = err instanceof Error ? err.message : "Authentication failed. Please try again.";
+        setError(message);
       }
     };
 
     handleCallback();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   if (error) {
     return (

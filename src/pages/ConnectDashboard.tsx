@@ -1,6 +1,6 @@
 /**
  * Product Shop Dashboard
- * 
+ *
  * Simple product management for entrepreneurs and content creators.
  * Users can list products/services, manage them, and share their shop link.
  */
@@ -8,9 +8,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Sidebar } from "@/components/dashboard/Sidebar";
-
-// Bypass PostgREST schema cache issue for newer tables
-const productsTable = () => supabase.from("user_products" as any);
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { isBlockedText, isBlockedUrl } from "@/lib/content-moderation";
@@ -72,13 +69,14 @@ const ConnectDashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    const { data, error } = await productsTable()
+    const { data, error } = await supabase
+      .from("user_products")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false }) as any;
+      .order("created_at", { ascending: false });
 
     if (error) console.error("[v0] Products fetch error:", error);
-    setProducts((data as Product[]) || []);
+    setProducts((data || []) as Product[]);
     setLoading(false);
   }, [navigate]);
 
@@ -135,15 +133,23 @@ const ConnectDashboard = () => {
       };
 
       if (editingProduct) {
-        const { error } = await productsTable()
+        const { error } = await supabase
+          .from("user_products")
           .update(payload)
           .eq("id", editingProduct.id);
-        if (error) throw error;
+        if (error) {
+          console.error("[v0] Product update error:", error);
+          throw new Error(error.message || "Failed to update product");
+        }
         toast({ title: "Product updated!" });
       } else {
-        const { error } = await productsTable()
+        const { error } = await supabase
+          .from("user_products")
           .insert(payload);
-        if (error) throw error;
+        if (error) {
+          console.error("[v0] Product insert error:", error);
+          throw new Error(error.message || "Failed to add product");
+        }
         toast({ title: "Product added!" });
       }
 
@@ -158,13 +164,13 @@ const ConnectDashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await productsTable().delete().eq("id", id);
+    await supabase.from("user_products").delete().eq("id", id);
     fetchProducts();
     toast({ title: "Product deleted" });
   };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
-    await productsTable().update({ is_active: !currentActive }).eq("id", id);
+    await supabase.from("user_products").update({ is_active: !currentActive }).eq("id", id);
     fetchProducts();
   };
 
