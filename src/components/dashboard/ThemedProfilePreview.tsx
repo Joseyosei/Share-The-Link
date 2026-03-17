@@ -102,7 +102,7 @@ export const ThemedProfilePreview = ({
   const hasEffectiveSocials = Object.values(effectiveSocials || {}).some(Boolean);
 
   return (
-    <div className="sticky top-8">
+    <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Live Preview</h3>
         <a

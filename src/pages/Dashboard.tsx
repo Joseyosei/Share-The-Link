@@ -311,7 +311,8 @@ const Dashboard = () => {
             </div>
 
             {/* Preview Sidebar - reflects the user's selected theme */}
-            <div className="hidden lg:block space-y-6">
+            <div className="hidden lg:block">
+              <div className="sticky top-8 space-y-6">
               <ThemedProfilePreview
                 username={username}
                 fullName={displayName}
@@ -322,6 +323,7 @@ const Dashboard = () => {
                 socialLinks={socialLinks}
               />
               <QRCodeWidget username={username} size="medium" />
+              </div>
             </div>
           </div>
         </div>
