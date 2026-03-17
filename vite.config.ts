@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react-swc";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Share The Link - Vite configuration
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
