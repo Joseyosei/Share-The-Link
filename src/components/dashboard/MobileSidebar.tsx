@@ -21,6 +21,7 @@ import {
   MessageSquareQuote,
   Bot
 } from "lucide-react";
+import { useClerk, useUser } from "@clerk/clerk-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -51,27 +52,29 @@ export const MobileSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signOut } = useClerk();
+  const { user: clerkUser } = useUser();
   const { profile, loading } = useUserProfile();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      if (user.email && ADMIN_EMAILS.includes(user.email)) {
+      if (!clerkUser) return;
+      const email = clerkUser.primaryEmailAddress?.emailAddress;
+      if (email && ADMIN_EMAILS.includes(email)) {
         setIsAdmin(true);
         return;
       }
       try {
-        const { data } = await supabase.from("admin_users").select("id").eq("user_id", user.id).single();
+        const { data } = await supabase.from("admin_users").select("id").eq("user_id", clerkUser.id).single();
         if (data) setIsAdmin(true);
       } catch { /* not admin */ }
     };
     checkAdmin();
-  }, []);
+  }, [clerkUser]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     setIsOpen(false);
     toast({
       title: "Logged out",

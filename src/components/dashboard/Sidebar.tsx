@@ -20,6 +20,7 @@ import {
   Bot
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useClerk, useUser } from "@clerk/clerk-react";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -51,6 +52,8 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signOut } = useClerk();
+  const { user: clerkUser } = useUser();
   const { profile, loading } = useUserProfile();
   const { subscription } = useSubscription();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -58,24 +61,24 @@ export const Sidebar = () => {
   // Check if current user is admin
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!clerkUser) return;
+      const email = clerkUser.primaryEmailAddress?.emailAddress;
       // Check by email first (fast)
-      if (user.email && ADMIN_EMAILS.includes(user.email)) {
+      if (email && ADMIN_EMAILS.includes(email)) {
         setIsAdmin(true);
         return;
       }
       // Check admin_users table
       try {
-        const { data } = await supabase.from("admin_users").select("id").eq("user_id", user.id).single();
+        const { data } = await supabase.from("admin_users").select("id").eq("user_id", clerkUser.id).single();
         if (data) setIsAdmin(true);
       } catch { /* not admin */ }
     };
     checkAdmin();
-  }, []);
+  }, [clerkUser]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
