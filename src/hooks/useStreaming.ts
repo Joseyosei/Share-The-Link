@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { validateStreamContent, validateChatMessage } from "@/lib/content-moderation";
+
+// Heartbeat interval (30 seconds) to detect stale streams
+const HEARTBEAT_INTERVAL = 30000;
 
 export interface Stream {
   id: string;
@@ -21,6 +24,7 @@ export interface Stream {
   is_recording: boolean;
   recording_url: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ChatMessage {
@@ -41,6 +45,9 @@ export const useStreaming = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
+  
+  // Heartbeat ref to keep stream alive
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch user's streams
   const fetchMyStreams = useCallback(async () => {
@@ -61,6 +68,39 @@ export const useStreaming = () => {
       console.error("Error fetching streams:", error);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Start heartbeat to keep stream marked as active
+  const startHeartbeat = useCallback((streamId: string) => {
+    // Clear any existing heartbeat
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+    }
+
+    // Update stream updated_at every 30 seconds
+    heartbeatIntervalRef.current = setInterval(async () => {
+      try {
+        const { error } = await supabase
+          .from("streams")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", streamId)
+          .eq("status", "live");
+
+        if (error) {
+          console.error("Heartbeat update failed:", error);
+        }
+      } catch (err) {
+        console.error("Heartbeat error:", err);
+      }
+    }, HEARTBEAT_INTERVAL);
+  }, []);
+
+  // Stop heartbeat
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
     }
   }, []);
 
@@ -123,9 +163,14 @@ export const useStreaming = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("streams")
-        .update({ status: "live", started_at: new Date().toISOString() })
+        .update({ 
+          status: "live", 
+          started_at: now,
+          updated_at: now,
+        })
         .eq("id", streamId)
         .eq("user_id", user.id)
         .select()
@@ -135,6 +180,9 @@ export const useStreaming = () => {
 
       setCurrentStream(data as Stream);
       setIsLive(true);
+      
+      // Start heartbeat to keep stream marked as active
+      startHeartbeat(streamId);
 
       toast({
         title: "You're live!",
@@ -153,9 +201,13 @@ export const useStreaming = () => {
     }
   };
 
-  // End stream (direct DB update + create recording)
-  const endStream = async (streamId: string) => {
+  // End stream (direct DB update)
+  // Note: Recording is now handled by useStreamRecording hook to avoid duplicates
+  const endStream = async (streamId: string, skipRecording = false) => {
     try {
+      // Stop heartbeat
+      stopHeartbeat();
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -170,36 +222,14 @@ export const useStreaming = () => {
 
       if (error) throw error;
 
-      const stream = data as Stream;
-
-      // Calculate duration in seconds
-      const startedAt = stream.started_at ? new Date(stream.started_at).getTime() : Date.now();
-      const duration = Math.round((new Date(endedAt).getTime() - startedAt) / 1000);
-
-      // Automatically create a stream recording entry
-      const recordingsTable = supabase.from("stream_recordings" as any);
-      const { error: recError } = await recordingsTable.insert({
-        stream_id: streamId,
-        user_id: user.id,
-        title: stream.title || "Stream Recording",
-        description: stream.description || null,
-        video_url: stream.recording_url || "",
-        thumbnail_url: stream.thumbnail_url || null,
-        duration: Math.max(duration, 0),
-        view_count: 0,
-        visibility: "public",
-      });
-
-      if (recError) {
-        console.error("[v0] Failed to save recording:", recError);
-      }
-
       setCurrentStream(null);
       setIsLive(false);
 
       toast({
         title: "Stream ended",
-        description: "Your stream has been saved and recorded.",
+        description: skipRecording 
+          ? "Your stream has ended."
+          : "Your stream has been saved and recorded.",
       });
 
       return data;
@@ -211,6 +241,35 @@ export const useStreaming = () => {
         variant: "destructive",
       });
       throw error;
+    }
+  };
+
+  // Update viewer count
+  const updateViewerCount = async (streamId: string, count: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get current peak
+      const { data: stream } = await supabase
+        .from("streams")
+        .select("peak_viewers")
+        .eq("id", streamId)
+        .single();
+
+      const currentPeak = stream?.peak_viewers || 0;
+      const newPeak = Math.max(currentPeak, count);
+
+      await supabase
+        .from("streams")
+        .update({ 
+          viewer_count: count,
+          peak_viewers: newPeak,
+        })
+        .eq("id", streamId)
+        .eq("user_id", user.id);
+    } catch (error) {
+      console.error("Error updating viewer count:", error);
     }
   };
 
@@ -259,7 +318,6 @@ export const useStreaming = () => {
       if (tipError) throw tipError;
 
       // Update stream total tips
-      // Update stream total tips directly
       await supabase
         .from("streams")
         .update({ total_tips: currentStream ? (currentStream.total_tips || 0) + amount : amount })
@@ -331,6 +389,13 @@ export const useStreaming = () => {
     }
   }, []);
 
+  // Cleanup heartbeat on unmount
+  useEffect(() => {
+    return () => {
+      stopHeartbeat();
+    };
+  }, [stopHeartbeat]);
+
   return {
     streams,
     currentStream,
@@ -341,6 +406,7 @@ export const useStreaming = () => {
     createStream,
     goLive,
     endStream,
+    updateViewerCount,
     sendChatMessage,
     sendTip,
     fetchChatMessages,

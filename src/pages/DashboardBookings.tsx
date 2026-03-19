@@ -103,6 +103,51 @@ const DashboardBookings = () => {
     fetchData();
   }, [toast]);
 
+  // Real-time subscription for new bookings
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`bookings-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "bookings",
+          filter: `creator_id=eq.${userId}`,
+        },
+        (payload) => {
+          const newBooking = payload.new as Booking;
+          setBookings((prev) => [newBooking, ...prev]);
+          toast({
+            title: "New Booking!",
+            description: `${newBooking.client_name} just booked a session for ${new Date(newBooking.booking_date).toLocaleDateString()}.`,
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "bookings",
+          filter: `creator_id=eq.${userId}`,
+        },
+        (payload) => {
+          const updatedBooking = payload.new as Booking;
+          setBookings((prev) =>
+            prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, toast]);
+
   const handleCreateService = async () => {
     if (!userId || !newService.title.trim()) {
       toast({ title: "Error", description: "Please enter a service title", variant: "destructive" });

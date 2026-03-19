@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
@@ -8,6 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
+
+interface BookingServicePreview {
+  id: string;
+  title: string;
+  type: string;
+  duration: number;
+  price: number;
+}
 
 interface SocialLinks {
   twitter?: string;
@@ -44,6 +52,7 @@ const Profile = () => {
   const [themeId, setThemeId] = useState<string>("air");
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [hasBookingServices, setHasBookingServices] = useState(false);
+  const [bookingServicesPreview, setBookingServicesPreview] = useState<BookingServicePreview[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -104,14 +113,16 @@ const Profile = () => {
           // Store creator ID for booking widget
           setCreatorId(profileRecord.user_id);
 
-          // Check if creator has booking services
+          // Check if creator has booking services and fetch preview data
           const { data: bookingSvcs } = await supabase
             .from("booking_services")
-            .select("id")
+            .select("id, title, type, duration, price")
             .eq("creator_id", profileRecord.user_id)
             .eq("is_active", true)
-            .limit(1);
+            .order("price")
+            .limit(3);
           setHasBookingServices(!!(bookingSvcs && bookingSvcs.length > 0));
+          setBookingServicesPreview((bookingSvcs || []) as BookingServicePreview[]);
 
           // Track profile view
           try {
@@ -346,8 +357,33 @@ const Profile = () => {
               )}
             </div>
           )}
+          
+          {/* Booking CTA - Show if creator has booking services */}
+          {hasBookingServices && bookingServicesPreview.length > 0 && (
+            <button
+              onClick={() => {
+                // Navigate to booking page (last page before footer)
+                const bookingPageIndex = totalPages - 2;
+                if (bookingPageIndex !== currentPage && !isFlipping) {
+                  setFlipDirection(bookingPageIndex > currentPage ? "next" : "prev");
+                  setIsFlipping(true);
+                  setTimeout(() => {
+                    setCurrentPage(bookingPageIndex);
+                    setFlipDirection(null);
+                    setIsFlipping(false);
+                  }, 500);
+                }
+              }}
+              className={`mt-4 w-full max-w-xs px-5 py-3 rounded-xl bg-gradient-to-r from-primary/90 to-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]`}
+            >
+              <Calendar className="w-4 h-4" />
+              Book a Session
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
+          )}
+          
           {/* Page turn hint */}
-          <div className={`mt-auto pt-6 ${currentTheme.textColor} opacity-40 text-xs flex items-center gap-1`}>
+          <div className={`mt-auto pt-4 ${currentTheme.textColor} opacity-40 text-xs flex items-center gap-1`}>
             Swipe or tap arrow to flip
             <ChevronRight className="w-3 h-3" />
           </div>
