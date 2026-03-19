@@ -61,8 +61,10 @@ const Login = () => {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         toast({ title: "Welcome back!", description: "You've successfully logged in." });
+        // Use hard redirect to ensure Clerk session is fully initialized
+        // before ProtectedRoute checks isSignedIn
         const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
-        navigate(from, { replace: true });
+        window.location.href = from;
       } else {
         // Handle additional verification steps if needed
         console.log("Sign in requires additional steps:", result);

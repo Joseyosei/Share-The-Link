@@ -180,7 +180,7 @@ const ForgotPassword = () => {
               Your password has been successfully reset. You are now logged in.
             </p>
             <Button 
-              onClick={() => navigate("/dashboard")} 
+              onClick={() => window.location.href = "/dashboard"}
               className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
             >
               Go to Dashboard

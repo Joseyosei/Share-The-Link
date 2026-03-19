@@ -74,7 +74,7 @@ const AuthCallback = () => {
             });
           }
 
-          navigate("/dashboard", { replace: true });
+          window.location.href = "/dashboard";
         } else {
           // No session and no code - authentication failed
           setError("Authentication failed. Please try again.");
