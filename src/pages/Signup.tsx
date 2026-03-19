@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
@@ -23,6 +23,9 @@ const Signup = () => {
   const [pendingVerification, setPendingVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const verifyingRef = useRef(false);
 
   // Timeout for Clerk loading
   useEffect(() => {
@@ -37,6 +40,13 @@ const Signup = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [isSignedIn, navigate]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -55,21 +65,21 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     if (!isLoaded || !signUp) {
       setErrors({ email: "Authentication is loading. Please try again." });
       return;
     }
 
     setIsLoading(true);
-    
+
     // Check if username is already taken in Supabase
     const { data: existingUser } = await supabase
       .from("profiles")
       .select("username")
       .eq("username", formData.username)
       .maybeSingle();
-    
+
     if (existingUser) {
       setErrors({ username: "This username is already taken" });
       setIsLoading(false);
@@ -91,12 +101,13 @@ const Signup = () => {
       // Send email verification
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
+      setResendCooldown(30);
       toast({ title: "Verification code sent", description: "Please check your email for the verification code." });
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ message: string; code: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "An error occurred during sign up";
       const errorCode = clerkError.errors?.[0]?.code;
-      
+
       if (errorCode === "form_identifier_exists") {
         setErrors({ email: "This email is already registered. Please log in instead." });
       } else if (errorCode === "form_password_pwned") {
@@ -113,7 +124,12 @@ const Signup = () => {
     e.preventDefault();
     if (!isLoaded || !signUp) return;
 
+    // Prevent double-clicks
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
+
     setIsLoading(true);
+    setErrors({});
     try {
       const completeSignUp = await signUp.attemptEmailAddressVerification({
         code: verificationCode,
@@ -121,27 +137,60 @@ const Signup = () => {
 
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
-        
-        // Apply template if selected (after user is authenticated)
+
         if (selectedTemplate) {
-          toast({ 
-            title: "Account created!", 
-            description: `Welcome! The "${selectedTemplate.name}" template will be applied.` 
+          toast({
+            title: "Account created!",
+            description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
           });
         } else {
           toast({ title: "Account created!", description: "Welcome to Share The Link." });
         }
-        
-        navigate("/dashboard");
+
+        // Use window.location for a hard redirect to ensure Clerk session is
+        // fully initialized before ProtectedRoute checks isSignedIn.
+        // React Router's navigate() can race with Clerk's async context update.
+        window.location.href = "/dashboard";
       } else {
         setErrors({ email: "Verification incomplete. Please try again." });
       }
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string }> };
+      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "Invalid verification code";
-      setErrors({ email: errorMessage });
+      const errorCode = clerkError.errors?.[0]?.code;
+
+      if (errorCode === "too_many_requests" || errorMessage.toLowerCase().includes("too many")) {
+        setErrors({ email: "Too many attempts. Please wait 30 seconds before trying again." });
+      } else if (errorCode === "form_code_incorrect") {
+        setErrors({ email: "Incorrect verification code. Please check and try again." });
+      } else {
+        setErrors({ email: errorMessage });
+      }
     } finally {
       setIsLoading(false);
+      verifyingRef.current = false;
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!isLoaded || !signUp || resendCooldown > 0) return;
+    setResending(true);
+    setErrors({});
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setResendCooldown(60);
+      toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string }> };
+      const errorMessage = clerkError.errors?.[0]?.message || "Failed to resend code";
+      if (errorMessage.toLowerCase().includes("too many")) {
+        setErrors({ email: "Too many requests. Please wait a minute before trying again." });
+        setResendCooldown(60);
+      } else {
+        setErrors({ email: errorMessage });
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -187,10 +236,15 @@ const Signup = () => {
               <input
                 type="text"
                 value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
+                onChange={(e) => {
+                  setVerificationCode(e.target.value.replace(/\D/g, ""));
+                  if (errors.email) setErrors({});
+                }}
                 placeholder="Enter verification code"
                 className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
                 maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
               />
               <Button type="submit" disabled={isLoading || verificationCode.length < 6} className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90">
                 {isLoading ? (
@@ -201,9 +255,23 @@ const Signup = () => {
                 ) : "Verify Email"}
               </Button>
             </form>
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button
+                onClick={handleResendCode}
+                disabled={resending || resendCooldown > 0}
+                className="flex items-center gap-1.5 text-sm text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+              >
+                {resending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+              </button>
+            </div>
             <button
               onClick={() => setPendingVerification(false)}
-              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors w-full"
+              className="flex items-center justify-center gap-2 mt-4 text-muted-foreground hover:text-foreground transition-colors w-full"
             >
               <ArrowLeft className="w-4 h-4" />Back to signup
             </button>
@@ -247,29 +315,29 @@ const Signup = () => {
               <div key={field.name}>
                 <div className="relative">
                   <field.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input 
-                    type={field.type} 
-                    name={field.name} 
-                    placeholder={field.placeholder} 
-                    value={formData[field.name as keyof typeof formData]} 
-                    onChange={handleChange} 
-                    className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors[field.name] ? "border-destructive" : "border-border"}`} 
+                  <input
+                    type={field.type}
+                    name={field.name}
+                    placeholder={field.placeholder}
+                    value={formData[field.name as keyof typeof formData]}
+                    onChange={handleChange}
+                    className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors[field.name] ? "border-destructive" : "border-border"}`}
                   />
                 </div>
-                {field.name === "username" && formData.username && <p className="text-sm text-muted-foreground mt-1">sharethelink.com/{formData.username}</p>}
+                {field.name === "username" && formData.username && <p className="text-sm text-muted-foreground mt-1">sharethelink.app/{formData.username}</p>}
                 {errors[field.name] && <p className="text-destructive text-sm mt-1">{errors[field.name]}</p>}
               </div>
             ))}
             <div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  name="password" 
-                  placeholder="Password" 
-                  value={formData.password} 
-                  onChange={handleChange} 
-                  className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-destructive" : "border-border"}`} 
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-destructive" : "border-border"}`}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
