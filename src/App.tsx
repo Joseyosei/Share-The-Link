@@ -1,10 +1,11 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ClerkProvider } from "@/providers/ClerkProvider";
+import { ClerkProvider } from "@clerk/clerk-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -48,10 +49,24 @@ import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  console.warn("Missing VITE_CLERK_PUBLISHABLE_KEY - Clerk auth will not work");
+}
 
 function AppRoutes() {
+  const navigate = useNavigate();
+
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY || ""}
+      navigate={(to) => navigate(to)}
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
+      signInUrl="/login"
+      signUpUrl="/signup"
+    >
       <LiveMiniPlayer />
       <Routes>
         {/* Public routes */}
