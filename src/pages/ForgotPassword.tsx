@@ -1,518 +1,330 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, ArrowLeft, Eye, EyeOff, CheckCircle, Mail, Loader2, AlertCircle, HelpCircle, RefreshCw } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { Logo } from "@/components/Logo";
+import { useSignIn } from "@clerk/clerk-react";
+
+type ResetStep = "email" | "code" | "newPassword" | "success";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Step 1: Request reset email
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const [step, setStep] = useState<ResetStep>("email");
   const [email, setEmail] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [resendCooldown, setResendCooldown] = useState(0);
-  
-  // Step 2: Set new password (when user clicks the reset link)
-  const [formData, setFormData] = useState({
-    newPassword: "",
-    confirmPassword: "",
-  });
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [error, setError] = useState("");
 
-  // Check if user came from a password reset link
-  useEffect(() => {
-    const checkSession = async () => {
-      // Check URL hash for recovery token (Supabase sends this in the URL)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get("access_token");
-      const type = hashParams.get("type");
-      
-      if (type === "recovery" && accessToken) {
-        // User clicked the reset link - they have a recovery session
-        setIsRecoveryMode(true);
-      }
-      
-      setCheckingAuth(false);
-    };
-    
-    // Listen for auth state changes (including recovery tokens)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsRecoveryMode(true);
-      }
-      setCheckingAuth(false);
-    });
-
-    checkSession();
-    
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
-
-  // Handle sending password reset email
-  const handleSendResetEmail = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEmailError("");
-    
-    if (!email) {
-      setEmailError("Please enter your email address");
+    setError("");
+
+    if (!email.trim()) {
+      setError("Please enter your email address");
       return;
     }
-    
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address");
+
+    if (!isLoaded || !signIn) {
+      setError("Authentication is loading. Please try again.");
       return;
     }
-    
-    setSendingEmail(true);
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/forgot-password`,
-    });
-    
-    setSendingEmail(false);
-    
-    if (error) {
-      // Don't reveal if email exists or not for security
-      if (error.message.includes("rate limit")) {
-        setEmailError("Too many requests. Please wait a few minutes and try again.");
-      } else if (error.message.includes("Email rate limit exceeded")) {
-        setEmailError("Email rate limit exceeded. Please wait 60 seconds before trying again.");
-        setResendCooldown(60);
-      } else {
-        // Always show success even if email doesn't exist (security best practice)
-        setEmailSent(true);
-      }
-      return;
-    }
-    
-    setEmailSent(true);
-    setResendCooldown(60); // 60 second cooldown for resend
-    toast({
-      title: "Check your email",
-      description: "We've sent you a password reset link.",
-    });
-  };
-
-  // Handle resending the email
-  const handleResendEmail = async () => {
-    if (resendCooldown > 0) return;
-    
-    setSendingEmail(true);
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/forgot-password`,
-    });
-    
-    setSendingEmail(false);
-    
-    if (error) {
-      if (error.message.includes("rate limit") || error.message.includes("Email rate limit")) {
-        toast({
-          title: "Rate limited",
-          description: "Please wait a minute before requesting another email.",
-          variant: "destructive",
-        });
-        setResendCooldown(60);
-      }
-      return;
-    }
-    
-    setResendCooldown(60);
-    toast({
-      title: "Email resent",
-      description: "We've sent another password reset link to your email.",
-    });
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.newPassword) {
-      newErrors.newPassword = "Please enter a new password";
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = "Password must be at least 8 characters";
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
 
     setIsLoading(true);
-    
-    const { error } = await supabase.auth.updateUser({
-      password: formData.newPassword
-    });
-    
-    setIsLoading(false);
-    
-    if (error) {
-      setErrors({ newPassword: error.message });
+    try {
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      setStep("code");
+      toast({ title: "Code sent!", description: "Check your email for the reset code." });
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
+      const errorMessage = clerkError.errors?.[0]?.message || "Failed to send reset code";
+      const errorCode = clerkError.errors?.[0]?.code;
+      
+      if (errorCode === "form_identifier_not_found") {
+        setError("No account found with this email address.");
+      } else if (errorMessage.includes("rate")) {
+        setError("Too many attempts. Please wait a few minutes and try again.");
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!code.trim()) {
+      setError("Please enter the verification code");
       return;
     }
-    
-    // Sign out the user so they can log in with new password
-    await supabase.auth.signOut();
-    
-    setIsSuccess(true);
-    toast({
-      title: "Password updated!",
-      description: "Your password has been successfully changed.",
-    });
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    if (!isLoaded || !signIn) return;
+
+    setIsLoading(true);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code,
+      });
+
+      if (result.status === "needs_new_password") {
+        setStep("newPassword");
+      } else {
+        setError("Unable to verify code. Please try again.");
+      }
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string }> };
+      const errorMessage = clerkError.errors?.[0]?.message || "Invalid verification code";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (checkingAuth) {
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!newPassword) {
+      setError("Please enter a new password");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (!isLoaded || !signIn) return;
+
+    setIsLoading(true);
+    try {
+      const result = await signIn.resetPassword({
+        password: newPassword,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        setStep("success");
+        toast({ title: "Password reset!", description: "Your password has been changed successfully." });
+      } else {
+        setError("Unable to reset password. Please try again.");
+      }
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
+      const errorMessage = clerkError.errors?.[0]?.message || "Failed to reset password";
+      const errorCode = clerkError.errors?.[0]?.code;
+      
+      if (errorCode === "form_password_pwned") {
+        setError("This password has been compromised in a data breach. Please choose a different one.");
+      } else if (errorCode === "form_password_length_too_short") {
+        setError("Password must be at least 8 characters.");
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading state while Clerk loads
+  if (!isLoaded) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-foreground" />
-      </div>
-    );
-  }
-
-  // Step 1: Request password reset email
-  if (!isRecoveryMode && !emailSent) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Link to="/">
-              <Logo textClassName="text-primary-foreground" />
-            </Link>
-          </div>
-
-          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Forgot Password?</h1>
-            <p className="text-muted-foreground mb-6">
-              Enter your email address and we'll send you a link to reset your password.
-            </p>
-            
-            {emailError && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-                <span>{emailError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSendResetEmail} className="space-y-4">
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailError) setEmailError("");
-                  }}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={sendingEmail}
-                className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
-              >
-                {sendingEmail ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Send Reset Link"
-                )}
-              </Button>
-            </form>
-
-            {/* Help section */}
-            <div className="mt-6 pt-6 border-t border-border">
-              <div className="flex items-start gap-3 text-sm text-muted-foreground">
-                <HelpCircle className="w-5 h-5 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-foreground mb-1">Need help?</p>
-                  <p>
-                    If you're having trouble resetting your password, please contact us at{" "}
-                    <a href="mailto:support@sharethelink.io" className="text-primary hover:underline">
-                      support@sharethelink.io
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              to="/login"
-              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to login
-            </Link>
-          </div>
+        <div className="flex items-center gap-2 text-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading...</span>
         </div>
       </div>
     );
   }
 
-  // Step 1b: Email sent confirmation
-  if (!isRecoveryMode && emailSent) {
+  // Success screen
+  if (step === "success") {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Link to="/">
-              <Logo textClassName="text-primary-foreground" />
-            </Link>
+            <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
           </div>
-
           <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Mail className="w-10 h-10 text-primary" />
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Check Your Email</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Password Reset Complete</h1>
             <p className="text-muted-foreground mb-6">
-              We've sent a password reset link to <strong>{email}</strong>. 
-              Click the link in the email to reset your password.
+              Your password has been successfully reset. You are now logged in.
             </p>
-            
-            <div className="bg-muted rounded-xl p-4 mb-6 text-sm text-muted-foreground text-left">
-              <p className="mb-2 font-medium">Didn't receive the email?</p>
-              <ul className="space-y-1">
-                <li>- Check your spam or junk folder</li>
-                <li>- Make sure you entered the correct email</li>
-                <li>- Wait a few minutes and try again</li>
-              </ul>
-            </div>
-
-            {/* Resend button */}
-            <Button
-              onClick={handleResendEmail}
-              disabled={sendingEmail || resendCooldown > 0}
-              variant="outline"
-              className="w-full py-6 text-lg font-semibold mb-3"
+            <Button 
+              onClick={() => navigate("/dashboard")} 
+              className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
             >
-              {sendingEmail ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : resendCooldown > 0 ? (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2" />
-                  Resend in {resendCooldown}s
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2" />
-                  Resend Email
-                </>
-              )}
+              Go to Dashboard
             </Button>
-            
-            <Button
-              onClick={() => {
-                setEmailSent(false);
-                setEmail("");
-              }}
-              variant="ghost"
-              className="w-full py-6 text-lg font-semibold"
-            >
-              Try a different email
-            </Button>
-
-            {/* Help section */}
-            <div className="mt-6 pt-6 border-t border-border">
-              <div className="flex items-start gap-3 text-sm text-muted-foreground text-left">
-                <HelpCircle className="w-5 h-5 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-foreground mb-1">Still not receiving emails?</p>
-                  <p>
-                    Contact our support team at{" "}
-                    <a href="mailto:support@sharethelink.io" className="text-primary hover:underline">
-                      support@sharethelink.io
-                    </a>{" "}
-                    and we'll help you regain access to your account.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              to="/login"
-              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to login
-            </Link>
           </div>
         </div>
       </div>
     );
   }
 
-  // Step 2: User clicked reset link - show password reset form
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/">
-            <Logo textClassName="text-primary-foreground" />
-          </Link>
+          <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
         </div>
-
         <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
-          {!isSuccess ? (
+          {step === "email" && (
             <>
               <h1 className="text-3xl font-bold text-foreground mb-2">Reset Password</h1>
               <p className="text-muted-foreground mb-6">
-                Enter your new password below.
+                Enter your email address and we'll send you a code to reset your password.
               </p>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* New Password */}
-                <div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="newPassword"
-                      placeholder="New password"
-                      value={formData.newPassword}
-                      onChange={handleChange}
-                      className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  {errors.newPassword && (
-                    <p className="text-destructive text-sm mt-1">{errors.newPassword}</p>
-                  )}
+              {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
+              <form onSubmit={handleSendCode} className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                    placeholder="Enter your email"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  />
                 </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      placeholder="Confirm new password"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="text-destructive text-sm mt-1">{errors.confirmPassword}</p>
-                  )}
-                </div>
-
-                {/* Password Requirements */}
-                <div className="bg-muted rounded-xl p-4">
-                  <p className="text-sm font-medium text-foreground mb-2">Password requirements:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li className={formData.newPassword.length >= 8 ? "text-green-600" : ""}>
-                      - At least 8 characters
-                    </li>
-                    <li className={formData.newPassword === formData.confirmPassword && formData.confirmPassword ? "text-green-600" : ""}>
-                      - Passwords match
-                    </li>
-                  </ul>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isLoading}
+                <Button 
+                  type="submit" 
+                  disabled={isLoading} 
                   className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
                 >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Reset Password"
-                  )}
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Sending code...
+                    </span>
+                  ) : "Send Reset Code"}
                 </Button>
               </form>
             </>
-          ) : (
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-primary" />
-              </div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Password Updated!</h1>
-              <p className="text-muted-foreground mb-6">
-                Your password has been successfully changed. You can now log in with your new password.
-              </p>
-              <Button
-                asChild
-                className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
-              >
-                <Link to="/login">Go to Login</Link>
-              </Button>
-            </div>
           )}
 
-          {!isSuccess && (
-            <Link
-              to="/login"
-              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to login
-            </Link>
+          {step === "code" && (
+            <>
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">Check your email</h1>
+                <p className="text-muted-foreground">
+                  We've sent a verification code to <strong>{email}</strong>
+                </p>
+              </div>
+              {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => { setCode(e.target.value); setError(""); }}
+                  placeholder="Enter verification code"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
+                  maxLength={6}
+                />
+                <Button 
+                  type="submit" 
+                  disabled={isLoading || code.length < 6} 
+                  className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Verifying...
+                    </span>
+                  ) : "Verify Code"}
+                </Button>
+              </form>
+              <button
+                onClick={() => { setStep("email"); setCode(""); setError(""); }}
+                className="flex items-center justify-center gap-2 mt-4 text-muted-foreground hover:text-foreground transition-colors w-full text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />Try a different email
+              </button>
+            </>
           )}
+
+          {step === "newPassword" && (
+            <>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Create new password</h1>
+              <p className="text-muted-foreground mb-6">
+                Enter your new password below.
+              </p>
+              {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
+                    placeholder="New password"
+                    className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)} 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }}
+                    placeholder="Confirm new password"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">Password must be at least 8 characters.</p>
+                <Button 
+                  type="submit" 
+                  disabled={isLoading} 
+                  className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Resetting password...
+                    </span>
+                  ) : "Reset Password"}
+                </Button>
+              </form>
+            </>
+          )}
+
+          <Link 
+            to="/login" 
+            className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />Back to login
+          </Link>
         </div>
       </div>
     </div>

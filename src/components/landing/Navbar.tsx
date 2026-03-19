@@ -3,28 +3,18 @@ import { Menu, X, Sun, Moon, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@clerk/clerk-react";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const { isSignedIn, isLoaded } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsSignedIn(!!session);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsSignedIn(!!session);
-    });
-    return () => subscription.unsubscribe();
   }, []);
 
   const toggleTheme = () => {
@@ -65,7 +55,7 @@ export const Navbar = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
-            {isSignedIn ? (
+            {isLoaded && isSignedIn ? (
               <Button
                 asChild
                 size="sm"
@@ -147,7 +137,7 @@ export const Navbar = () => {
                 Docs
               </Link>
               <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
-                {isSignedIn ? (
+                {isLoaded && isSignedIn ? (
                   <Button
                     asChild
                     className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium"

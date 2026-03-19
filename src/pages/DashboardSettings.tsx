@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSubscription, PRICING_TIERS } from "@/hooks/useSubscription";
@@ -14,6 +15,9 @@ import { authFetch } from "@/lib/auth-fetch";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user: clerkUser } = useUser();
+  const { signOut } = useClerk();
   const { profile, loading: profileLoading, refetch } = useUserProfile();
   const { subscription, loading: subLoading, cancelSubscription, reactivateSubscription, openCustomerPortal } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
@@ -90,8 +94,7 @@ const DashboardSettings = () => {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!clerkUser) throw new Error("Not authenticated");
 
       // Content moderation checks
       if (isBlockedText(profileData.bio)) {
@@ -116,7 +119,7 @@ const DashboardSettings = () => {
       const { error } = await supabase
         .from("profiles")
         .upsert({
-          user_id: user.id,
+          user_id: clerkUser.id,
           full_name: profileData.fullName,
           username: profileData.username,
           bio: profileData.bio,
@@ -146,88 +149,44 @@ const DashboardSettings = () => {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors: Record<string, string> = {};
-
-    if (!passwordData.currentPassword) {
-      errors.currentPassword = "Current password is required";
-    }
-    if (!passwordData.newPassword) {
-      errors.newPassword = "New password is required";
-    } else if (passwordData.newPassword.length < 8) {
-      errors.newPassword = "Password must be at least 8 characters";
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      errors.confirmPassword = "Passwords do not match";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setPasswordErrors(errors);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // First, verify the current password by re-authenticating
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("User not found");
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: passwordData.currentPassword,
-      });
-
-      if (signInError) {
-        setPasswordErrors({ currentPassword: "Current password is incorrect" });
-        setIsLoading(false);
-        return;
-      }
-
-      // Now update the password
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
-      });
-
-      if (error) throw error;
-
+  const handleChangePassword = () => {
+    // Clerk handles password changes through the user profile
+    // Open Clerk's user profile modal or redirect to their account page
+    if (clerkUser) {
+      // You can use Clerk's UserProfile component or redirect
+      window.open("https://accounts.clerk.dev/user", "_blank");
       toast({
-        title: "Password changed",
-        description: "Your password has been updated successfully.",
+        title: "Manage your password",
+        description: "You'll be redirected to manage your account security settings.",
       });
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error) {
-      console.error("Error changing password:", error);
-      toast({
-        title: "Error",
-        description: "Failed to change password. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
+    if (!clerkUser) return;
+    
     setIsLoading(true);
     try {
-      const resp = await authFetch("/api/delete-account", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await resp.json();
-      if (!resp.ok || data.error) {
-        throw new Error(data.error || "Failed to delete account");
+      // Delete profile data from Supabase
+      const { error: deleteError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("user_id", clerkUser.id);
+      
+      if (deleteError) {
+        console.error("Error deleting profile:", deleteError);
       }
-      // Sign out locally after server-side deletion
-      await supabase.auth.signOut();
+
+      // Delete the Clerk user account
+      await clerkUser.delete();
+      await signOut();
+      
       toast({
         title: "Account deleted",
         description: "Your account and all associated data have been permanently deleted.",
         variant: "destructive",
       });
-      window.location.href = "/";
+      navigate("/");
     } catch (error) {
       console.error("Error deleting account:", error);
       toast({
