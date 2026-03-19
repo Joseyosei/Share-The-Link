@@ -47,6 +47,7 @@
     "@stripe/stripe-js": "^5.5.0",
     "@supabase/supabase-js": "^2.90.1",
     "@tanstack/react-query": "^5.83.0",
+    "@vercel/blob": "^2.3.1",
     "@vercel/node": "^5.5.32",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -54,7 +55,6 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
-
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "qrcode.react": "^4.2.0",

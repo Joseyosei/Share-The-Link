@@ -4,23 +4,54 @@
  * P2P WebRTC streaming using Supabase Realtime for signaling.
  * - Broadcaster: captures media, creates peer connections per viewer
  * - Viewer: receives stream from broadcaster via peer connection
+ * 
+ * Improvements:
+ * - Multiple STUN servers for reliability
+ * - ICE candidate buffering (queue candidates until remote description is set)
+ * - Exponential backoff retry for connection failures
+ * - Connection health monitoring
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+// Enhanced ICE configuration with multiple STUN servers for reliability
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    // Additional reliable STUN servers
+    { urls: "stun:stun.cloudflare.com:3478" },
+    { urls: "stun:stun.stunprotocol.org:3478" },
   ],
+  iceCandidatePoolSize: 10,
+  // Prioritize UDP for lower latency
+  iceTransportPolicy: "all",
+  bundlePolicy: "max-bundle",
+  rtcpMuxPolicy: "require",
 };
+
+// Retry configuration
+const MAX_RECONNECT_ATTEMPTS = 3;
+const INITIAL_RECONNECT_DELAY = 1000; // 1 second
+const HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
 
 interface PeerState {
   connection: RTCPeerConnection;
   viewerId: string;
+  iceCandidateBuffer: RTCIceCandidateInit[];
+  hasRemoteDescription: boolean;
+  reconnectAttempts: number;
+}
+
+interface ViewerPeerState {
+  connection: RTCPeerConnection;
+  iceCandidateBuffer: RTCIceCandidateInit[];
+  hasRemoteDescription: boolean;
 }
 
 /**
@@ -31,15 +62,54 @@ export function useBroadcaster(roomName: string) {
   const [viewerCount, setViewerCount] = useState(0);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [mediaSource, setMediaSource] = useState<"camera" | "screen" | null>(null);
+  const [connectionHealth, setConnectionHealth] = useState<"good" | "degraded" | "poor">("good");
 
   const peersRef = useRef<Map<string, PeerState>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep ref in sync
   useEffect(() => {
     localStreamRef.current = localStream;
   }, [localStream]);
+
+  // Process buffered ICE candidates once remote description is set
+  const processBufferedCandidates = useCallback(async (peer: PeerState) => {
+    if (!peer.hasRemoteDescription) return;
+    
+    for (const candidate of peer.iceCandidateBuffer) {
+      try {
+        await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error("Error adding buffered ICE candidate:", err);
+      }
+    }
+    peer.iceCandidateBuffer = [];
+  }, []);
+
+  // Monitor connection health
+  const checkConnectionHealth = useCallback(() => {
+    const peers = Array.from(peersRef.current.values());
+    if (peers.length === 0) {
+      setConnectionHealth("good");
+      return;
+    }
+
+    let goodConnections = 0;
+    let failedConnections = 0;
+
+    peers.forEach((peer) => {
+      const state = peer.connection.connectionState;
+      if (state === "connected") goodConnections++;
+      if (state === "failed" || state === "disconnected") failedConnections++;
+    });
+
+    const healthRatio = goodConnections / peers.length;
+    if (healthRatio >= 0.8) setConnectionHealth("good");
+    else if (healthRatio >= 0.5) setConnectionHealth("degraded");
+    else setConnectionHealth("poor");
+  }, []);
 
   const createPeerForViewer = useCallback(
     async (viewerId: string) => {
@@ -53,6 +123,14 @@ export function useBroadcaster(roomName: string) {
       }
 
       const pc = new RTCPeerConnection(ICE_SERVERS);
+
+      const peerState: PeerState = {
+        connection: pc,
+        viewerId,
+        iceCandidateBuffer: [],
+        hasRemoteDescription: false,
+        reconnectAttempts: 0,
+      };
 
       // Add all local tracks to the peer connection
       stream.getTracks().forEach((track) => {
@@ -74,30 +152,77 @@ export function useBroadcaster(roomName: string) {
         }
       };
 
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
-          peersRef.current.delete(viewerId);
-          setViewerCount(peersRef.current.size);
+      pc.onicecandidateerror = (event) => {
+        console.warn("ICE candidate error for viewer", viewerId, event);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        if (state === "failed") {
+          // Try ICE restart
+          console.log("ICE connection failed, attempting restart for viewer", viewerId);
+          pc.restartIce();
         }
       };
 
-      peersRef.current.set(viewerId, { connection: pc, viewerId });
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        
+        if (state === "disconnected") {
+          // Give it a moment to recover
+          setTimeout(() => {
+            if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+              const peer = peersRef.current.get(viewerId);
+              if (peer && peer.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                peer.reconnectAttempts++;
+                console.log(`Attempting reconnect ${peer.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} for viewer`, viewerId);
+                // Try to recreate the peer connection
+                setTimeout(() => {
+                  createPeerForViewer(viewerId);
+                }, INITIAL_RECONNECT_DELAY * Math.pow(2, peer.reconnectAttempts - 1));
+              } else {
+                // Give up, remove the peer
+                peersRef.current.delete(viewerId);
+                setViewerCount(peersRef.current.size);
+              }
+            }
+          }, 3000);
+        } else if (state === "failed") {
+          peersRef.current.delete(viewerId);
+          setViewerCount(peersRef.current.size);
+        } else if (state === "connected") {
+          // Reset reconnect attempts on successful connection
+          const peer = peersRef.current.get(viewerId);
+          if (peer) peer.reconnectAttempts = 0;
+        }
+        
+        checkConnectionHealth();
+      };
+
+      peersRef.current.set(viewerId, peerState);
       setViewerCount(peersRef.current.size);
 
       // Create and send offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      try {
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: false,
+          offerToReceiveVideo: false,
+        });
+        await pc.setLocalDescription(offer);
 
-      channelRef.current.send({
-        type: "broadcast",
-        event: "offer",
-        payload: {
-          sdp: pc.localDescription?.toJSON(),
-          targetId: viewerId,
-        },
-      });
+        channelRef.current.send({
+          type: "broadcast",
+          event: "offer",
+          payload: {
+            sdp: pc.localDescription?.toJSON(),
+            targetId: viewerId,
+          },
+        });
+      } catch (err) {
+        console.error("Error creating offer for viewer", viewerId, err);
+      }
     },
-    []
+    [checkConnectionHealth]
   );
 
   const startBroadcasting = useCallback(() => {
@@ -120,6 +245,9 @@ export function useBroadcaster(roomName: string) {
         if (peer && sdp) {
           try {
             await peer.connection.setRemoteDescription(new RTCSessionDescription(sdp));
+            peer.hasRemoteDescription = true;
+            // Process any buffered ICE candidates
+            await processBufferedCandidates(peer);
           } catch (err) {
             console.error("Error setting remote description:", err);
           }
@@ -130,10 +258,15 @@ export function useBroadcaster(roomName: string) {
         if (targetId !== "broadcaster") return;
         const peer = peersRef.current.get(fromId);
         if (peer && candidate) {
-          try {
-            await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (err) {
-            console.error("Error adding ICE candidate:", err);
+          if (peer.hasRemoteDescription) {
+            try {
+              await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+              console.error("Error adding ICE candidate:", err);
+            }
+          } else {
+            // Buffer the candidate until remote description is set
+            peer.iceCandidateBuffer.push(candidate);
           }
         }
       })
@@ -145,6 +278,7 @@ export function useBroadcaster(roomName: string) {
             peer.connection.close();
             peersRef.current.delete(viewerId);
             setViewerCount(peersRef.current.size);
+            checkConnectionHealth();
           }
         }
       })
@@ -152,15 +286,26 @@ export function useBroadcaster(roomName: string) {
 
     channelRef.current = channel;
     setIsBroadcasting(true);
-  }, [roomName, createPeerForViewer]);
+
+    // Start health check interval
+    healthCheckIntervalRef.current = setInterval(checkConnectionHealth, HEALTH_CHECK_INTERVAL);
+  }, [roomName, createPeerForViewer, processBufferedCandidates, checkConnectionHealth]);
 
   const startCamera = useCallback(async () => {
     try {
       // Stop existing stream
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
+        video: { 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
       setLocalStream(stream);
       setMediaSource("camera");
@@ -175,7 +320,11 @@ export function useBroadcaster(roomName: string) {
     try {
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+        },
         audio: true,
       });
       // Handle browser stop-sharing
@@ -193,10 +342,17 @@ export function useBroadcaster(roomName: string) {
   }, []);
 
   const stopBroadcasting = useCallback(() => {
+    // Clear health check interval
+    if (healthCheckIntervalRef.current) {
+      clearInterval(healthCheckIntervalRef.current);
+      healthCheckIntervalRef.current = null;
+    }
+
     // Close all peer connections
     peersRef.current.forEach((peer) => peer.connection.close());
     peersRef.current.clear();
     setViewerCount(0);
+    setConnectionHealth("good");
 
     // Stop local stream
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -214,6 +370,9 @@ export function useBroadcaster(roomName: string) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (healthCheckIntervalRef.current) {
+        clearInterval(healthCheckIntervalRef.current);
+      }
       peersRef.current.forEach((peer) => peer.connection.close());
       peersRef.current.clear();
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -228,6 +387,7 @@ export function useBroadcaster(roomName: string) {
     viewerCount,
     isBroadcasting,
     mediaSource,
+    connectionHealth,
     startCamera,
     startScreenShare,
     startBroadcasting,
@@ -242,10 +402,27 @@ export function useViewer(roomName: string) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [connectionState, setConnectionState] = useState<string>("new");
   const [isConnecting, setIsConnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
-  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const peerStateRef = useRef<ViewerPeerState | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const viewerIdRef = useRef(`viewer-${Math.random().toString(36).substring(2, 10)}`);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Process buffered ICE candidates
+  const processBufferedCandidates = useCallback(async () => {
+    const peerState = peerStateRef.current;
+    if (!peerState || !peerState.hasRemoteDescription) return;
+    
+    for (const candidate of peerState.iceCandidateBuffer) {
+      try {
+        await peerState.connection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error("Error adding buffered ICE candidate:", err);
+      }
+    }
+    peerState.iceCandidateBuffer = [];
+  }, []);
 
   const connect = useCallback(() => {
     if (!roomName) return;
@@ -254,7 +431,13 @@ export function useViewer(roomName: string) {
     const viewerId = viewerIdRef.current;
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
-    pcRef.current = pc;
+    
+    const peerState: ViewerPeerState = {
+      connection: pc,
+      iceCandidateBuffer: [],
+      hasRemoteDescription: false,
+    };
+    peerStateRef.current = peerState;
 
     // Receive remote tracks
     pc.ontrack = (event) => {
@@ -262,13 +445,44 @@ export function useViewer(roomName: string) {
       if (stream) {
         setRemoteStream(stream);
         setIsConnecting(false);
+        setReconnectAttempts(0);
+      }
+    };
+
+    pc.onicecandidateerror = (event) => {
+      console.warn("ICE candidate error:", event);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      const state = pc.iceConnectionState;
+      if (state === "failed") {
+        console.log("ICE connection failed, attempting restart");
+        pc.restartIce();
       }
     };
 
     pc.onconnectionstatechange = () => {
-      setConnectionState(pc.connectionState);
-      if (pc.connectionState === "connected") {
+      const state = pc.connectionState;
+      setConnectionState(state);
+      
+      if (state === "connected") {
         setIsConnecting(false);
+        setReconnectAttempts(0);
+      } else if (state === "failed" || state === "disconnected") {
+        // Attempt reconnection with exponential backoff
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          const delay = INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts);
+          console.log(`Connection ${state}, attempting reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            setReconnectAttempts((prev) => prev + 1);
+            disconnect();
+            connect();
+          }, delay);
+        } else {
+          setIsConnecting(false);
+          setRemoteStream(null);
+        }
       }
     };
 
@@ -283,6 +497,11 @@ export function useViewer(roomName: string) {
 
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+          peerState.hasRemoteDescription = true;
+          
+          // Process any buffered ICE candidates
+          await processBufferedCandidates();
+          
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
 
@@ -302,11 +521,22 @@ export function useViewer(roomName: string) {
         const { candidate, targetId } = msg.payload || {};
         if (targetId !== viewerId || !candidate) return;
 
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-          console.error("Error adding ICE candidate:", err);
+        if (peerState.hasRemoteDescription) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (err) {
+            console.error("Error adding ICE candidate:", err);
+          }
+        } else {
+          // Buffer the candidate until remote description is set
+          peerState.iceCandidateBuffer.push(candidate);
         }
+      })
+      .on("broadcast", { event: "stream-ended" }, () => {
+        // Broadcaster ended the stream
+        setRemoteStream(null);
+        setConnectionState("closed");
+        setIsConnecting(false);
       })
       .subscribe(() => {
         // Once subscribed, signal the broadcaster that we joined
@@ -333,9 +563,15 @@ export function useViewer(roomName: string) {
     };
 
     channelRef.current = channel;
-  }, [roomName]);
+  }, [roomName, reconnectAttempts, processBufferedCandidates]);
 
   const disconnect = useCallback(() => {
+    // Clear any pending reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     if (channelRef.current) {
       channelRef.current.send({
         type: "broadcast",
@@ -345,23 +581,27 @@ export function useViewer(roomName: string) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
+    if (peerStateRef.current) {
+      peerStateRef.current.connection.close();
+      peerStateRef.current = null;
     }
     setRemoteStream(null);
     setConnectionState("new");
     setIsConnecting(false);
+    setReconnectAttempts(0);
   }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
-      if (pcRef.current) {
-        pcRef.current.close();
+      if (peerStateRef.current) {
+        peerStateRef.current.connection.close();
       }
     };
   }, []);
@@ -370,6 +610,7 @@ export function useViewer(roomName: string) {
     remoteStream,
     connectionState,
     isConnecting,
+    reconnectAttempts,
     connect,
     disconnect,
   };
