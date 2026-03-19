@@ -22,6 +22,14 @@ const Signup = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendingVerification, setPendingVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+  // Timeout for Clerk loading
+  useEffect(() => {
+    if (isLoaded) return;
+    const timer = setTimeout(() => setClerkTimedOut(true), 5000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
 
   // Redirect if already signed in
   useEffect(() => {
@@ -144,8 +152,8 @@ const Signup = () => {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Show loading state while Clerk loads
-  if (!isLoaded) {
+  // Show loading state while Clerk loads, but not forever
+  if (!isLoaded && !clerkTimedOut) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="flex items-center gap-2 text-white">
@@ -222,6 +230,11 @@ const Signup = () => {
                 <p className={`text-sm font-semibold ${selectedTemplate.textColor}`}>Using "{selectedTemplate.name}" template</p>
                 <p className={`text-xs ${selectedTemplate.textColor} opacity-70`}>{selectedTemplate.description}</p>
               </div>
+            </div>
+          )}
+          {clerkTimedOut && !isLoaded && (
+            <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
+              Authentication service is taking longer than expected to load. Please refresh the page or try again later.
             </div>
           )}
           <p className="text-muted-foreground mb-6">Already have an account? <Link to="/login" className="text-primary font-medium hover:underline">Log in</Link></p>

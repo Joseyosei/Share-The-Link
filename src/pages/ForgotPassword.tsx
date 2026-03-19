@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, ArrowLeft, Loader2, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,14 @@ const ForgotPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+  // Timeout for Clerk loading
+  useEffect(() => {
+    if (isLoaded) return;
+    const timer = setTimeout(() => setClerkTimedOut(true), 5000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,8 +151,8 @@ const ForgotPassword = () => {
     }
   };
 
-  // Show loading state while Clerk loads
-  if (!isLoaded) {
+  // Show loading state while Clerk loads, but not forever
+  if (!isLoaded && !clerkTimedOut) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="flex items-center gap-2 text-white">
