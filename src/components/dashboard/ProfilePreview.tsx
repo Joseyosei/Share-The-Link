@@ -18,7 +18,7 @@ export const ProfilePreview = ({ username, fullName, bio, links }: ProfilePrevie
   const activeLinks = links.filter((link) => link.isActive);
 
   return (
-    <div className="sticky top-8">
+    <div>
       <h3 className="text-lg font-semibold text-foreground mb-4">Live Preview</h3>
       
       {/* Phone Frame */}
