@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, ArrowLeft, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Lock, ArrowLeft, Eye, EyeOff, CheckCircle, Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,14 @@ import { supabase } from "@/integrations/supabase/client";
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Step 1: Request reset email
+  const [email, setEmail] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  
+  // Step 2: Set new password (when user clicks the reset link)
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmPassword: "",
@@ -18,21 +26,29 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Check if user came from a password reset link (they'll have a session)
+  // Check if user came from a password reset link
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      // Check URL hash for recovery token (Supabase sends this in the URL)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const type = hashParams.get("type");
+      
+      if (type === "recovery" && accessToken) {
+        // User clicked the reset link - they have a recovery session
+        setIsRecoveryMode(true);
+      }
+      
       setCheckingAuth(false);
     };
     
     // Listen for auth state changes (including recovery tokens)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
-        setIsAuthenticated(true);
+        setIsRecoveryMode(true);
       }
       setCheckingAuth(false);
     });
@@ -41,6 +57,49 @@ const ForgotPassword = () => {
     
     return () => subscription.unsubscribe();
   }, []);
+
+  // Handle sending password reset email
+  const handleSendResetEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError("");
+    
+    if (!email) {
+      setEmailError("Please enter your email address");
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
+    setSendingEmail(true);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/forgot-password`,
+    });
+    
+    setSendingEmail(false);
+    
+    if (error) {
+      // Don't reveal if email exists or not for security
+      if (error.message.includes("rate limit")) {
+        setEmailError("Too many requests. Please wait a few minutes and try again.");
+      } else {
+        // Always show success even if email doesn't exist (security best practice)
+        setEmailSent(true);
+      }
+      return;
+    }
+    
+    setEmailSent(true);
+    toast({
+      title: "Check your email",
+      description: "We've sent you a password reset link.",
+    });
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -79,6 +138,9 @@ const ForgotPassword = () => {
       return;
     }
     
+    // Sign out the user so they can log in with new password
+    await supabase.auth.signOut();
+    
     setIsSuccess(true);
     toast({
       title: "Password updated!",
@@ -97,13 +159,13 @@ const ForgotPassword = () => {
   if (checkingAuth) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-foreground"></div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary-foreground" />
       </div>
     );
   }
 
-  // If not authenticated, show message to use login page
-  if (!isAuthenticated && !isSuccess) {
+  // Step 1: Request password reset email
+  if (!isRecoveryMode && !emailSent) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -114,24 +176,54 @@ const ForgotPassword = () => {
           </div>
 
           <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Reset Password</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Forgot Password?</h1>
             <p className="text-muted-foreground mb-6">
-              To reset your password, please log in first and then update your password from your account settings.
+              Enter your email address and we'll send you a link to reset your password.
             </p>
             
-            <Button
-              asChild
-              className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
-            >
-              <Link to="/login">Go to Login</Link>
-            </Button>
+            {emailError && (
+              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
+                {emailError}
+              </div>
+            )}
+
+            <form onSubmit={handleSendResetEmail} className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError("");
+                  }}
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={sendingEmail}
+                className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
+              >
+                {sendingEmail ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Reset Link"
+                )}
+              </Button>
+            </form>
 
             <Link
-              to="/"
+              to="/login"
               className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to home
+              Back to login
             </Link>
           </div>
         </div>
@@ -139,6 +231,61 @@ const ForgotPassword = () => {
     );
   }
 
+  // Step 1b: Email sent confirmation
+  if (!isRecoveryMode && emailSent) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/">
+              <Logo textClassName="text-primary-foreground" />
+            </Link>
+          </div>
+
+          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Mail className="w-10 h-10 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Check Your Email</h1>
+            <p className="text-muted-foreground mb-6">
+              We've sent a password reset link to <strong>{email}</strong>. 
+              Click the link in the email to reset your password.
+            </p>
+            
+            <div className="bg-muted rounded-xl p-4 mb-6 text-sm text-muted-foreground">
+              <p className="mb-2">Didn't receive the email?</p>
+              <ul className="text-left space-y-1">
+                <li>- Check your spam or junk folder</li>
+                <li>- Make sure you entered the correct email</li>
+                <li>- Wait a few minutes and try again</li>
+              </ul>
+            </div>
+            
+            <Button
+              onClick={() => {
+                setEmailSent(false);
+                setEmail("");
+              }}
+              variant="outline"
+              className="w-full py-6 text-lg font-semibold"
+            >
+              Try a different email
+            </Button>
+
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: User clicked reset link - show password reset form
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -212,10 +359,10 @@ const ForgotPassword = () => {
                   <p className="text-sm font-medium text-foreground mb-2">Password requirements:</p>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li className={formData.newPassword.length >= 8 ? "text-green-600" : ""}>
-                      • At least 8 characters
+                      - At least 8 characters
                     </li>
                     <li className={formData.newPassword === formData.confirmPassword && formData.confirmPassword ? "text-green-600" : ""}>
-                      • Passwords match
+                      - Passwords match
                     </li>
                   </ul>
                 </div>
@@ -225,7 +372,14 @@ const ForgotPassword = () => {
                   disabled={isLoading}
                   className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
                 >
-                  {isLoading ? "Updating..." : "Reset Password"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Reset Password"
+                  )}
                 </Button>
               </form>
             </>

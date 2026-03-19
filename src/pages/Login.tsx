@@ -47,7 +47,16 @@ const Login = () => {
     setIsLoading(false);
     
     if (authError) {
-      setError(authError.message);
+      // Provide user-friendly error messages
+      if (authError.message.includes("Invalid login credentials")) {
+        setError("Invalid email or password. Please check your credentials and try again.");
+      } else if (authError.message.includes("Email not confirmed")) {
+        setError("Please verify your email address before logging in. Check your inbox for a confirmation link.");
+      } else if (authError.message.includes("Too many requests")) {
+        setError("Too many login attempts. Please wait a few minutes and try again.");
+      } else {
+        setError(authError.message);
+      }
       return;
     }
     
