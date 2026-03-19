@@ -169,6 +169,22 @@ const DashboardSettings = () => {
 
     setIsLoading(true);
     try {
+      // First, verify the current password by re-authenticating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("User not found");
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordData.currentPassword,
+      });
+
+      if (signInError) {
+        setPasswordErrors({ currentPassword: "Current password is incorrect" });
+        setIsLoading(false);
+        return;
+      }
+
+      // Now update the password
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       });

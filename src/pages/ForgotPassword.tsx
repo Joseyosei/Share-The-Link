@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, ArrowLeft, Eye, EyeOff, CheckCircle, Mail, Loader2 } from "lucide-react";
+import { Lock, ArrowLeft, Eye, EyeOff, CheckCircle, Mail, Loader2, AlertCircle, HelpCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ const ForgotPassword = () => {
   const [emailSent, setEmailSent] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
   
   // Step 2: Set new password (when user clicks the reset link)
   const [formData, setFormData] = useState({
@@ -58,6 +59,14 @@ const ForgotPassword = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
   // Handle sending password reset email
   const handleSendResetEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +96,9 @@ const ForgotPassword = () => {
       // Don't reveal if email exists or not for security
       if (error.message.includes("rate limit")) {
         setEmailError("Too many requests. Please wait a few minutes and try again.");
+      } else if (error.message.includes("Email rate limit exceeded")) {
+        setEmailError("Email rate limit exceeded. Please wait 60 seconds before trying again.");
+        setResendCooldown(60);
       } else {
         // Always show success even if email doesn't exist (security best practice)
         setEmailSent(true);
@@ -95,9 +107,41 @@ const ForgotPassword = () => {
     }
     
     setEmailSent(true);
+    setResendCooldown(60); // 60 second cooldown for resend
     toast({
       title: "Check your email",
       description: "We've sent you a password reset link.",
+    });
+  };
+
+  // Handle resending the email
+  const handleResendEmail = async () => {
+    if (resendCooldown > 0) return;
+    
+    setSendingEmail(true);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/forgot-password`,
+    });
+    
+    setSendingEmail(false);
+    
+    if (error) {
+      if (error.message.includes("rate limit") || error.message.includes("Email rate limit")) {
+        toast({
+          title: "Rate limited",
+          description: "Please wait a minute before requesting another email.",
+          variant: "destructive",
+        });
+        setResendCooldown(60);
+      }
+      return;
+    }
+    
+    setResendCooldown(60);
+    toast({
+      title: "Email resent",
+      description: "We've sent another password reset link to your email.",
     });
   };
 
@@ -182,8 +226,9 @@ const ForgotPassword = () => {
             </p>
             
             {emailError && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
-                {emailError}
+              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                <span>{emailError}</span>
               </div>
             )}
 
@@ -217,6 +262,22 @@ const ForgotPassword = () => {
                 )}
               </Button>
             </form>
+
+            {/* Help section */}
+            <div className="mt-6 pt-6 border-t border-border">
+              <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                <HelpCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-foreground mb-1">Need help?</p>
+                  <p>
+                    If you're having trouble resetting your password, please contact us at{" "}
+                    <a href="mailto:support@sharethelink.io" className="text-primary hover:underline">
+                      support@sharethelink.io
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <Link
               to="/login"
@@ -252,25 +313,67 @@ const ForgotPassword = () => {
               Click the link in the email to reset your password.
             </p>
             
-            <div className="bg-muted rounded-xl p-4 mb-6 text-sm text-muted-foreground">
-              <p className="mb-2">Didn't receive the email?</p>
-              <ul className="text-left space-y-1">
+            <div className="bg-muted rounded-xl p-4 mb-6 text-sm text-muted-foreground text-left">
+              <p className="mb-2 font-medium">Didn't receive the email?</p>
+              <ul className="space-y-1">
                 <li>- Check your spam or junk folder</li>
                 <li>- Make sure you entered the correct email</li>
                 <li>- Wait a few minutes and try again</li>
               </ul>
             </div>
+
+            {/* Resend button */}
+            <Button
+              onClick={handleResendEmail}
+              disabled={sendingEmail || resendCooldown > 0}
+              variant="outline"
+              className="w-full py-6 text-lg font-semibold mb-3"
+            >
+              {sendingEmail ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : resendCooldown > 0 ? (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Resend in {resendCooldown}s
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Resend Email
+                </>
+              )}
+            </Button>
             
             <Button
               onClick={() => {
                 setEmailSent(false);
                 setEmail("");
               }}
-              variant="outline"
+              variant="ghost"
               className="w-full py-6 text-lg font-semibold"
             >
               Try a different email
             </Button>
+
+            {/* Help section */}
+            <div className="mt-6 pt-6 border-t border-border">
+              <div className="flex items-start gap-3 text-sm text-muted-foreground text-left">
+                <HelpCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-foreground mb-1">Still not receiving emails?</p>
+                  <p>
+                    Contact our support team at{" "}
+                    <a href="mailto:support@sharethelink.io" className="text-primary hover:underline">
+                      support@sharethelink.io
+                    </a>{" "}
+                    and we'll help you regain access to your account.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <Link
               to="/login"
