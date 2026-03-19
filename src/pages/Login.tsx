@@ -17,6 +17,16 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+  // Timeout for Clerk loading - show form with error after 5 seconds
+  useEffect(() => {
+    if (isLoaded) return;
+    const timer = setTimeout(() => {
+      setClerkTimedOut(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
 
   // Redirect if already signed in
   useEffect(() => {
@@ -83,8 +93,8 @@ const Login = () => {
     if (error) setError("");
   };
 
-  // Show loading state while Clerk loads
-  if (!isLoaded) {
+  // Show loading state while Clerk loads, but not forever
+  if (!isLoaded && !clerkTimedOut) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="flex items-center gap-2 text-white">
@@ -104,6 +114,11 @@ const Login = () => {
         <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back</h1>
           <p className="text-muted-foreground mb-6">Don't have an account? <Link to="/signup" className="text-primary font-medium hover:underline">Sign up</Link></p>
+          {clerkTimedOut && !isLoaded && (
+            <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
+              Authentication service is taking longer than expected to load. Please refresh the page or try again later.
+            </div>
+          )}
           {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">

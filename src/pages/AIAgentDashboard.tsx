@@ -1,14 +1,15 @@
 // AI Agent Dashboard for Link Distribution
-// Creator Dashboard to manage AI-powered link sharing
+// Creator Dashboard to manage AI-powered link sharing via webhooks (Make.com / n8n)
 
 import { useState, useEffect } from 'react';
-import { 
-  Zap, TrendingUp, Settings, 
-  CheckCircle, XCircle, BarChart3, Link as LinkIcon, Loader2
+import {
+  Zap, TrendingUp, Settings,
+  CheckCircle, XCircle, BarChart3, Link as LinkIcon, Loader2, Webhook, Globe
 } from 'lucide-react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { MobileSidebar } from '@/components/dashboard/MobileSidebar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,8 +18,9 @@ import { createLinkDistributionAgent, type Platform, type LinkToShare } from '@/
 
 interface PlatformStatus {
   name: string;
+  label: string;
   enabled: boolean;
-  configured: boolean;
+  webhookUrl: string;
   shares_today: number;
 }
 
@@ -38,19 +40,27 @@ interface LinkOption {
   url: string;
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+  twitter: 'Twitter / X',
+  linkedin: 'LinkedIn',
+  facebook: 'Facebook',
+  webhook: 'Custom Webhook (Make.com / n8n)',
+};
+
 const AIAgentDashboard = () => {
   const { toast } = useToast();
   const [platforms, setPlatforms] = useState<PlatformStatus[]>([
-    { name: 'openclaw', enabled: false, configured: false, shares_today: 0 },
-    { name: 'clawdbot', enabled: false, configured: false, shares_today: 0 },
-    { name: 'moltbot', enabled: false, configured: false, shares_today: 0 },
+    { name: 'twitter', label: 'Twitter / X', enabled: false, webhookUrl: '', shares_today: 0 },
+    { name: 'linkedin', label: 'LinkedIn', enabled: false, webhookUrl: '', shares_today: 0 },
+    { name: 'facebook', label: 'Facebook', enabled: false, webhookUrl: '', shares_today: 0 },
+    { name: 'webhook', label: 'Custom Webhook', enabled: false, webhookUrl: '', shares_today: 0 },
   ]);
   const [recentShares, setRecentShares] = useState<ShareRecord[]>([]);
-  const [analytics, setAnalytics] = useState({ total: 0, successful: 0, clicks: 0 });
   const [selectedLink, setSelectedLink] = useState<string>('');
   const [availableLinks, setAvailableLinks] = useState<LinkOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [distributing, setDistributing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -72,20 +82,31 @@ const AIAgentDashboard = () => {
 
       setAvailableLinks(links || []);
 
-      // For demo purposes, set some mock analytics
-      // In production, these would come from actual link_shares table
-      setAnalytics({
-        total: 0,
-        successful: 0,
-        clicks: 0,
-      });
-
+      // Load saved webhook settings from localStorage
+      const savedSettings = localStorage.getItem(`ai-agent-settings-${user.id}`);
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setPlatforms(prev => prev.map(p => {
+            const saved = parsed.find((s: any) => s.name === p.name);
+            return saved ? { ...p, enabled: saved.enabled, webhookUrl: saved.webhookUrl || '' } : p;
+          }));
+        } catch { /* ignore parse errors */ }
+      }
     } catch (err) {
-      console.error('[v0] Dashboard load error:', err);
+      console.error('Dashboard load error:', err);
       toast({ title: 'Error', description: 'Failed to load dashboard data', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
+  };
+
+  const savePlatformSettings = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    localStorage.setItem(`ai-agent-settings-${user.id}`, JSON.stringify(platforms));
+    toast({ title: 'Settings saved', description: 'Platform settings have been saved.' });
+    setShowSettings(false);
   };
 
   const handleDistributeLink = async () => {
@@ -102,26 +123,28 @@ const AIAgentDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get enabled platforms
+      // Build platforms with webhook URLs
       const enabledPlatforms: Platform[] = platforms
-        .filter(p => p.enabled && p.configured)
+        .filter(p => p.enabled && (p.webhookUrl || p.name !== 'webhook'))
         .map(p => ({
           name: p.name as Platform['name'],
-          apiKey: '', // Would come from secure storage in production
+          apiKey: '',
           enabled: true,
+          webhookUrl: p.webhookUrl || undefined,
         }));
 
       if (enabledPlatforms.length === 0) {
-        toast({ 
-          title: 'No platforms configured', 
-          description: 'Please configure at least one platform in the settings',
-          variant: 'destructive' 
+        toast({
+          title: 'No platforms configured',
+          description: 'Enable at least one platform and add a webhook URL in Settings.',
+          variant: 'destructive',
         });
+        setDistributing(false);
         return;
       }
 
       const agent = createLinkDistributionAgent(enabledPlatforms);
-      
+
       const linkToShare: LinkToShare = {
         id: link.id,
         url: link.url,
@@ -131,18 +154,27 @@ const AIAgentDashboard = () => {
       };
 
       const results = await agent.distributeLink(linkToShare);
-      
-      const successful = results.filter(r => r.success).length;
-      toast({ 
-        title: 'Distribution complete', 
-        description: `Successfully shared to ${successful} of ${results.length} platforms` 
-      });
-      
-      setSelectedLink('');
-      loadDashboardData();
 
+      // Add to recent shares
+      const newShares: ShareRecord[] = results.map(r => ({
+        id: `${Date.now()}-${r.platform}`,
+        link_title: link.title,
+        platform: PLATFORM_LABELS[r.platform] || r.platform,
+        success: r.success,
+        shared_at: new Date().toISOString(),
+        error: r.error,
+      }));
+      setRecentShares(prev => [...newShares, ...prev]);
+
+      const successful = results.filter(r => r.success).length;
+      toast({
+        title: 'Distribution complete',
+        description: `Successfully shared to ${successful} of ${results.length} platform${results.length !== 1 ? 's' : ''}`,
+      });
+
+      setSelectedLink('');
     } catch (err: any) {
-      console.error('[v0] Distribution error:', err);
+      console.error('Distribution error:', err);
       toast({ title: 'Error', description: err?.message || 'Failed to distribute link', variant: 'destructive' });
     } finally {
       setDistributing(false);
@@ -150,20 +182,25 @@ const AIAgentDashboard = () => {
   };
 
   const togglePlatform = (platformName: string) => {
-    setPlatforms(prev => prev.map(p => 
-      p.name === platformName 
-        ? { ...p, enabled: !p.enabled, configured: true }
-        : p
+    setPlatforms(prev => prev.map(p =>
+      p.name === platformName ? { ...p, enabled: !p.enabled } : p
+    ));
+  };
+
+  const updateWebhookUrl = (platformName: string, url: string) => {
+    setPlatforms(prev => prev.map(p =>
+      p.name === platformName ? { ...p, webhookUrl: url } : p
     ));
   };
 
   const enabledCount = platforms.filter(p => p.enabled).length;
+  const successfulShares = recentShares.filter(s => s.success).length;
 
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar />
       <MobileSidebar />
-      
+
       <main className="flex-1 p-4 md:p-8 md:ml-64">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Header */}
@@ -175,27 +212,70 @@ const AIAgentDashboard = () => {
                   <h1 className="text-2xl md:text-3xl font-bold">AI Distribution Agent</h1>
                 </div>
                 <p className="text-purple-100">
-                  Automatically share your links across platforms with AI-optimized content
+                  Share your links across platforms via webhooks. Connect to Make.com or n8n for full automation.
                 </p>
               </div>
-              <Button variant="secondary" className="shrink-0">
+              <Button variant="secondary" className="shrink-0" onClick={() => setShowSettings(!showSettings)}>
                 <Settings className="w-4 h-4 mr-2" />
-                Settings
+                {showSettings ? 'Close Settings' : 'Settings'}
               </Button>
             </div>
           </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <Card className="border-2 border-purple-200 dark:border-purple-900">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Webhook className="w-5 h-5 text-purple-600" />
+                  Webhook Configuration
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Add your Make.com or n8n webhook URLs below. Each platform will send link data to its webhook for automated posting.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {platforms.map(platform => (
+                  <div key={platform.name} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3 min-w-[160px]">
+                      <button
+                        onClick={() => togglePlatform(platform.name)}
+                        className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${
+                          platform.enabled ? 'bg-green-500' : 'bg-muted-foreground/30'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow ${
+                          platform.enabled ? 'left-[18px]' : 'left-0.5'
+                        }`} />
+                      </button>
+                      <span className="font-medium text-sm">{platform.label}</span>
+                    </div>
+                    <Input
+                      placeholder="https://hook.make.com/... or https://n8n.example.com/webhook/..."
+                      value={platform.webhookUrl}
+                      onChange={(e) => updateWebhookUrl(platform.name, e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                ))}
+                <Button onClick={savePlatformSettings} className="gradient-button text-primary-foreground">
+                  Save Settings
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Analytics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-muted-foreground font-medium">Total Shares (30d)</h3>
+                  <h3 className="text-muted-foreground font-medium">Total Shares</h3>
                   <BarChart3 className="w-5 h-5 text-purple-600" />
                 </div>
-                <p className="text-3xl font-bold">{analytics.total}</p>
+                <p className="text-3xl font-bold">{recentShares.length}</p>
                 <p className="text-sm text-green-600 mt-2">
-                  {analytics.successful} successful
+                  {successfulShares} successful
                 </p>
               </CardContent>
             </Card>
@@ -203,14 +283,14 @@ const AIAgentDashboard = () => {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-muted-foreground font-medium">Click-Through Rate</h3>
+                  <h3 className="text-muted-foreground font-medium">Success Rate</h3>
                   <TrendingUp className="w-5 h-5 text-pink-600" />
                 </div>
                 <p className="text-3xl font-bold">
-                  {analytics.total > 0 ? Math.round((analytics.clicks / analytics.total) * 100) : 0}%
+                  {recentShares.length > 0 ? Math.round((successfulShares / recentShares.length) * 100) : 0}%
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {analytics.clicks} total clicks
+                  this session
                 </p>
               </CardContent>
             </Card>
@@ -272,9 +352,16 @@ const AIAgentDashboard = () => {
                       )}
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Will post to {enabledCount} enabled platform{enabledCount !== 1 ? 's' : ''} with AI-optimized content
-                  </p>
+                  {enabledCount === 0 && (
+                    <p className="text-sm text-amber-600 mt-3">
+                      No platforms enabled. Click Settings above to configure webhook URLs.
+                    </p>
+                  )}
+                  {enabledCount > 0 && (
+                    <p className="text-sm text-muted-foreground mt-3">
+                      Will post to {enabledCount} enabled platform{enabledCount !== 1 ? 's' : ''} via webhook
+                    </p>
+                  )}
                 </>
               )}
             </CardContent>
@@ -286,7 +373,7 @@ const AIAgentDashboard = () => {
               <CardTitle>Platform Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {platforms.map(platform => (
                   <div
                     key={platform.name}
@@ -297,25 +384,16 @@ const AIAgentDashboard = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-bold capitalize">{platform.name}</h3>
-                      <button
-                        onClick={() => togglePlatform(platform.name)}
-                        className={`w-12 h-6 rounded-full transition-all relative ${
-                          platform.enabled ? 'bg-green-500' : 'bg-muted'
-                        }`}
-                      >
-                        <div
-                          className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow ${
-                            platform.enabled ? 'left-6' : 'left-0.5'
-                          }`}
-                        />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <h3 className="font-bold">{platform.label}</h3>
+                      </div>
+                      <Badge variant={platform.enabled ? "default" : "secondary"}>
+                        {platform.enabled ? 'Active' : 'Paused'}
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {platform.enabled ? 'Active' : 'Paused'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {platform.shares_today} shares today
+                    <p className="text-xs text-muted-foreground truncate">
+                      {platform.webhookUrl || 'No webhook URL configured'}
                     </p>
                   </div>
                 ))}
@@ -359,16 +437,6 @@ const AIAgentDashboard = () => {
                           )}
                         </div>
                       </div>
-                      {share.post_url && (
-                        <a
-                          href={share.post_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-all shrink-0"
-                        >
-                          View Post
-                        </a>
-                      )}
                     </div>
                   ))}
                 </div>

@@ -48,6 +48,7 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
   const [clientNotes, setClientNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(false);
+  const [bookingError, setBookingError] = useState("");
   const [calMonth, setCalMonth] = useState(new Date());
 
   useEffect(() => {
@@ -131,8 +132,26 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
   const handleBook = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientEmail) return;
     setSubmitting(true);
+    setBookingError("");
     try {
       const dateStr = selectedDate.toISOString().split("T")[0];
+
+      // Check for duplicate booking
+      const { data: existing } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("creator_id", creatorId)
+        .eq("booking_date", dateStr)
+        .eq("booking_time", selectedTime)
+        .in("status", ["pending", "confirmed"])
+        .maybeSingle();
+
+      if (existing) {
+        setBookingError("This time slot has already been booked. Please select a different time.");
+        setSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.from("bookings").insert({
         creator_id: creatorId,
         service_id: selectedService.id,
@@ -149,8 +168,9 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
       });
       if (error) throw error;
       setBooked(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Booking error:", err);
+      setBookingError(err?.message || "Failed to create booking. Please try again.");
     }
     setSubmitting(false);
   };
@@ -357,6 +377,9 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
               </span>
             </div>
           </div>
+          {bookingError && (
+            <div className="bg-destructive/10 text-destructive text-sm rounded-lg p-3 mb-2">{bookingError}</div>
+          )}
           <Button onClick={handleBook} disabled={submitting} className="w-full gradient-button text-primary-foreground" size="sm">
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Booking"}
           </Button>
