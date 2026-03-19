@@ -188,18 +188,30 @@ const DashboardBookings = () => {
   };
 
   const handleDeleteService = async (id: string) => {
-    await supabase.from("booking_services").delete().eq("id", id);
+    const { error } = await supabase.from("booking_services").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message || "Failed to delete service", variant: "destructive" });
+      return;
+    }
     setServices((prev) => prev.filter((s) => s.id !== id));
     toast({ title: "Service deleted" });
   };
 
   const handleToggleService = async (id: string, isActive: boolean) => {
-    await supabase.from("booking_services").update({ is_active: !isActive }).eq("id", id);
+    const { error } = await supabase.from("booking_services").update({ is_active: !isActive }).eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message || "Failed to update service", variant: "destructive" });
+      return;
+    }
     setServices((prev) => prev.map((s) => s.id === id ? { ...s, is_active: !isActive } : s));
   };
 
   const handleUpdateBookingStatus = async (id: string, status: string) => {
-    await supabase.from("bookings").update({ status }).eq("id", id);
+    const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message || "Failed to update booking", variant: "destructive" });
+      return;
+    }
     setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
     toast({ title: `Booking ${status}` });
   };

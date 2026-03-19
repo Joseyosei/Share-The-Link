@@ -12,7 +12,7 @@ const supabaseAdmin = createClient(
 
 // Configuration for video uploads
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const MAX_DURATION = 180; // 3 minutes in seconds
+const MAX_DURATION = 10800; // 3 hours in seconds (supports stream recordings)
 const ALLOWED_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-m4v"];
 
 export const config = {

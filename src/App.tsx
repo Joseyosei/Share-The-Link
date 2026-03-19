@@ -61,10 +61,9 @@ function AppRoutes() {
   return (
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY || ""}
-      routerPush={(to) => navigate(to)}
-      routerReplace={(to) => navigate(to, { replace: true })}
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/dashboard"
+      navigate={(to) => navigate(to)}
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
       signInUrl="/login"
       signUpUrl="/signup"
     >

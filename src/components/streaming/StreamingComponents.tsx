@@ -24,10 +24,12 @@ export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, 
   const loading = isLoading ?? fallback.loading;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    setError("");
 
     try {
       const data = await createStream(title, description);
@@ -35,8 +37,8 @@ export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, 
       onClose();
       setTitle("");
       setDescription("");
-    } catch (error) {
-      // Error handled in hook
+    } catch (err: any) {
+      setError(err?.message || "Failed to create stream. Please try again.");
     }
   };
 
@@ -70,6 +72,9 @@ export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, 
               rows={3}
             />
           </div>
+          {error && (
+            <div className="bg-destructive/10 text-destructive text-sm rounded-lg p-3">{error}</div>
+          )}
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
@@ -111,6 +116,19 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
   const [micEnabled, setMicEnabled] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamTitleRef = useRef("");
+
+  // Fetch stream title for recording label
+  useEffect(() => {
+    if (!streamId) return;
+    supabase
+      .from("streams" as any)
+      .select("title")
+      .eq("id", streamId)
+      .single()
+      .then(({ data }) => {
+        if (data?.title) streamTitleRef.current = data.title;
+      });
+  }, [streamId]);
 
   const toggleMic = useCallback(() => {
     if (broadcaster.localStream) {
