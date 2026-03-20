@@ -4,7 +4,7 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lu
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
-import { useSignUp, useAuth } from "@clerk/clerk-react";
+import { useSignUp, useSignIn, useAuth } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
 
@@ -15,6 +15,7 @@ const Signup = () => {
   const selectedTemplate = templateId ? TEMPLATES.find((t) => t.id === templateId) : null;
   const { toast } = useToast();
   const { isLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn();
   const { isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -131,22 +132,41 @@ const Signup = () => {
   const activateAndRedirect = async () => {
     if (!signUp) return;
     try {
+      // Try to reload signUp to get the latest state
+      try { await signUp.reload(); } catch { /* ignore reload errors */ }
+
       if (signUp.createdSessionId) {
         await setActive({ session: signUp.createdSessionId });
+        if (selectedTemplate) {
+          toast({
+            title: "Account created!",
+            description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
+          });
+        } else {
+          toast({ title: "Account created!", description: "Welcome to Share The Link." });
+        }
+        window.location.href = "/dashboard";
+        return;
       }
-      if (selectedTemplate) {
-        toast({
-          title: "Account created!",
-          description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
+
+      // No session from signUp — try auto-sign-in with the credentials
+      if (signInLoaded && signIn && formData.email && formData.password) {
+        const result = await signIn.create({
+          identifier: formData.email,
+          password: formData.password,
         });
-      } else {
-        toast({ title: "Account created!", description: "Welcome to Share The Link." });
+        if (result.status === "complete" && result.createdSessionId) {
+          await setSignInActive({ session: result.createdSessionId });
+          toast({ title: "Account created!", description: "Welcome to Share The Link." });
+          window.location.href = "/dashboard";
+          return;
+        }
       }
-      // Use window.location for a hard redirect to ensure Clerk session is
-      // fully initialized before ProtectedRoute checks isSignedIn.
-      window.location.href = "/dashboard";
+
+      // Fallback: redirect to login
+      toast({ title: "Account created!", description: "Please log in to continue." });
+      window.location.href = "/login";
     } catch {
-      // If setActive fails, send them to login
       window.location.href = "/login";
     }
   };
@@ -172,13 +192,16 @@ const Signup = () => {
         setErrors({ email: "Verification incomplete. Please try again." });
       }
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
+      const clerkError = err as { errors?: Array<{ message: string; code: string; longMessage?: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "Invalid verification code";
       const errorCode = clerkError.errors?.[0]?.code;
+      const longMessage = clerkError.errors?.[0]?.longMessage || "";
+      const combined = `${errorMessage} ${longMessage} ${errorCode || ""}`.toLowerCase();
 
-      // If email is already verified, the signUp may already be complete
+      // If email is already verified or signup is complete, activate session
       if (
-        errorMessage.toLowerCase().includes("already verified") ||
+        combined.includes("already verified") ||
+        combined.includes("verified") ||
         errorCode === "form_identifier_exists" ||
         signUp.status === "complete"
       ) {
@@ -186,7 +209,7 @@ const Signup = () => {
         return;
       }
 
-      if (errorCode === "too_many_requests" || errorMessage.toLowerCase().includes("too many")) {
+      if (errorCode === "too_many_requests" || combined.includes("too many")) {
         setErrors({ email: "Too many attempts. Please wait 30 seconds before trying again." });
       } else if (errorCode === "form_code_incorrect") {
         setErrors({ email: "Incorrect verification code. Please check and try again." });
