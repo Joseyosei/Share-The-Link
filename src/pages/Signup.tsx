@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
-import { useSignUp, useSignIn, useAuth } from "@clerk/clerk-react";
+import { useSignUp, useAuth } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
 
@@ -15,13 +15,17 @@ const Signup = () => {
   const selectedTemplate = templateId ? TEMPLATES.find((t) => t.id === templateId) : null;
   const { toast } = useToast();
   const { isLoaded, signUp, setActive } = useSignUp();
-  const { isLoaded: signInLoaded, signIn, setActive: setSignInActive } = useSignIn();
   const { isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", username: "", email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+  const verifyingRef = useRef(false);
 
   // Timeout for Clerk loading
   useEffect(() => {
@@ -36,6 +40,13 @@ const Signup = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [isSignedIn, navigate]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -87,8 +98,19 @@ const Signup = () => {
         },
       });
 
-      // No email verification — directly activate and redirect
-      await activateAndRedirect();
+      // Check if signup is complete (no verification required)
+      if (signUp.status === "complete" && signUp.createdSessionId) {
+        await setActive({ session: signUp.createdSessionId });
+        showWelcomeToast();
+        window.location.href = "/dashboard";
+        return;
+      }
+
+      // Email verification is required — prepare and show verification UI
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setPendingVerification(true);
+      setResendCooldown(30);
+      toast({ title: "Verification code sent", description: "Check your email for the code." });
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ message: string; code: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "An error occurred during sign up";
@@ -106,58 +128,66 @@ const Signup = () => {
     }
   };
 
-  const activateAndRedirect = async () => {
-    if (!signUp) {
-      window.location.href = "/login";
-      return;
+  const showWelcomeToast = () => {
+    if (selectedTemplate) {
+      toast({
+        title: "Account created!",
+        description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
+      });
+    } else {
+      toast({ title: "Account created!", description: "Welcome to Share The Link." });
     }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded || !signUp || verifyingRef.current) return;
+    verifyingRef.current = true;
+    setIsLoading(true);
+    setErrors({});
+
     try {
-      // Try to reload signUp to get the latest state
-      try { await signUp.reload(); } catch { /* ignore reload errors */ }
+      const result = await signUp.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
 
-      if (signUp.createdSessionId) {
-        await setActive({ session: signUp.createdSessionId });
-        if (selectedTemplate) {
-          toast({
-            title: "Account created!",
-            description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
-          });
-        } else {
-          toast({ title: "Account created!", description: "Welcome to Share The Link." });
-        }
+      if (result.status === "complete" && result.createdSessionId) {
+        await setActive({ session: result.createdSessionId });
+        showWelcomeToast();
         window.location.href = "/dashboard";
-        return;
+      } else {
+        setErrors({ verification: "Verification incomplete. Please try again." });
       }
-
-      // No session from signUp — try auto-sign-in with the credentials
-      if (signInLoaded && signIn && formData.email && formData.password) {
-        try {
-          const result = await signIn.create({
-            identifier: formData.email,
-            password: formData.password,
-          });
-          if (result.status === "complete" && result.createdSessionId) {
-            await setSignInActive({ session: result.createdSessionId });
-            toast({ title: "Account created!", description: "Welcome to Share The Link." });
-            window.location.href = "/dashboard";
-            return;
-          }
-          // If sign-in needs additional factors, redirect to login
-          if (result.status === "needs_first_factor" || result.status === "needs_second_factor") {
-            toast({ title: "Account created!", description: "Please log in to continue." });
-            window.location.href = "/login";
-            return;
-          }
-        } catch {
-          // Sign-in attempt failed — fall through to login redirect
-        }
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
+      const errorMessage = clerkError.errors?.[0]?.message || "Invalid code";
+      const errorCode = clerkError.errors?.[0]?.code;
+      if (errorCode === "form_code_incorrect") {
+        setErrors({ verification: "Incorrect verification code. Please try again." });
+      } else if (errorMessage.toLowerCase().includes("too many")) {
+        setErrors({ verification: "Too many attempts. Please wait before trying again." });
+      } else {
+        setErrors({ verification: errorMessage });
       }
+    } finally {
+      setIsLoading(false);
+      verifyingRef.current = false;
+    }
+  };
 
-      // Fallback: redirect to login
-      toast({ title: "Account created!", description: "Please log in to continue." });
-      window.location.href = "/login";
-    } catch {
-      window.location.href = "/login";
+  const handleResendCode = async () => {
+    if (!isLoaded || !signUp || resendCooldown > 0) return;
+    setResending(true);
+    setErrors({});
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setResendCooldown(60);
+      toast({ title: "Code resent", description: "A new code has been sent to your email." });
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string }> };
+      setErrors({ verification: clerkError.errors?.[0]?.message || "Failed to resend code" });
+    } finally {
+      setResending(false);
     }
   };
 
@@ -175,6 +205,67 @@ const Signup = () => {
         <div className="flex items-center gap-2 text-white">
           <Loader2 className="w-6 h-6 animate-spin" />
           <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Email verification screen
+  if (pendingVerification) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
+          </div>
+          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Verify your email</h1>
+              <p className="text-muted-foreground">
+                We've sent a verification code to <strong>{formData.email}</strong>
+              </p>
+            </div>
+            {errors.verification && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{errors.verification}</div>}
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={(e) => {
+                  setVerificationCode(e.target.value.replace(/\D/g, ""));
+                  if (errors.verification) setErrors({});
+                }}
+                placeholder="Enter verification code"
+                className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
+                maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+              <Button type="submit" disabled={isLoading || verificationCode.length < 6} className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90">
+                {isLoading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Verifying...</span>
+                ) : "Verify & Continue"}
+              </Button>
+            </form>
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button
+                onClick={handleResendCode}
+                disabled={resending || resendCooldown > 0}
+                className="flex items-center gap-1.5 text-sm text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+              >
+                {resending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+              </button>
+            </div>
+            <button
+              onClick={() => { setPendingVerification(false); setVerificationCode(""); setErrors({}); }}
+              className="flex items-center justify-center gap-2 mt-4 text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <ArrowLeft className="w-4 h-4" />Back to sign up
+            </button>
+          </div>
         </div>
       </div>
     );
