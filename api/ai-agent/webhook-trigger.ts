@@ -11,7 +11,7 @@
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-import { isRateLimited, getClientIp, tooManyRequests } from "../_lib/rate-limit";
+import { isRateLimited, getClientIp, tooManyRequests } from "../_lib/rate-limit.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",

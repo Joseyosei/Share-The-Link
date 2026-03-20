@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { handleCors } from "./_lib/cors";
-import { verifyAuth, unauthorized } from "./_lib/auth";
-import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { handleCors } from "./_lib/cors.js";
+import { verifyAuth, unauthorized } from "./_lib/auth.js";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil" as any,

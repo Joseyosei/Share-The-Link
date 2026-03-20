@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { put } from "@vercel/blob";
-import { handleCors } from "./_lib/cors";
-import { verifyAuth, unauthorized } from "./_lib/auth";
-import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { handleCors } from "./_lib/cors.js";
+import { verifyAuth, unauthorized } from "./_lib/auth.js";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
