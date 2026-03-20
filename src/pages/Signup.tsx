@@ -48,6 +48,14 @@ const Signup = () => {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
+  // Auto-detect if signUp is already complete (e.g. email already verified)
+  useEffect(() => {
+    if (!pendingVerification || !isLoaded || !signUp) return;
+    if (signUp.status === "complete" && signUp.createdSessionId) {
+      activateAndRedirect();
+    }
+  }, [pendingVerification, isLoaded, signUp?.status]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
@@ -120,6 +128,29 @@ const Signup = () => {
     }
   };
 
+  const activateAndRedirect = async () => {
+    if (!signUp) return;
+    try {
+      if (signUp.createdSessionId) {
+        await setActive({ session: signUp.createdSessionId });
+      }
+      if (selectedTemplate) {
+        toast({
+          title: "Account created!",
+          description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
+        });
+      } else {
+        toast({ title: "Account created!", description: "Welcome to Share The Link." });
+      }
+      // Use window.location for a hard redirect to ensure Clerk session is
+      // fully initialized before ProtectedRoute checks isSignedIn.
+      window.location.href = "/dashboard";
+    } catch {
+      // If setActive fails, send them to login
+      window.location.href = "/login";
+    }
+  };
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signUp) return;
@@ -136,21 +167,7 @@ const Signup = () => {
       });
 
       if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
-
-        if (selectedTemplate) {
-          toast({
-            title: "Account created!",
-            description: `Welcome! The "${selectedTemplate.name}" template will be applied.`
-          });
-        } else {
-          toast({ title: "Account created!", description: "Welcome to Share The Link." });
-        }
-
-        // Use window.location for a hard redirect to ensure Clerk session is
-        // fully initialized before ProtectedRoute checks isSignedIn.
-        // React Router's navigate() can race with Clerk's async context update.
-        window.location.href = "/dashboard";
+        await activateAndRedirect();
       } else {
         setErrors({ email: "Verification incomplete. Please try again." });
       }
@@ -158,6 +175,16 @@ const Signup = () => {
       const clerkError = err as { errors?: Array<{ message: string; code: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "Invalid verification code";
       const errorCode = clerkError.errors?.[0]?.code;
+
+      // If email is already verified, the signUp may already be complete
+      if (
+        errorMessage.toLowerCase().includes("already verified") ||
+        errorCode === "form_identifier_exists" ||
+        signUp.status === "complete"
+      ) {
+        await activateAndRedirect();
+        return;
+      }
 
       if (errorCode === "too_many_requests" || errorMessage.toLowerCase().includes("too many")) {
         setErrors({ email: "Too many attempts. Please wait 30 seconds before trying again." });
@@ -177,12 +204,22 @@ const Signup = () => {
     setResending(true);
     setErrors({});
     try {
+      // If already complete, just redirect
+      if (signUp.status === "complete") {
+        await activateAndRedirect();
+        return;
+      }
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setResendCooldown(60);
       toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ message: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "Failed to resend code";
+      // If already verified, redirect
+      if (errorMessage.toLowerCase().includes("already verified") || signUp.status === "complete") {
+        await activateAndRedirect();
+        return;
+      }
       if (errorMessage.toLowerCase().includes("too many")) {
         setErrors({ email: "Too many requests. Please wait a minute before trying again." });
         setResendCooldown(60);
