@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
@@ -18,6 +18,11 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+  const verifyingRef = useRef(false);
 
   // Timeout for Clerk loading - show form with error after 5 seconds
   useEffect(() => {
@@ -35,6 +40,13 @@ const Login = () => {
       navigate(from, { replace: true });
     }
   }, [isSignedIn, navigate, location]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,13 +73,25 @@ const Login = () => {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         toast({ title: "Welcome back!", description: "You've successfully logged in." });
-        // Use hard redirect to ensure Clerk session is fully initialized
-        // before ProtectedRoute checks isSignedIn
         const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
         window.location.href = from;
+      } else if (result.status === "needs_first_factor") {
+        // Check if email code verification is needed
+        const emailCodeFactor = result.supportedFirstFactors?.find(
+          (f: any) => f.strategy === "email_code"
+        );
+        if (emailCodeFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: "email_code",
+            emailAddressId: (emailCodeFactor as any).emailAddressId,
+          });
+          setPendingVerification(true);
+          setResendCooldown(30);
+          toast({ title: "Verification code sent", description: "Check your email for the code." });
+        } else {
+          setError("Additional verification required. Please try a different sign-in method.");
+        }
       } else {
-        // Handle additional verification steps if needed
-        console.log("Sign in requires additional steps:", result);
         setError("Additional verification required. Please check your email.");
       }
     } catch (err: unknown) {
@@ -95,6 +119,66 @@ const Login = () => {
     if (error) setError("");
   };
 
+  const handleVerifyLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded || !signIn || verifyingRef.current) return;
+    verifyingRef.current = true;
+    setIsLoading(true);
+    setError("");
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "email_code",
+        code: verificationCode,
+      });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        toast({ title: "Welcome back!", description: "You've successfully logged in." });
+        const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+        window.location.href = from;
+      } else {
+        setError("Verification incomplete. Please try again.");
+      }
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
+      const errorMessage = clerkError.errors?.[0]?.message || "Invalid code";
+      const errorCode = clerkError.errors?.[0]?.code;
+      if (errorCode === "form_code_incorrect") {
+        setError("Incorrect verification code. Please try again.");
+      } else if (errorMessage.toLowerCase().includes("too many")) {
+        setError("Too many attempts. Please wait before trying again.");
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+      verifyingRef.current = false;
+    }
+  };
+
+  const handleResendLoginCode = async () => {
+    if (!isLoaded || !signIn || resendCooldown > 0) return;
+    setResending(true);
+    setError("");
+    try {
+      const emailCodeFactor = signIn.supportedFirstFactors?.find(
+        (f: any) => f.strategy === "email_code"
+      );
+      if (emailCodeFactor) {
+        await signIn.prepareFirstFactor({
+          strategy: "email_code",
+          emailAddressId: (emailCodeFactor as any).emailAddressId,
+        });
+        setResendCooldown(60);
+        toast({ title: "Code resent", description: "A new code has been sent to your email." });
+      }
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ message: string }> };
+      setError(clerkError.errors?.[0]?.message || "Failed to resend code");
+    } finally {
+      setResending(false);
+    }
+  };
+
   // Show loading state while Clerk loads, but not forever
   if (!isLoaded && !clerkTimedOut) {
     return (
@@ -102,6 +186,67 @@ const Login = () => {
         <div className="flex items-center gap-2 text-white">
           <Loader2 className="w-6 h-6 animate-spin" />
           <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Email verification screen for login
+  if (pendingVerification) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
+          </div>
+          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Verify your email</h1>
+              <p className="text-muted-foreground">
+                We've sent a verification code to <strong>{formData.email}</strong>
+              </p>
+            </div>
+            {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
+            <form onSubmit={handleVerifyLogin} className="space-y-4">
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={(e) => {
+                  setVerificationCode(e.target.value.replace(/\D/g, ""));
+                  if (error) setError("");
+                }}
+                placeholder="Enter verification code"
+                className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
+                maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+              <Button type="submit" disabled={isLoading || verificationCode.length < 6} className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90">
+                {isLoading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Verifying...</span>
+                ) : "Verify & Log In"}
+              </Button>
+            </form>
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button
+                onClick={handleResendLoginCode}
+                disabled={resending || resendCooldown > 0}
+                className="flex items-center gap-1.5 text-sm text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+              >
+                {resending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+              </button>
+            </div>
+            <button
+              onClick={() => { setPendingVerification(false); setVerificationCode(""); setError(""); }}
+              className="flex items-center justify-center gap-2 mt-4 text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <ArrowLeft className="w-4 h-4" />Back to login
+            </button>
+          </div>
         </div>
       </div>
     );

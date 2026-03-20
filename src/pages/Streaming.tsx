@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Radio, Video, Calendar, Users, DollarSign, Plus, Copy, ExternalLink, Play, X } from "lucide-react";
+import { Radio, Video, Calendar, Users, DollarSign, Plus, Copy, ExternalLink, Play, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { GoLiveModal, StreamPlayer, StreamChat, TipJar, StreamStats } from "@/components/streaming/StreamingComponents";
 import { useStreaming, Stream } from "@/hooks/useStreaming";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StreamRecording {
@@ -24,11 +25,13 @@ interface StreamRecording {
 
 const Streaming = () => {
   const { profile } = useUserProfile();
+  const { toast } = useToast();
   const { streams, fetchMyStreams, loading, currentStream, setCurrentStream, createStream } = useStreaming();
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
   const [isStreamActive, setIsStreamActive] = useState(false);
   const [recordings, setRecordings] = useState<StreamRecording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<StreamRecording | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMyStreams();
@@ -52,6 +55,55 @@ const Streaming = () => {
 
   const getRecordingForStream = (streamId: string) => {
     return recordings.find(r => r.stream_id === streamId);
+  };
+
+  const handleDeleteRecording = async (recordingId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (deletingId) return;
+    setDeletingId(recordingId);
+    try {
+      const { error } = await (supabase.from("stream_recordings" as any)
+        .delete()
+        .eq("id", recordingId) as any);
+      if (error) throw error;
+      setRecordings(prev => prev.filter(r => r.id !== recordingId));
+      if (selectedRecording?.id === recordingId) setSelectedRecording(null);
+      toast({ title: "Recording deleted" });
+    } catch (err) {
+      console.error("Delete recording error:", err);
+      toast({ title: "Error", description: "Failed to delete recording", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteStream = async (streamId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (deletingId) return;
+    setDeletingId(streamId);
+    try {
+      // Delete related recordings first
+      await (supabase.from("stream_recordings" as any)
+        .delete()
+        .eq("stream_id", streamId) as any);
+      // Delete chat, tips, viewers
+      await (supabase.from("stream_chat" as any).delete().eq("stream_id", streamId) as any);
+      await (supabase.from("stream_tips" as any).delete().eq("stream_id", streamId) as any);
+      await (supabase.from("stream_viewers" as any).delete().eq("stream_id", streamId) as any);
+      // Delete the stream
+      const { error } = await (supabase.from("streams" as any)
+        .delete()
+        .eq("id", streamId) as any);
+      if (error) throw error;
+      setRecordings(prev => prev.filter(r => r.stream_id !== streamId));
+      fetchMyStreams();
+      toast({ title: "Stream deleted" });
+    } catch (err) {
+      console.error("Delete stream error:", err);
+      toast({ title: "Error", description: "Failed to delete stream", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -234,6 +286,8 @@ const Streaming = () => {
                         stream={stream}
                         recording={recording}
                         onWatch={(rec) => setSelectedRecording(rec)}
+                        onDelete={(id, e) => handleDeleteStream(id, e)}
+                        deleting={deletingId === stream.id}
                       />
                     );
                   })}
@@ -284,10 +338,21 @@ const Streaming = () => {
                                 </p>
                               </div>
                             </div>
-                            <Button variant="outline" size="sm" className="gap-2">
-                              <Play className="w-4 h-4" />
-                              Watch
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" className="gap-2">
+                                <Play className="w-4 h-4" />
+                                Watch
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                disabled={deletingId === rec.id}
+                                onClick={(e) => handleDeleteRecording(rec.id, e)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -343,9 +408,20 @@ const Streaming = () => {
                   year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
                 })}
               </span>
-              {selectedRecording.duration > 0 && (
-                <span>Duration: {formatDuration(selectedRecording.duration)}</span>
-              )}
+              <div className="flex items-center gap-4">
+                {selectedRecording.duration > 0 && (
+                  <span>Duration: {formatDuration(selectedRecording.duration)}</span>
+                )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deletingId === selectedRecording.id}
+                  onClick={() => handleDeleteRecording(selectedRecording.id)}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -364,9 +440,11 @@ interface StreamCardProps {
   stream: Stream;
   recording?: StreamRecording;
   onWatch?: (rec: StreamRecording) => void;
+  onDelete?: (streamId: string, e?: React.MouseEvent) => void;
+  deleting?: boolean;
 }
 
-const StreamCard = ({ stream, recording, onWatch }: StreamCardProps) => {
+const StreamCard = ({ stream, recording, onWatch, onDelete, deleting }: StreamCardProps) => {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
@@ -433,6 +511,17 @@ const StreamCard = ({ stream, recording, onWatch }: StreamCardProps) => {
             )}
             {!recording && stream.status === "ended" && (
               <Badge variant="secondary" className="text-xs">No recording</Badge>
+            )}
+            {stream.status === "ended" && onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                disabled={deleting}
+                onClick={(e) => onDelete(stream.id, e)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </div>

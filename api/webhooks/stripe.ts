@@ -51,7 +51,7 @@ async function findSupabaseUserId(customer: any, metadata?: Record<string, strin
     email = customer.email;
   }
   if (!email) return null;
-  const { data } = await supabaseAdmin.auth.admin.listUsers();
+  const { data } = await (supabaseAdmin.auth as any).admin.listUsers();
   const user = data?.users?.find((u: any) => u.email === email);
   return user?.id || null;
 }
