@@ -1,0 +1,143 @@
+{
+  "name": "Share The Link - AI Distribution Agent",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "restore": {},
+        "parameters": [
+          {
+            "name": "hook",
+            "type": "hook:gateway-webhook",
+            "label": "Webhook",
+            "required": true
+          }
+        ],
+        "expect": [
+          { "name": "platform", "type": "text", "label": "Platform" },
+          { "name": "link", "type": "collection", "label": "Link Data", "spec": [
+            { "name": "id", "type": "text" },
+            { "name": "url", "type": "text" },
+            { "name": "title", "type": "text" }
+          ]},
+          { "name": "content", "type": "text", "label": "Post Content" },
+          { "name": "creator_username", "type": "text", "label": "Creator" },
+          { "name": "timestamp", "type": "text", "label": "Timestamp" }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": { "x": 300, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "twitter:createATweet",
+              "version": 5,
+              "parameters": { "__IMTCONN__": null },
+              "filter": {
+                "name": "Is Twitter",
+                "conditions": [[{ "a": "{{1.platform}}", "b": "twitter", "o": "text:equal" }]]
+              },
+              "mapper": {
+                "text": "{{1.content}}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -150 },
+                "restore": {},
+                "parameters": [
+                  { "name": "__IMTCONN__", "type": "account:twitter", "label": "Connection" }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 4,
+              "module": "linkedin:createAShareUpdate",
+              "version": 2,
+              "parameters": { "__IMTCONN__": null },
+              "filter": {
+                "name": "Is LinkedIn",
+                "conditions": [[{ "a": "{{1.platform}}", "b": "linkedin", "o": "text:equal" }]]
+              },
+              "mapper": {
+                "commentary": "{{1.content}}",
+                "url": "{{1.link.url}}",
+                "title": "{{1.link.title}}",
+                "visibility": "PUBLIC"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 0 },
+                "restore": {},
+                "parameters": [
+                  { "name": "__IMTCONN__", "type": "account:linkedin", "label": "Connection" }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "facebook:createAPost",
+              "version": 5,
+              "parameters": { "__IMTCONN__": null },
+              "filter": {
+                "name": "Is Facebook",
+                "conditions": [[{ "a": "{{1.platform}}", "b": "facebook", "o": "text:equal" }]]
+              },
+              "mapper": {
+                "message": "{{1.content}}",
+                "link": "{{1.link.url}}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 150 },
+                "restore": {},
+                "parameters": [
+                  { "name": "__IMTCONN__", "type": "account:facebook", "label": "Connection" }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "us1.make.com"
+  }
+}

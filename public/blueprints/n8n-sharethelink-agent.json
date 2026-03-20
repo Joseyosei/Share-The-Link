@@ -1,0 +1,159 @@
+{
+  "name": "Share The Link - AI Distribution Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sharethelink-distribute",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Receiver",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "sharethelink-distribute"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "output": 0,
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $json.platform }}", "rightValue": "twitter", "operator": { "type": "string", "operation": "equals" } }]
+              }
+            },
+            {
+              "output": 1,
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $json.platform }}", "rightValue": "linkedin", "operator": { "type": "string", "operation": "equals" } }]
+              }
+            },
+            {
+              "output": 2,
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $json.platform }}", "rightValue": "facebook", "operator": { "type": "string", "operation": "equals" } }]
+              }
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "platform-router",
+      "name": "Route by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "resource": "tweet",
+        "text": "={{ $json.content }}",
+        "additionalFields": {}
+      },
+      "id": "twitter-post",
+      "name": "Post to Twitter/X",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [720, 140],
+      "credentials": { "twitterOAuth2Api": { "id": "", "name": "Twitter account" } }
+    },
+    {
+      "parameters": {
+        "resource": "post",
+        "postAs": "person",
+        "text": "={{ $json.content }}",
+        "shareMediaCategory": "ARTICLE",
+        "additionalFields": {
+          "originalUrl": "={{ $json.link.url }}"
+        }
+      },
+      "id": "linkedin-post",
+      "name": "Post to LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [720, 300],
+      "credentials": { "linkedInOAuth2Api": { "id": "", "name": "LinkedIn account" } }
+    },
+    {
+      "parameters": {
+        "resource": "post",
+        "pageId": { "__rl": true, "value": "", "mode": "list" },
+        "message": "={{ $json.content }}",
+        "additionalFields": {
+          "link": "={{ $json.link.url }}"
+        }
+      },
+      "id": "facebook-post",
+      "name": "Post to Facebook",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [720, 460],
+      "credentials": { "facebookGraphApi": { "id": "", "name": "Facebook account" } }
+    },
+    {
+      "parameters": {
+        "url": "=https://sharethelink.app/api/ai-agent/webhook-trigger",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "api_key", "value": "YOUR_API_KEY_HERE" },
+            { "name": "action", "value": "list-links" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-links",
+      "name": "Fetch Links from STL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 540],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "=https://sharethelink.app/api/ai-agent/webhook-trigger",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "api_key", "value": "YOUR_API_KEY_HERE" },
+            { "name": "action", "value": "distribute" },
+            { "name": "link_id", "value": "={{ $json.links[0].id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "trigger-distribute",
+      "name": "Trigger Distribution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 540],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Webhook Receiver": { "main": [[{ "node": "Route by Platform", "type": "main", "index": 0 }]] },
+    "Route by Platform": {
+      "main": [
+        [{ "node": "Post to Twitter/X", "type": "main", "index": 0 }],
+        [{ "node": "Post to LinkedIn", "type": "main", "index": 0 }],
+        [{ "node": "Post to Facebook", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Links from STL": { "main": [[{ "node": "Trigger Distribution", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [{ "name": "Share The Link" }, { "name": "Social Media" }, { "name": "Automation" }],
+  "triggerCount": 1,
+  "versionId": "1"
+}

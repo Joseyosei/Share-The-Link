@@ -471,6 +471,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          api_key: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -480,8 +481,10 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string | null
+          webhook_settings: Json | null
         }
         Insert: {
+          api_key?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -491,8 +494,10 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string | null
+          webhook_settings?: Json | null
         }
         Update: {
+          api_key?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -502,6 +507,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+          webhook_settings?: Json | null
         }
         Relationships: []
       }
