@@ -129,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 13. Finally, delete the auth user (this is permanent!)
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+    const { error: deleteError } = await (supabase.auth.admin as any).deleteUser(userId);
     if (deleteError) {
       console.error("Failed to delete auth user:", deleteError);
       return res.status(500).json({ error: "Failed to delete auth account. Data has been removed." });

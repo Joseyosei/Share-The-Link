@@ -125,7 +125,7 @@ const AIAgentDashboard = () => {
         platformsObj[p.name] = { enabled: p.enabled, webhookUrl: p.webhookUrl };
       });
 
-      const res = await fetch('/api/ai-agent/save-settings', {
+      const res = await fetch('/api/ai-agent?action=save-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ platforms: platformsObj }),
@@ -148,7 +148,7 @@ const AIAgentDashboard = () => {
     setGeneratingKey(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/ai-agent/generate-key', {
+      const res = await fetch('/api/ai-agent?action=generate-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
@@ -177,7 +177,7 @@ const AIAgentDashboard = () => {
       if (!link) throw new Error('Link not found');
 
       const token = await getAuthToken();
-      const res = await fetch('/api/ai-agent/distribute', {
+      const res = await fetch('/api/ai-agent?action=distribute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ link_id: link.id }),
@@ -240,7 +240,7 @@ const AIAgentDashboard = () => {
 
   const enabledCount = platforms.filter(p => p.enabled).length;
   const successfulShares = recentShares.filter(s => s.success).length;
-  const webhookEndpoint = 'https://sharethelink.app/api/ai-agent/webhook-trigger';
+  const webhookEndpoint = 'https://sharethelink.app/api/ai-agent?action=webhook-trigger';
 
   return (
     <div className="min-h-screen bg-background flex">
