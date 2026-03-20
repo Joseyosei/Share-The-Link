@@ -77,3 +77,7 @@ export function isPositiveInt(value: unknown): value is number {
 export function badRequest(res: any, message: string = "Invalid input") {
   return res.status(400).json({ error: message });
 }
+
+// Aliases for backward compatibility
+export const sanitize = sanitizeString;
+export const isUuid = isValidUUID;

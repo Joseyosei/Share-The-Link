@@ -46,7 +46,7 @@ export const Storefront = () => {
       if (!accountId) return;
 
       try {
-        const response = await fetch("/api/list-connect-products", {
+        const response = await fetch("/api/connect-store?action=list-products", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accountId }),
@@ -73,7 +73,7 @@ export const Storefront = () => {
     setCheckoutLoading(product.id);
 
     try {
-      const response = await fetch("/api/create-connect-checkout", {
+      const response = await fetch("/api/connect-store?action=create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

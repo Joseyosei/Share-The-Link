@@ -130,7 +130,10 @@ const Signup = () => {
   };
 
   const activateAndRedirect = async () => {
-    if (!signUp) return;
+    if (!signUp) {
+      window.location.href = "/login";
+      return;
+    }
     try {
       // Try to reload signUp to get the latest state
       try { await signUp.reload(); } catch { /* ignore reload errors */ }
@@ -151,15 +154,25 @@ const Signup = () => {
 
       // No session from signUp — try auto-sign-in with the credentials
       if (signInLoaded && signIn && formData.email && formData.password) {
-        const result = await signIn.create({
-          identifier: formData.email,
-          password: formData.password,
-        });
-        if (result.status === "complete" && result.createdSessionId) {
-          await setSignInActive({ session: result.createdSessionId });
-          toast({ title: "Account created!", description: "Welcome to Share The Link." });
-          window.location.href = "/dashboard";
-          return;
+        try {
+          const result = await signIn.create({
+            identifier: formData.email,
+            password: formData.password,
+          });
+          if (result.status === "complete" && result.createdSessionId) {
+            await setSignInActive({ session: result.createdSessionId });
+            toast({ title: "Account created!", description: "Welcome to Share The Link." });
+            window.location.href = "/dashboard";
+            return;
+          }
+          // If sign-in needs additional factors, redirect to login
+          if (result.status === "needs_first_factor" || result.status === "needs_second_factor") {
+            toast({ title: "Account created!", description: "Please log in to continue." });
+            window.location.href = "/login";
+            return;
+          }
+        } catch {
+          // Sign-in attempt failed — fall through to login redirect
         }
       }
 
@@ -205,7 +218,13 @@ const Signup = () => {
         errorCode === "form_identifier_exists" ||
         signUp.status === "complete"
       ) {
-        await activateAndRedirect();
+        try {
+          await activateAndRedirect();
+        } catch {
+          // If activateAndRedirect fails, redirect to login as last resort
+          toast({ title: "Email verified!", description: "Please log in to continue." });
+          window.location.href = "/login";
+        }
         return;
       }
 
@@ -291,7 +310,16 @@ const Signup = () => {
                 We've sent a verification code to <strong>{formData.email}</strong>
               </p>
             </div>
-            {errors.email && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{errors.email}</div>}
+            {errors.email && (
+              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
+                {errors.email}
+                {errors.email.toLowerCase().includes("already") && (
+                  <div className="mt-2">
+                    <Link to="/login" className="text-primary font-medium hover:underline">Go to Login</Link>
+                  </div>
+                )}
+              </div>
+            )}
             <form onSubmit={handleVerify} className="space-y-4">
               <input
                 type="text"
