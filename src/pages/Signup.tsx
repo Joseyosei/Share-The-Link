@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
@@ -21,12 +21,7 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", username: "", email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [pendingVerification, setPendingVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const [clerkTimedOut, setClerkTimedOut] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const verifyingRef = useRef(false);
 
   // Timeout for Clerk loading
   useEffect(() => {
@@ -41,21 +36,6 @@ const Signup = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [isSignedIn, navigate]);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
-
-  // Auto-detect if signUp is already complete (e.g. email already verified)
-  useEffect(() => {
-    if (!pendingVerification || !isLoaded || !signUp) return;
-    if (signUp.status === "complete" && signUp.createdSessionId) {
-      activateAndRedirect();
-    }
-  }, [pendingVerification, isLoaded, signUp?.status]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -107,11 +87,8 @@ const Signup = () => {
         },
       });
 
-      // Send email verification
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setPendingVerification(true);
-      setResendCooldown(30);
-      toast({ title: "Verification code sent", description: "Please check your email for the verification code." });
+      // No email verification — directly activate and redirect
+      await activateAndRedirect();
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ message: string; code: string }> };
       const errorMessage = clerkError.errors?.[0]?.message || "An error occurred during sign up";
@@ -184,95 +161,6 @@ const Signup = () => {
     }
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLoaded || !signUp) return;
-
-    // Prevent double-clicks
-    if (verifyingRef.current) return;
-    verifyingRef.current = true;
-
-    setIsLoading(true);
-    setErrors({});
-    try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code: verificationCode,
-      });
-
-      if (completeSignUp.status === "complete") {
-        await activateAndRedirect();
-      } else {
-        setErrors({ email: "Verification incomplete. Please try again." });
-      }
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string; code: string; longMessage?: string }> };
-      const errorMessage = clerkError.errors?.[0]?.message || "Invalid verification code";
-      const errorCode = clerkError.errors?.[0]?.code;
-      const longMessage = clerkError.errors?.[0]?.longMessage || "";
-      const combined = `${errorMessage} ${longMessage} ${errorCode || ""}`.toLowerCase();
-
-      // If email is already verified or signup is complete, activate session
-      if (
-        combined.includes("already verified") ||
-        combined.includes("verified") ||
-        errorCode === "form_identifier_exists" ||
-        signUp.status === "complete"
-      ) {
-        try {
-          await activateAndRedirect();
-        } catch {
-          // If activateAndRedirect fails, redirect to login as last resort
-          toast({ title: "Email verified!", description: "Please log in to continue." });
-          window.location.href = "/login";
-        }
-        return;
-      }
-
-      if (errorCode === "too_many_requests" || combined.includes("too many")) {
-        setErrors({ email: "Too many attempts. Please wait 30 seconds before trying again." });
-      } else if (errorCode === "form_code_incorrect") {
-        setErrors({ email: "Incorrect verification code. Please check and try again." });
-      } else {
-        setErrors({ email: errorMessage });
-      }
-    } finally {
-      setIsLoading(false);
-      verifyingRef.current = false;
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (!isLoaded || !signUp || resendCooldown > 0) return;
-    setResending(true);
-    setErrors({});
-    try {
-      // If already complete, just redirect
-      if (signUp.status === "complete") {
-        await activateAndRedirect();
-        return;
-      }
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setResendCooldown(60);
-      toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string }> };
-      const errorMessage = clerkError.errors?.[0]?.message || "Failed to resend code";
-      // If already verified, redirect
-      if (errorMessage.toLowerCase().includes("already verified") || signUp.status === "complete") {
-        await activateAndRedirect();
-        return;
-      }
-      if (errorMessage.toLowerCase().includes("too many")) {
-        setErrors({ email: "Too many requests. Please wait a minute before trying again." });
-        setResendCooldown(60);
-      } else {
-        setErrors({ email: errorMessage });
-      }
-    } finally {
-      setResending(false);
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let processedValue = name === "username" ? value.toLowerCase().replace(/[^a-z0-9]/g, "") : value;
@@ -287,83 +175,6 @@ const Signup = () => {
         <div className="flex items-center gap-2 text-white">
           <Loader2 className="w-6 h-6 animate-spin" />
           <span>Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Verification code screen
-  if (pendingVerification) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
-          </div>
-          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Verify your email</h1>
-              <p className="text-muted-foreground">
-                We've sent a verification code to <strong>{formData.email}</strong>
-              </p>
-            </div>
-            {errors.email && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
-                {errors.email}
-                {errors.email.toLowerCase().includes("already") && (
-                  <div className="mt-2">
-                    <Link to="/login" className="text-primary font-medium hover:underline">Go to Login</Link>
-                  </div>
-                )}
-              </div>
-            )}
-            <form onSubmit={handleVerify} className="space-y-4">
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => {
-                  setVerificationCode(e.target.value.replace(/\D/g, ""));
-                  if (errors.email) setErrors({});
-                }}
-                placeholder="Enter verification code"
-                className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
-                maxLength={6}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-              />
-              <Button type="submit" disabled={isLoading || verificationCode.length < 6} className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90">
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Verifying...
-                  </span>
-                ) : "Verify Email"}
-              </Button>
-            </form>
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <button
-                onClick={handleResendCode}
-                disabled={resending || resendCooldown > 0}
-                className="flex items-center gap-1.5 text-sm text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
-              >
-                {resending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
-              </button>
-            </div>
-            <button
-              onClick={() => setPendingVerification(false)}
-              className="flex items-center justify-center gap-2 mt-4 text-muted-foreground hover:text-foreground transition-colors w-full"
-            >
-              <ArrowLeft className="w-4 h-4" />Back to signup
-            </button>
-          </div>
         </div>
       </div>
     );
