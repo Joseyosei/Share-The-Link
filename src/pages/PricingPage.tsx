@@ -115,8 +115,8 @@ const PricingPage = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-16 gradient-hero">
-        <div className="container mx-auto px-6 text-center relative z-10">
+      <section className="pt-28 sm:pt-32 pb-16 gradient-hero">
+        <div className="container mx-auto px-4 sm:px-6 text-center relative z-10">
           <span className="inline-block px-4 py-2 rounded-full bg-white/10 text-white text-sm font-medium mb-6 backdrop-blur-sm border border-white/20">
             Simple Pricing
           </span>
@@ -260,9 +260,10 @@ const PricingPage = () => {
             </p>
           </div>
 
-          <div className="max-w-6xl mx-auto bg-card rounded-2xl shadow-lg overflow-x-auto">
+          {/* Desktop comparison table */}
+          <div className="max-w-6xl mx-auto bg-card rounded-2xl shadow-lg overflow-x-auto hidden md:block">
             {/* Table Header */}
-            <div className="grid grid-cols-5 gap-4 p-6 bg-muted/50 border-b border-border sticky top-0 min-w-[640px]">
+            <div className="grid grid-cols-5 gap-4 p-6 bg-muted/50 border-b border-border sticky top-0">
               <div className="font-semibold text-foreground">Features</div>
               <div className="text-center">
                 <div className="font-bold text-foreground">Free</div>
@@ -285,7 +286,7 @@ const PricingPage = () => {
             {/* Table Body */}
             {comparisonFeatures.map((category) => (
               <div key={category.category}>
-                <div className="grid grid-cols-5 gap-4 px-6 py-4 bg-muted/30 min-w-[640px]">
+                <div className="grid grid-cols-5 gap-4 px-6 py-4 bg-muted/30">
                   <div className="col-span-5 font-semibold text-foreground text-lg">
                     {category.category}
                   </div>
@@ -294,7 +295,7 @@ const PricingPage = () => {
                 {category.features.map((feature, index) => (
                   <div
                     key={feature.name}
-                    className={`grid grid-cols-5 gap-4 px-6 py-4 min-w-[640px] ${
+                    className={`grid grid-cols-5 gap-4 px-6 py-4 ${
                       index % 2 === 0 ? "bg-card" : "bg-muted/10"
                     }`}
                   >
@@ -317,6 +318,54 @@ const PricingPage = () => {
                     <div className="text-center">{renderFeatureValue(feature.enterprise)}</div>
                   </div>
                 ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile comparison - stacked cards */}
+          <div className="md:hidden max-w-lg mx-auto space-y-6">
+            {comparisonFeatures.map((category) => (
+              <div key={category.category} className="bg-card rounded-2xl shadow-lg overflow-hidden">
+                <div className="px-4 py-3 bg-muted/30 border-b border-border">
+                  <h3 className="font-semibold text-foreground text-base">{category.category}</h3>
+                </div>
+                <div className="divide-y divide-border">
+                  {category.features.map((feature) => (
+                    <div key={feature.name} className="px-4 py-3">
+                      <div className="flex items-center gap-2 text-foreground text-sm font-medium mb-2">
+                        {feature.name}
+                        {feature.tooltip && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">{feature.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div>
+                          <div className="text-muted-foreground mb-1">Free</div>
+                          {renderFeatureValue(feature.free)}
+                        </div>
+                        <div>
+                          <div className="text-primary font-medium mb-1">Pro</div>
+                          {renderFeatureValue(feature.pro)}
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Biz</div>
+                          {renderFeatureValue(feature.business)}
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Ent</div>
+                          {renderFeatureValue(feature.enterprise)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

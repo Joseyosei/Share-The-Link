@@ -299,7 +299,7 @@ const TemplatesPage = () => {
           </div>
 
           {/* Templates Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {filtered.map((template) => (
               <TemplateCard key={template.id} template={template} onPreview={setPreviewTemplate} />
             ))}
@@ -322,11 +322,11 @@ const TemplatesPage = () => {
 
       {/* Preview Modal */}
       <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none max-h-[90vh]">
           {previewTemplate && (
-            <div className="relative">
+            <div className="relative px-4 sm:px-0">
               {/* Phone mockup */}
-              <div className="mx-auto w-[320px] rounded-[2.5rem] border-[6px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden">
+              <div className="mx-auto w-full max-w-[320px] rounded-[2.5rem] border-[6px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden">
                 <div className="relative w-full aspect-[9/19]">
                   <div className={`absolute inset-0 ${previewTemplate.bg} flex flex-col items-center pt-12 px-6 overflow-y-auto`}>
                     {/* Avatar */}

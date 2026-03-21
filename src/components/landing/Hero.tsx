@@ -93,7 +93,7 @@ export const Hero = () => {
       </div>
 
       {/* Scroll up/down arrows - bottom right, always visible */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+      <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex flex-col gap-2 pb-[env(safe-area-inset-bottom)]">
         {showScrollTop && (
           <button
             onClick={scrollToTop}

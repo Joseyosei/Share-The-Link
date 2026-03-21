@@ -124,31 +124,31 @@ export const Navbar = () => {
         {/* Mobile Dropdown */}
         {isOpen && (
           <div className="md:hidden px-6 pb-5 pt-2 border-t border-border/40">
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
               <Link
                 to="/features"
-                className="text-sm text-muted-foreground hover:text-foreground py-2"
+                className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Features
               </Link>
               <Link
                 to="/templates"
-                className="text-sm text-muted-foreground hover:text-foreground py-2"
+                className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Templates
               </Link>
               <Link
                 to="/pricing"
-                className="text-sm text-muted-foreground hover:text-foreground py-2"
+                className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Pricing
               </Link>
               <Link
                 to="/docs"
-                className="text-sm text-muted-foreground hover:text-foreground py-2"
+                className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Docs

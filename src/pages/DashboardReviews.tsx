@@ -170,7 +170,7 @@ export default function DashboardReviews() {
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Reviews</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reviews</h1>
             <p className="text-muted-foreground mt-1">
               Share your experience with Share The Link. Approved reviews appear on our homepage.
             </p>

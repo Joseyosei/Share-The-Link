@@ -169,22 +169,24 @@ const DashboardLinks = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/dashboard">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-foreground">Links Management</h1>
-              <p className="text-muted-foreground">Manage all your links in one place</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Button variant="ghost" size="icon" asChild className="flex-shrink-0">
+                <Link to="/dashboard">
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+              </Button>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Links Management</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">Manage all your links in one place</p>
+              </div>
             </div>
             <Button
               onClick={() => setIsAddModalOpen(true)}
-              className="gradient-button text-primary-foreground hover:opacity-90"
+              className="gradient-button text-primary-foreground hover:opacity-90 flex-shrink-0 self-start sm:self-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Link

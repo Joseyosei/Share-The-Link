@@ -152,35 +152,35 @@ const Dashboard = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div className="min-w-0">
               {loading ? (
                 <>
-                  <div className="h-8 w-64 bg-muted-foreground/20 rounded animate-pulse mb-2" />
-                  <div className="h-5 w-80 bg-muted-foreground/10 rounded animate-pulse" />
+                  <div className="h-8 w-48 sm:w-64 bg-muted-foreground/20 rounded animate-pulse mb-2" />
+                  <div className="h-5 w-56 sm:w-80 bg-muted-foreground/10 rounded animate-pulse" />
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-3xl font-bold text-foreground">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
                       Welcome back, {firstName}!
                     </h1>
                     {subscription?.subscribed && (
-                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs border-0 px-2.5 py-1">
+                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs border-0 px-2.5 py-1 flex-shrink-0">
                         {subscription.tier?.toUpperCase() || "PRO"} Plan
                       </Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm sm:text-base">
                     Here's what's happening with your links today.
                   </p>
                 </>
               )}
             </div>
-            <Button asChild className="gradient-button text-primary-foreground hover:opacity-90">
+            <Button asChild className="gradient-button text-primary-foreground hover:opacity-90 flex-shrink-0 self-start sm:self-auto">
               <a href={`/${username}`} target="_blank" rel="noopener noreferrer">
                 View Profile
               </a>

@@ -9,7 +9,7 @@ const AIBuilder = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
@@ -17,7 +17,7 @@ const AIBuilder = () => {
               <Wand2 className="w-4 h-4" />
               AI-Powered Design
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
               AI Page Builder
             </h1>
             <p className="text-muted-foreground max-w-md mx-auto">
