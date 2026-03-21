@@ -4,7 +4,7 @@
  * Simple product management for entrepreneurs and content creators.
  * Users can list products/services, manage them, and share their shop link.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -15,7 +15,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   Store, Plus, Edit2, Trash2, ExternalLink, Package, DollarSign,
   Image as ImageIcon, Link2, Copy, ToggleLeft, ToggleRight, Loader2,
-  ShoppingBag
+  ShoppingBag, Upload, MousePointerClick
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ interface Product {
   external_url: string | null;
   is_active: boolean;
   created_at: string;
+  click_count?: number;
 }
 
 const CATEGORIES = [
@@ -54,6 +55,10 @@ const ConnectDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -95,6 +100,32 @@ const ConnectDashboard = () => {
   const resetForm = () => {
     setForm({ name: "", description: "", price: "", image_url: "", category: "digital", external_url: "" });
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Max 5MB", variant: "destructive" });
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadProductImage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const fileName = `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
+    if (error) {
+      console.error("Upload error:", error);
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+    return urlData.publicUrl;
   };
 
   const openAddModal = () => { resetForm(); setShowModal(true); };
@@ -130,13 +161,26 @@ const ConnectDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Upload image file if selected
+      let finalImageUrl = form.image_url.trim() || null;
+      if (imageFile) {
+        setUploading(true);
+        const uploadedUrl = await uploadProductImage(imageFile);
+        setUploading(false);
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
+        } else {
+          throw new Error("Image upload failed. Try again or paste a URL instead.");
+        }
+      }
+
       const priceCents = Math.round(parseFloat(form.price || "0") * 100);
       const payload = {
         user_id: user.id,
         name: form.name.trim(),
         description: form.description.trim() || null,
         price_cents: priceCents,
-        image_url: form.image_url.trim() || null,
+        image_url: finalImageUrl,
         category: form.category,
         external_url: form.external_url.trim() || null,
         updated_at: new Date().toISOString(),
@@ -329,6 +373,13 @@ const ConnectDashboard = () => {
                         {product.description && (
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
                         )}
+                        {/* Click stats */}
+                        {product.click_count !== undefined && product.click_count > 0 && (
+                          <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+                            <MousePointerClick className="w-3 h-3" />
+                            <span>{product.click_count} click{product.click_count !== 1 ? "s" : ""}</span>
+                          </div>
+                        )}
                         {/* Actions */}
                         <div className="flex items-center gap-2 mt-3">
                           <Button variant="ghost" size="sm" onClick={() => openEditModal(product)}>
@@ -402,12 +453,40 @@ const ConnectDashboard = () => {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium">Image URL</label>
-              <Input
-                value={form.image_url}
-                onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
-                placeholder="https://example.com/image.jpg"
-              />
+              <label className="text-sm font-medium">Product Image</label>
+              <div className="mt-1 space-y-2">
+                {/* Upload button */}
+                <div
+                  onClick={() => imageInputRef.current?.click()}
+                  className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  {imagePreview || form.image_url ? (
+                    <img
+                      src={imagePreview || form.image_url}
+                      alt="Preview"
+                      className="w-24 h-24 object-cover rounded-lg mx-auto"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                      <Upload className="w-6 h-6" />
+                      <span className="text-xs">Click to upload image</span>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <p className="text-xs text-muted-foreground">Or paste an image URL:</p>
+                <Input
+                  value={form.image_url}
+                  onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium">Purchase / External Link</label>

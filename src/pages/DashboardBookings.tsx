@@ -51,6 +51,23 @@ const TYPE_OPTIONS = [
   { value: "in-person", label: "In-Person", icon: MapPin },
 ];
 
+const CURRENCIES = [
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "GBP", symbol: "\u00a3", name: "British Pound" },
+  { code: "EUR", symbol: "\u20ac", name: "Euro" },
+  { code: "CAD", symbol: "CA$", name: "Canadian Dollar" },
+  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+  { code: "JPY", symbol: "\u00a5", name: "Japanese Yen" },
+  { code: "INR", symbol: "\u20b9", name: "Indian Rupee" },
+  { code: "NGN", symbol: "\u20a6", name: "Nigerian Naira" },
+  { code: "ZAR", symbol: "R", name: "South African Rand" },
+  { code: "BRL", symbol: "R$", name: "Brazilian Real" },
+  { code: "KES", symbol: "KSh", name: "Kenyan Shilling" },
+  { code: "GHS", symbol: "GH\u20b5", name: "Ghanaian Cedi" },
+];
+
+const getCurrencySymbol = (code: string) => CURRENCIES.find((c) => c.code === code)?.symbol || code;
+
 const DashboardBookings = () => {
   const { toast } = useToast();
   const [tab, setTab] = useState<"bookings" | "services" | "availability">("bookings");
@@ -62,7 +79,7 @@ const DashboardBookings = () => {
 
   // New service form
   const [showNewService, setShowNewService] = useState(false);
-  const [newService, setNewService] = useState({ title: "", description: "", duration: 30, price: 0, type: "video" });
+  const [newService, setNewService] = useState({ title: "", description: "", duration: 30, price: 0, type: "video", currency: "USD" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -163,16 +180,16 @@ const DashboardBookings = () => {
         duration: newService.duration || 30,
         price: newService.price || 0,
         type: newService.type || "video",
-        currency: "USD",
+        currency: newService.currency || "USD",
         is_active: true,
       }).select().single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       setServices((prev) => [...prev, data as BookingService]);
-      setNewService({ title: "", description: "", duration: 30, price: 0, type: "video" });
+      setNewService({ title: "", description: "", duration: 30, price: 0, type: "video", currency: "USD" });
       setShowNewService(false);
       toast({ title: "Service created", description: `"${newService.title}" is now available for booking.` });
     } catch (err: any) {
@@ -333,7 +350,7 @@ const DashboardBookings = () => {
                                     {b.client_notes && <p className="text-sm text-muted-foreground mt-2 italic">{b.client_notes}</p>}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {b.amount > 0 && <span className="text-sm font-bold text-foreground">${b.amount.toFixed(2)}</span>}
+                                    {b.amount > 0 && <span className="text-sm font-bold text-foreground">{getCurrencySymbol(b.currency)}{b.amount.toFixed(2)}</span>}
                                     {b.status === "pending" && (
                                       <>
                                         <Button size="sm" variant="outline" onClick={() => handleUpdateBookingStatus(b.id, "confirmed")}>
@@ -370,7 +387,7 @@ const DashboardBookings = () => {
                                       {new Date(b.booking_date).toLocaleDateString()} - {b.status}
                                     </span>
                                   </div>
-                                  {b.amount > 0 && <span className="text-sm font-medium">${b.amount.toFixed(2)}</span>}
+                                  {b.amount > 0 && <span className="text-sm font-medium">{getCurrencySymbol(b.currency)}{b.amount.toFixed(2)}</span>}
                                 </div>
                               </div>
                             ))}
@@ -399,7 +416,7 @@ const DashboardBookings = () => {
                               {svc.description && <p className="text-sm text-muted-foreground">{svc.description}</p>}
                               <div className="flex items-center gap-3 mt-1.5">
                                 <Badge variant="secondary" className="text-xs">{svc.duration} min</Badge>
-                                <span className="text-sm font-bold">{svc.price > 0 ? `$${svc.price.toFixed(2)}` : "Free"}</span>
+                                <span className="text-sm font-bold">{svc.price > 0 ? `${getCurrencySymbol(svc.currency)}${svc.price.toFixed(2)}` : "Free"}</span>
                               </div>
                             </div>
                           </div>
@@ -421,14 +438,24 @@ const DashboardBookings = () => {
                       <h3 className="font-semibold text-foreground">New Booking Service</h3>
                       <Input placeholder="Service title (e.g. 30-Min Consultation)" value={newService.title} onChange={(e) => setNewService((p) => ({ ...p, title: e.target.value }))} />
                       <Textarea placeholder="Description (optional)" value={newService.description} onChange={(e) => setNewService((p) => ({ ...p, description: e.target.value }))} rows={2} />
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div>
                           <label className="text-xs text-muted-foreground mb-1 block">Duration (min)</label>
                           <Input type="number" value={newService.duration} onChange={(e) => setNewService((p) => ({ ...p, duration: parseInt(e.target.value) || 30 }))} min={15} step={15} />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">Price ($)</label>
+                          <label className="text-xs text-muted-foreground mb-1 block">Price</label>
                           <Input type="number" value={newService.price} onChange={(e) => setNewService((p) => ({ ...p, price: parseFloat(e.target.value) || 0 }))} min={0} step={5} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">Currency</label>
+                          <select
+                            value={newService.currency}
+                            onChange={(e) => setNewService((p) => ({ ...p, currency: e.target.value }))}
+                            className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm"
+                          >
+                            {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                          </select>
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground mb-1 block">Type</label>
