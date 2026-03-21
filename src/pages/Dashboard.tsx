@@ -40,7 +40,7 @@ const Dashboard = () => {
   const userTheme = themes.find((t) => t.id === appearanceSettings?.theme) || themes[0];
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingLink, setEditingLink] = useState<{ id: string; title: string; url: string; type: string } | null>(null);
+  const [editingLink, setEditingLink] = useState<{ id: string; title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null } | null>(null);
 
   const handleToggle = async (id: string) => {
     try {
@@ -63,11 +63,17 @@ const Dashboard = () => {
         title: link.title,
         url: link.url,
         type: link.type || "standard",
+        schedule_start: (link as any).schedule_start,
+        schedule_end: (link as any).schedule_end,
+        link_group: (link as any).link_group,
       });
     }
   };
 
-  const handleUpdateLink = async (id: string, updates: { title: string; url: string; type: string }) => {
+  // Compute existing groups for the modals
+  const existingGroups = [...new Set(links.map((l: any) => l.link_group).filter(Boolean))] as string[];
+
+  const handleUpdateLink = async (id: string, updates: { title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null }) => {
     try {
       await updateLink(id, updates);
       toast({
@@ -281,6 +287,9 @@ const Dashboard = () => {
                         url={link.url}
                         clicks={link.clicks || 0}
                         isActive={link.is_active ?? true}
+                        scheduleStart={(link as any).schedule_start}
+                        scheduleEnd={(link as any).schedule_end}
+                        linkGroup={(link as any).link_group}
                         onToggle={handleToggle}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
@@ -334,6 +343,7 @@ const Dashboard = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddLink}
+        existingGroups={existingGroups}
       />
 
       {/* Edit Link Modal */}
@@ -342,6 +352,7 @@ const Dashboard = () => {
         onClose={() => setEditingLink(null)}
         onSave={handleUpdateLink}
         link={editingLink}
+        existingGroups={existingGroups}
       />
 
       {/* Navigation Guide - shows on first visit */}

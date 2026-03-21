@@ -1,4 +1,4 @@
-import { GripVertical, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ExternalLink, Calendar, FolderOpen } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 interface LinkCardProps {
@@ -9,6 +9,9 @@ interface LinkCardProps {
   isActive: boolean;
   isDragging?: boolean;
   isDragOver?: boolean;
+  scheduleStart?: string | null;
+  scheduleEnd?: string | null;
+  linkGroup?: string | null;
   onToggle: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -28,6 +31,9 @@ export const LinkCard = ({
   isActive,
   isDragging,
   isDragOver,
+  scheduleStart,
+  scheduleEnd,
+  linkGroup,
   onToggle,
   onEdit,
   onDelete,
@@ -66,7 +72,21 @@ export const LinkCard = ({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground truncate">{title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-foreground truncate">{title}</h3>
+            {(scheduleStart || scheduleEnd) && (
+              <span className="inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
+                <Calendar className="w-2.5 h-2.5" />
+                Scheduled
+              </span>
+            )}
+            {linkGroup && (
+              <span className="inline-flex items-center gap-1 text-[10px] bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded-full shrink-0">
+                <FolderOpen className="w-2.5 h-2.5" />
+                {linkGroup}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground truncate">{url}</p>
         </div>
 

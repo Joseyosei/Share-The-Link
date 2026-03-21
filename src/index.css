@@ -277,4 +277,109 @@
     0% { stroke-dashoffset: 50; opacity: 0; }
     100% { stroke-dashoffset: 0; opacity: 1; }
   }
+
+  /* ── Animated Wallpaper Effects ─────────────────────────── */
+
+  /* Aurora - flowing northern lights */
+  .stl-anim-aurora {
+    background-size: 400% 400%;
+    animation: stlAurora 8s ease-in-out infinite;
+  }
+  @keyframes stlAurora {
+    0%, 100% { background-position: 0% 50%; }
+    25% { background-position: 100% 0%; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 0% 100%; }
+  }
+
+  /* Gradient Shift - smooth color transition */
+  .stl-anim-gradient-shift {
+    background-size: 200% 200%;
+    animation: stlGradientShift 6s ease infinite;
+  }
+  @keyframes stlGradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Particles - floating dots via pseudo-elements */
+  .stl-anim-particles {
+    position: relative;
+    overflow: hidden;
+  }
+  .stl-anim-particles::before,
+  .stl-anim-particles::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    animation: stlParticleFloat 12s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .stl-anim-particles::before {
+    width: 60px; height: 60px;
+    top: 20%; left: 10%;
+    animation-duration: 10s;
+  }
+  .stl-anim-particles::after {
+    width: 40px; height: 40px;
+    bottom: 30%; right: 15%;
+    animation-delay: -5s;
+    animation-duration: 14s;
+  }
+  @keyframes stlParticleFloat {
+    0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.3; }
+    25% { transform: translateY(-30px) translateX(15px) scale(1.1); opacity: 0.6; }
+    50% { transform: translateY(-10px) translateX(-10px) scale(0.9); opacity: 0.4; }
+    75% { transform: translateY(-25px) translateX(20px) scale(1.05); opacity: 0.5; }
+  }
+
+  /* Waves - gentle undulating motion */
+  .stl-anim-waves {
+    background-size: 200% 200%;
+    animation: stlWaves 10s ease-in-out infinite;
+  }
+  @keyframes stlWaves {
+    0% { background-position: 0% 0%; }
+    25% { background-position: 50% 100%; }
+    50% { background-position: 100% 50%; }
+    75% { background-position: 50% 0%; }
+    100% { background-position: 0% 0%; }
+  }
+
+  /* Spotlight - moving light beam */
+  .stl-anim-spotlight {
+    position: relative;
+    overflow: hidden;
+  }
+  .stl-anim-spotlight::before {
+    content: '';
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    top: -25%;
+    left: -25%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 50%);
+    animation: stlSpotlight 8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes stlSpotlight {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(20%, 10%); }
+    66% { transform: translate(-10%, 20%); }
+  }
+
+  /* Mesh Gradient - organic color blending */
+  .stl-anim-mesh {
+    background-size: 300% 300%;
+    animation: stlMesh 15s ease infinite;
+  }
+  @keyframes stlMesh {
+    0%, 100% { background-position: 0% 0%; }
+    25% { background-position: 100% 0%; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 0% 100%; }
+  }
 }

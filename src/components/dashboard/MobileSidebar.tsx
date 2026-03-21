@@ -19,7 +19,8 @@ import {
   QrCode,
   CalendarCheck,
   MessageSquareQuote,
-  Bot
+  Bot,
+  HeadphonesIcon
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const navItems = [
   { icon: Bot, label: "AI Agent", href: "/dashboard/ai-agent", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
+  { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support", isNew: true },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   { icon: HelpCircle, label: "Help", href: "/help" },
 ];
