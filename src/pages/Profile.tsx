@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
@@ -53,6 +53,7 @@ const Profile = () => {
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [hasBookingServices, setHasBookingServices] = useState(false);
   const [bookingServicesPreview, setBookingServicesPreview] = useState<BookingServicePreview[]>([]);
+  const [viewerDarkMode, setViewerDarkMode] = useState<boolean | null>(null); // null = use theme default
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -155,7 +156,21 @@ const Profile = () => {
   }, [username]);
 
   // Get theme data
-  const currentTheme = themes.find((t) => t.id === themeId) || themes[0];
+  const creatorTheme = themes.find((t) => t.id === themeId) || themes[0];
+
+  // Dark/light mode overrides for the viewer
+  const darkOverride = { id: "dark-override", name: "Dark", background: "bg-gray-950", buttonStyle: "bg-white", textColor: "text-white" };
+  const lightOverride = { id: "light-override", name: "Light", background: "bg-white", buttonStyle: "bg-gray-900", textColor: "text-gray-900" };
+
+  // Detect if creator's theme is "dark" (dark background)
+  const isDarkTheme = /bg-(black|gray-9|slate-9|slate-8|zinc-9|neutral-9|indigo-9|purple-9|blue-9|red-9|rose-9|emerald-7|green-9|stone-[6-9])/.test(creatorTheme.background) || creatorTheme.background.includes("950");
+
+  // Compute current theme: null = creator default, true = dark, false = light
+  const currentTheme = viewerDarkMode === null
+    ? creatorTheme
+    : viewerDarkMode
+      ? darkOverride
+      : lightOverride;
 
   // -- ALL HOOKS MUST BE ABOVE CONDITIONAL RETURNS --
 
@@ -491,14 +506,41 @@ const Profile = () => {
         <Logo textClassName={`${currentTheme.textColor} text-sm`} />
       </Link>
 
-      {/* Share Button */}
-      <button
-        onClick={handleShare}
-        className={`fixed top-4 right-4 p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-colors z-10 ${currentTheme.textColor} bg-white/10`}
-        aria-label="Share profile"
-      >
-        <Share2 className="w-5 h-5" />
-      </button>
+      {/* Top-right controls */}
+      <div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+        {/* Dark/Light mode toggle */}
+        <button
+          onClick={() => {
+            if (viewerDarkMode === null) {
+              // First click: toggle opposite of creator theme
+              setViewerDarkMode(!isDarkTheme);
+            } else if (viewerDarkMode) {
+              // Currently dark, switch to light
+              setViewerDarkMode(false);
+            } else {
+              // Currently light, reset to creator theme
+              setViewerDarkMode(null);
+            }
+          }}
+          className={`p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-all ${currentTheme.textColor} bg-white/10`}
+          aria-label="Toggle dark/light mode"
+          title={viewerDarkMode === null ? "Switch mode" : viewerDarkMode ? "Switch to light" : "Reset to theme"}
+        >
+          {(viewerDarkMode === null ? isDarkTheme : viewerDarkMode) ? (
+            <Sun className="w-5 h-5" />
+          ) : (
+            <Moon className="w-5 h-5" />
+          )}
+        </button>
+        {/* Share Button */}
+        <button
+          onClick={handleShare}
+          className={`p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-colors ${currentTheme.textColor} bg-white/10`}
+          aria-label="Share profile"
+        >
+          <Share2 className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Flipbook container */}
       <div

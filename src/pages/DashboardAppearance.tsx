@@ -19,7 +19,7 @@ export interface Theme {
 }
 
 export const themes: Theme[] = [
-  // Free themes
+  // ── Free themes ──────────────────────────────────────────────
   { id: "air", name: "Air", background: "bg-white", buttonStyle: "bg-gray-900", textColor: "text-gray-900" },
   { id: "agate", name: "Agate", background: "bg-gradient-to-br from-purple-500 to-pink-500", buttonStyle: "bg-white", textColor: "text-white" },
   { id: "bliss", name: "Bliss", background: "bg-gradient-to-br from-gray-200 to-gray-400", buttonStyle: "bg-gray-800", textColor: "text-gray-800" },
@@ -32,7 +32,14 @@ export const themes: Theme[] = [
   { id: "twilight", name: "Twilight", background: "bg-gradient-to-br from-purple-300 to-pink-300", buttonStyle: "bg-pink-400", textColor: "text-purple-900" },
   { id: "serenity", name: "Serenity", background: "bg-gradient-to-br from-sky-100 to-blue-200", buttonStyle: "bg-blue-600", textColor: "text-blue-900" },
   { id: "midnight", name: "Midnight", background: "bg-gradient-to-br from-gray-900 to-slate-800", buttonStyle: "bg-white", textColor: "text-white" },
-  // Pro themes
+  // ── New free themes ──────────────────────────────────────────
+  { id: "cloud", name: "Cloud", background: "bg-gradient-to-b from-blue-50 to-white", buttonStyle: "bg-blue-500", textColor: "text-blue-900" },
+  { id: "sand", name: "Sand", background: "bg-gradient-to-br from-orange-50 to-amber-100", buttonStyle: "bg-amber-800", textColor: "text-amber-900" },
+  { id: "slate", name: "Slate", background: "bg-gradient-to-br from-slate-700 to-slate-900", buttonStyle: "bg-slate-400", textColor: "text-slate-100" },
+  { id: "lavender", name: "Lavender", background: "bg-gradient-to-br from-violet-100 to-purple-200", buttonStyle: "bg-violet-600", textColor: "text-violet-900" },
+  { id: "mint", name: "Mint", background: "bg-gradient-to-br from-emerald-50 to-teal-100", buttonStyle: "bg-teal-600", textColor: "text-teal-900" },
+  { id: "peach", name: "Peach", background: "bg-gradient-to-br from-orange-100 to-rose-100", buttonStyle: "bg-rose-500", textColor: "text-rose-900" },
+  // ── Pro themes ───────────────────────────────────────────────
   { id: "blocks", name: "Blocks", background: "bg-gradient-to-br from-violet-600 to-purple-700", buttonStyle: "bg-pink-500", textColor: "text-white", isPro: true },
   { id: "bloom", name: "Bloom", background: "bg-gradient-to-br from-blue-900 to-slate-900", buttonStyle: "bg-pink-400", textColor: "text-white", isPro: true },
   { id: "groove", name: "Groove", background: "bg-gradient-to-br from-cyan-400 to-purple-600", buttonStyle: "bg-lime-400", textColor: "text-white", isPro: true },
@@ -45,6 +52,26 @@ export const themes: Theme[] = [
   { id: "sunset", name: "Sunset", background: "bg-gradient-to-br from-rose-400 to-amber-400", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
   { id: "forest", name: "Forest", background: "bg-gradient-to-br from-emerald-700 to-green-900", buttonStyle: "bg-lime-300", textColor: "text-lime-100", isPro: true },
   { id: "royal", name: "Royal", background: "bg-gradient-to-br from-indigo-800 to-purple-900", buttonStyle: "bg-amber-400", textColor: "text-amber-100", isPro: true },
+  // ── New premium themes (beyond Linktree/Stan) ────────────────
+  { id: "aurora", name: "Aurora", background: "bg-gradient-to-br from-green-400 via-cyan-500 to-blue-600", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
+  { id: "cosmos", name: "Cosmos", background: "bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-800", buttonStyle: "bg-pink-500", textColor: "text-white", isPro: true },
+  { id: "honey", name: "Honey", background: "bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500", buttonStyle: "bg-amber-900", textColor: "text-amber-950" },
+  { id: "ocean", name: "Ocean", background: "bg-gradient-to-b from-sky-400 via-blue-500 to-indigo-700", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
+  { id: "cherry", name: "Cherry", background: "bg-gradient-to-br from-rose-600 to-pink-800", buttonStyle: "bg-rose-200", textColor: "text-white", isPro: true },
+  { id: "neon", name: "Neon", background: "bg-gray-950", buttonStyle: "bg-gradient-to-r from-green-400 to-cyan-400", textColor: "text-green-400", isPro: true },
+  { id: "velvet", name: "Velvet", background: "bg-gradient-to-br from-rose-900 via-purple-900 to-indigo-900", buttonStyle: "bg-rose-400", textColor: "text-rose-100", isPro: true },
+  { id: "glacier", name: "Glacier", background: "bg-gradient-to-br from-slate-100 via-blue-50 to-cyan-100", buttonStyle: "bg-cyan-700", textColor: "text-cyan-900", isPro: true },
+  { id: "sahara", name: "Sahara", background: "bg-gradient-to-br from-amber-200 via-orange-200 to-yellow-100", buttonStyle: "bg-amber-700", textColor: "text-amber-900", isPro: true },
+  { id: "matrix", name: "Matrix", background: "bg-black", buttonStyle: "bg-green-500", textColor: "text-green-400", isPro: true },
+  { id: "sakura", name: "Sakura", background: "bg-gradient-to-br from-pink-100 via-rose-200 to-pink-300", buttonStyle: "bg-rose-600", textColor: "text-rose-900", isPro: true },
+  { id: "thunder", name: "Thunder", background: "bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900", buttonStyle: "bg-yellow-400", textColor: "text-white", isPro: true },
+  { id: "tropical", name: "Tropical", background: "bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600", buttonStyle: "bg-yellow-300", textColor: "text-white", isPro: true },
+  { id: "wine", name: "Wine", background: "bg-gradient-to-br from-red-950 to-rose-900", buttonStyle: "bg-rose-300", textColor: "text-rose-100", isPro: true },
+  { id: "cotton", name: "Cotton", background: "bg-gradient-to-br from-pink-50 via-white to-blue-50", buttonStyle: "bg-pink-400", textColor: "text-gray-800" },
+  { id: "obsidian", name: "Obsidian", background: "bg-gradient-to-br from-gray-950 via-zinc-900 to-neutral-950", buttonStyle: "bg-zinc-600", textColor: "text-zinc-300", isPro: true },
+  { id: "candy", name: "Candy", background: "bg-gradient-to-br from-pink-400 via-purple-400 to-indigo-400", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
+  { id: "earth", name: "Earth", background: "bg-gradient-to-br from-stone-600 via-amber-800 to-stone-700", buttonStyle: "bg-amber-200", textColor: "text-amber-100", isPro: true },
+  { id: "prism", name: "Prism", background: "bg-gradient-to-br from-red-500 via-yellow-400 via-green-400 to-blue-500", buttonStyle: "bg-white", textColor: "text-white", isPro: true },
 ];
 
 const categories = [
