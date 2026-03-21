@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,14 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+  // Timeout for Clerk loading
+  useEffect(() => {
+    if (isLoaded) return;
+    const timer = setTimeout(() => setClerkTimedOut(true), 5000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +54,18 @@ const ForgotPassword = () => {
     }
   };
 
+  // Show loading state while Clerk loads, but not forever
+  if (!isLoaded && !clerkTimedOut) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div className="flex items-center gap-2 text-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Success screen
   if (emailSent) {
     return (
@@ -64,7 +83,7 @@ const ForgotPassword = () => {
               We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to reset your password.
             </p>
             <Button 
-              onClick={() => navigate("/login")} 
+              onClick={() => window.location.href = "/dashboard"}
               className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
             >
               Back to Login

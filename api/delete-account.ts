@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-import { handleCors } from "./_lib/cors";
-import { verifyAuth, unauthorized } from "./_lib/auth";
-import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
+import { handleCors } from "./_lib/cors.js";
+import { verifyAuth, unauthorized } from "./_lib/auth.js";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -129,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 13. Finally, delete the auth user (this is permanent!)
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+    const { error: deleteError } = await (supabase.auth.admin as any).deleteUser(userId);
     if (deleteError) {
       console.error("Failed to delete auth user:", deleteError);
       return res.status(500).json({ error: "Failed to delete auth account. Data has been removed." });

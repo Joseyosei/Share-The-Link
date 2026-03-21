@@ -28,7 +28,7 @@ export async function verifyAuth(req: VercelRequest): Promise<{
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await (supabase.auth as any).getUser(token);
     if (error || !data.user) {
       return null;
     }

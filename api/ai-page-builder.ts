@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors } from "./_lib/cors";
-import { verifyAuth, unauthorized } from "./_lib/auth";
-import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit";
-import { sanitize, badRequest } from "./_lib/validate";
+import { handleCors } from "./_lib/cors.js";
+import { verifyAuth, unauthorized } from "./_lib/auth.js";
+import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
+import { sanitize, badRequest } from "./_lib/validate.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (handleCors(req, res)) return;
