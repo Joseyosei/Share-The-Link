@@ -59,7 +59,7 @@ const docs: DocSection[] = [
         content: `Get up and running with Share The Link in 5 minutes.
 
 **Step 1: Create Your Account (1 min)**
-1. Go to sharethelink.com
+1. Go to sharethelink.app
 2. Click "Sign Up"
 3. Enter your email and create a password
 4. Verify your email — you're in!
@@ -86,7 +86,7 @@ Option B — Manual Builder:
 
 **Step 4: Share Your Page (30 sec)**
 1. Click the Share button on your dashboard
-2. Copy your unique link: sharethelink.com/yourname
+2. Copy your unique link: sharethelink.app/yourname
 3. Paste it on social media, email signatures, anywhere
 
 **Step 5: Go Live (Optional)**
@@ -115,7 +115,7 @@ Social Login (Faster):
 
 Required fields:
 - Display name (appears on your page)
-- Username (your unique URL — e.g. sharethelink.com/yourname)
+- Username (your unique URL — e.g. sharethelink.app/yourname)
 
 Optional fields:
 - Profile photo
@@ -360,7 +360,7 @@ Each link shows its click count on the Links page. For deeper insights, go to An
 - Stream stats (viewers, tips, duration) are recorded
 
 **Sharing Your Live Stream:**
-Your live stream URL is: sharethelink.com/live/yourusername
+Your live stream URL is: sharethelink.app/live/yourusername
 Share it on social media to invite viewers.`,
       },
       {
@@ -387,7 +387,7 @@ Each recording shows:
 - Delete: Remove recordings you no longer want.
 
 **Public Media Page:**
-Visitors can browse public recordings at sharethelink.com/media with filters for All, Live Now, Recent, and Trending.`,
+Visitors can browse public recordings at sharethelink.app/media with filters for All, Live Now, Recent, and Trending.`,
       },
     ],
   },
@@ -554,7 +554,7 @@ A: Yes! The free plan includes unlimited links, basic analytics, and live stream
 A: Go to Settings from the sidebar and update your username. Note that your old URL will no longer work after the change.
 
 **Q: Can I use my own domain?**
-A: Yes, on the Pro plan. Go to Settings > Custom Domain, add a CNAME record pointing to sharethelink.com, and we'll configure it with a free SSL certificate.
+A: Yes, on the Pro plan. Go to Settings > Custom Domain, add a CNAME record pointing to sharethelink.app, and we'll configure it with a free SSL certificate.
 
 **Q: How do I accept tips during live streams?**
 A: Connect your Stripe account in Settings > Payments. Once connected, viewers can send tips during your live streams. Share The Link takes a 2% platform fee.
@@ -581,7 +581,7 @@ A: Go to Help from the sidebar, or email support@sharethelink.com. You can also 
 - Clear your browser cache (Ctrl+Shift+Delete)
 - Try a different browser
 - Disable browser extensions temporarily
-- Check if sharethelink.com is down (rare)
+- Check if sharethelink.app is down (rare)
 
 **Links Not Saving:**
 - Check your internet connection

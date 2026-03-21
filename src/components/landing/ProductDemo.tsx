@@ -121,7 +121,7 @@ export function ProductDemo() {
               </div>
               <div className="flex-1 mx-4">
                 <div className="bg-gray-800 rounded-md px-3 py-1 text-xs text-gray-400 text-center max-w-xs mx-auto">
-                  sharethelink.com
+                  sharethelink.app
                 </div>
               </div>
             </div>

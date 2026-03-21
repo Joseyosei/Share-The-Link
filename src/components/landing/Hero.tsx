@@ -40,15 +40,73 @@ const SOCIAL_LINKS = [
   )},
 ];
 
+const EXAMPLE_USERNAMES = [
+  "yourname",
+  "johndoe",
+  "sarahcreates",
+  "musicbyjay",
+  "designbylisa",
+  "chefmii",
+  "fitbyalex",
+  "seenhq",
+];
+
 export const Hero = () => {
   const [username, setUsername] = useState("");
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [typedText, setTypedText] = useState("");
+  const [isUserTyping, setIsUserTyping] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Typewriter animation for placeholder usernames
+  useEffect(() => {
+    if (isUserTyping) return;
+
+    let currentIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      const currentWord = EXAMPLE_USERNAMES[currentIndex];
+
+      if (!isDeleting) {
+        // Typing forward
+        charIndex++;
+        setTypedText(currentWord.slice(0, charIndex));
+
+        if (charIndex === currentWord.length) {
+          // Pause at full word
+          timeout = setTimeout(() => {
+            isDeleting = true;
+            tick();
+          }, 2000);
+          return;
+        }
+        timeout = setTimeout(tick, 100 + Math.random() * 50);
+      } else {
+        // Deleting
+        charIndex--;
+        setTypedText(currentWord.slice(0, charIndex));
+
+        if (charIndex === 0) {
+          isDeleting = false;
+          currentIndex = (currentIndex + 1) % EXAMPLE_USERNAMES.length;
+          timeout = setTimeout(tick, 400);
+          return;
+        }
+        timeout = setTimeout(tick, 50);
+      }
+    };
+
+    timeout = setTimeout(tick, 600);
+    return () => clearTimeout(timeout);
+  }, [isUserTyping]);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
   const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
@@ -135,19 +193,34 @@ export const Hero = () => {
             Showcase your products, content, and brand in one beautiful page.
           </p>
 
-          {/* Username Preview */}
+          {/* Username Preview with typewriter animation */}
           <div className="max-w-md mx-auto mb-8 animate-fade-in stagger-3">
             <div className="flex items-center bg-primary-foreground/10 backdrop-blur-lg rounded-xl p-2 border border-primary-foreground/20">
-              <span className="text-primary-foreground/60 pl-4 text-sm md:text-base">
-                sharethelink.com/
+              <span className="text-primary-foreground/60 pl-4 text-sm md:text-base whitespace-nowrap">
+                sharethelink.app/
               </span>
-              <input
-                type="text"
-                placeholder="yourname"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
-                className="flex-1 bg-transparent text-primary-foreground font-medium px-1 py-3 focus:outline-none text-sm md:text-base"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                    setIsUserTyping(true);
+                  }}
+                  onFocus={() => setIsUserTyping(true)}
+                  onBlur={() => {
+                    if (!username) setIsUserTyping(false);
+                  }}
+                  className="w-full bg-transparent text-primary-foreground font-medium px-1 py-3 focus:outline-none text-sm md:text-base"
+                />
+                {/* Typewriter placeholder when user hasn't typed */}
+                {!username && !isUserTyping && (
+                  <span className="absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-primary-foreground/40 font-medium text-sm md:text-base">
+                    {typedText}
+                    <span className="inline-block w-[2px] h-[1em] bg-primary-foreground/60 ml-[1px] align-middle animate-pulse" />
+                  </span>
+                )}
+              </div>
               <Button
                 asChild
                 className="bg-white text-gray-900 hover:bg-white/90 font-semibold"

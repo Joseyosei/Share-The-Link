@@ -50,8 +50,8 @@ const comparisonFeatures = [
   {
     category: "Domain & Branding",
     features: [
-      { name: "sharethelink.com/username", free: true, pro: true, business: true, enterprise: true },
-      { name: "Custom subdomain", free: false, pro: true, business: true, enterprise: true, tooltip: "Use your-brand.sharethelink.com" },
+      { name: "sharethelink.app/username", free: true, pro: true, business: true, enterprise: true },
+      { name: "Custom subdomain", free: false, pro: true, business: true, enterprise: true, tooltip: "Use your-brand.sharethelink.app" },
       { name: "Custom domain", free: false, pro: false, business: true, enterprise: true, tooltip: "Use your own domain like links.yourbrand.com" },
       { name: "SSL certificate", free: true, pro: true, business: true, enterprise: true },
     ],
