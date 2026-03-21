@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Wand2, Loader2, Check, Sparkles, Palette, Type, Layout, ArrowRight,
-  Target, PenTool, Share2, Zap, Globe, Search
+  Target, PenTool, Zap, Globe, Search, User, ExternalLink, ArrowLeft,
+  RefreshCw, Eye, Smartphone, RotateCcw, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,95 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAIPageBuilder, GeneratedPage, ThemeVariant } from "@/hooks/useAIPageBuilder";
 
-// AI Generation Loading Modal with animated steps
+// ── Live Phone Preview ──────────────────────────────────────────────
+const PhonePreview = ({ page, className = "" }: { page: GeneratedPage; className?: string }) => {
+  return (
+    <div className={`relative mx-auto ${className}`} style={{ width: 280 }}>
+      {/* Phone bezel */}
+      <div className="rounded-[2.5rem] border-[6px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden">
+        {/* Notch */}
+        <div className="relative bg-gray-800 flex justify-center pt-2 pb-1">
+          <div className="w-20 h-5 bg-gray-900 rounded-full" />
+        </div>
+        {/* Screen */}
+        <div
+          className="px-5 py-6 min-h-[420px] flex flex-col items-center"
+          style={{
+            backgroundColor: page.colors.background,
+            fontFamily: page.font || "Inter",
+            transition: "all 0.4s ease",
+          }}
+        >
+          {/* Avatar placeholder */}
+          <div
+            className="w-16 h-16 rounded-full mb-3 flex items-center justify-center border-2"
+            style={{ borderColor: page.colors.accent, backgroundColor: page.colors.primary + "15" }}
+          >
+            <User className="w-7 h-7" style={{ color: page.colors.primary }} />
+          </div>
+
+          {/* Name */}
+          <div
+            className="text-sm font-bold mb-0.5 text-center"
+            style={{ color: page.colors.text }}
+          >
+            Your Name
+          </div>
+          <div
+            className="text-[10px] mb-2 opacity-60"
+            style={{ color: page.colors.text }}
+          >
+            @username
+          </div>
+
+          {/* Bio */}
+          <p
+            className="text-[11px] text-center mb-4 leading-relaxed max-w-[200px]"
+            style={{ color: page.colors.secondary }}
+          >
+            {page.bio || "Your bio will appear here..."}
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="w-full space-y-2">
+            {(page.ctas || []).slice(0, 4).map((cta, i) => (
+              <div
+                key={i}
+                className="w-full py-2.5 px-3 rounded-xl text-center text-[11px] font-semibold transition-all duration-300 flex items-center justify-between"
+                style={{
+                  backgroundColor: cta.type === "primary" ? page.colors.primary : page.colors.primary + "18",
+                  color: cta.type === "primary" ? page.colors.background : page.colors.primary,
+                  border: cta.type === "secondary" ? `1.5px solid ${page.colors.primary}30` : "none",
+                }}
+              >
+                <span>{cta.title}</span>
+                <ChevronRight className="w-3 h-3 opacity-50" />
+              </div>
+            ))}
+          </div>
+
+          {/* Color accent bar */}
+          <div className="flex gap-1 mt-auto pt-4">
+            {Object.entries(page.colors).map(([key, color]) => (
+              <div
+                key={key}
+                className="w-3 h-3 rounded-full border border-black/10"
+                style={{ backgroundColor: color }}
+                title={key}
+              />
+            ))}
+          </div>
+        </div>
+        {/* Home indicator */}
+        <div className="bg-gray-800 flex justify-center py-2">
+          <div className="w-24 h-1 bg-gray-600 rounded-full" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── AI Generation Loading Modal ─────────────────────────────────────
 const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentStep: number }) => {
   const steps = [
     { icon: Globe, label: "Searching the web for your business...", color: "text-blue-500" },
@@ -86,7 +175,7 @@ const AIGeneratingModal = ({ isOpen, currentStep }: { isOpen: boolean; currentSt
   );
 };
 
-// Theme Card for theme selection
+// ── Theme Card ──────────────────────────────────────────────────────
 const ThemeCard = ({
   theme,
   isSelected,
@@ -151,6 +240,19 @@ const ThemeCard = ({
   );
 };
 
+// ── Example Prompts ─────────────────────────────────────────────────
+const EXAMPLE_PROMPTS = [
+  { label: "Photographer", text: "I'm a freelance photographer specializing in weddings and portraits. I want clients to book sessions and view my portfolio." },
+  { label: "Bakery owner", text: "I run a bakery called Sweet Crumbs. We sell custom cakes, pastries, and offer catering for events." },
+  { label: "Life coach", text: "I'm a certified life coach helping people overcome anxiety and build confidence. I offer 1-on-1 sessions and group workshops." },
+  { label: "Jewelry maker", text: "I sell handmade jewelry on Etsy. I specialize in minimalist gold and silver pieces inspired by nature." },
+  { label: "Fitness trainer", text: "I'm a personal trainer offering online workout programs and nutrition coaching for busy professionals." },
+  { label: "Music artist", text: "I'm an independent R&B artist. I want to share my latest releases, tour dates, and merch store." },
+  { label: "Restaurant", text: "I own a family Italian restaurant called Nonna's Kitchen. We do dine-in, takeout, and catering." },
+  { label: "Developer", text: "I'm a full-stack developer building SaaS products. I want to showcase my projects and accept freelance work." },
+];
+
+// ── Main Wizard ─────────────────────────────────────────────────────
 interface AIPageBuilderWizardProps {
   onComplete?: (page: GeneratedPage) => void;
 }
@@ -197,7 +299,6 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
       if (page) {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 2000);
-        // Go to theme selection if themes are available
         setStep("themes");
       }
     } catch {
@@ -237,32 +338,40 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
   };
 
   const allSteps = ["describe", "themes", "preview", "apply"];
+  const stepLabels = ["Describe", "Theme", "Preview", "Apply"];
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center gap-2 mb-8">
+    <div className="max-w-4xl mx-auto">
+      {/* Progress Steps with labels */}
+      <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8">
         {allSteps.map((s, i) => (
           <div key={s} className="flex items-center">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                step === s
-                  ? "bg-primary text-primary-foreground"
-                  : i < allSteps.indexOf(step)
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {i < allSteps.indexOf(step) ? (
-                <Check className="w-4 h-4" />
-              ) : (
-                i + 1
-              )}
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
+                  step === s
+                    ? "bg-primary text-primary-foreground shadow-lg scale-110"
+                    : i < allSteps.indexOf(step)
+                    ? "bg-green-500 text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {i < allSteps.indexOf(step) ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  i + 1
+                )}
+              </div>
+              <span className={`text-[10px] font-medium hidden sm:block ${
+                step === s ? "text-primary" : i < allSteps.indexOf(step) ? "text-green-600" : "text-muted-foreground"
+              }`}>
+                {stepLabels[i]}
+              </span>
             </div>
             {i < allSteps.length - 1 && (
-              <div className={`w-8 h-0.5 mx-1 ${
+              <div className={`w-6 sm:w-12 h-0.5 mx-1 mt-[-12px] sm:mt-[-14px] transition-colors ${
                 i < allSteps.indexOf(step)
-                  ? "bg-accent"
+                  ? "bg-green-500"
                   : "bg-muted"
               }`} />
             )}
@@ -273,23 +382,30 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
       {/* Step 1: Describe */}
       {step === "describe" && (
         <Card className="border-2 border-dashed border-primary/20">
-          <CardContent className="p-8">
+          <CardContent className="p-6 sm:p-8">
             <div className="text-center mb-6">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Wand2 className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-bold mb-2">Describe Your Business</h2>
               <p className="text-muted-foreground">
-                Tell us about your business. You can also add your website URL so the AI can pull information from the web.
+                Tell us about your business in detail. The more you share, the better your page will be.
               </p>
             </div>
 
             <Textarea
               value={businessDescription}
               onChange={(e) => setBusinessDescription(e.target.value)}
-              placeholder="Example: I'm a fitness coach helping busy professionals build sustainable workout habits. I offer 1-on-1 coaching, group classes, and a nutrition program."
-              className="min-h-32 text-base"
+              placeholder="Example: I'm a fitness coach named Sarah helping busy professionals build sustainable workout habits. I offer 1-on-1 coaching, group classes, and a nutrition program. My brand is energetic and motivational."
+              className="min-h-36 text-base resize-y"
+              maxLength={2000}
             />
+            <div className="flex justify-between mt-1">
+              <span className="text-xs text-muted-foreground">
+                {businessDescription.length < 10 ? `At least 10 characters required` : ""}
+              </span>
+              <span className="text-xs text-muted-foreground">{businessDescription.length}/2000</span>
+            </div>
 
             {/* Website URL for web retrieval */}
             <div className="mt-4">
@@ -316,23 +432,21 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
               </p>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-sm text-muted-foreground">Try:</span>
-              {[
-                "I'm a photographer",
-                "I run a bakery",
-                "I'm a life coach",
-                "I sell handmade jewelry",
-              ].map((example) => (
-                <Badge
-                  key={example}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-accent"
-                  onClick={() => setBusinessDescription(example)}
-                >
-                  {example}
-                </Badge>
-              ))}
+            {/* Example prompts - scrollable grid */}
+            <div className="mt-5">
+              <span className="text-sm font-medium text-muted-foreground block mb-2">Quick start examples:</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {EXAMPLE_PROMPTS.map((example) => (
+                  <button
+                    key={example.label}
+                    className="text-left p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-accent/50 transition-all text-sm group"
+                    onClick={() => setBusinessDescription(example.text)}
+                  >
+                    <span className="font-medium text-foreground group-hover:text-primary transition-colors">{example.label}</span>
+                    <span className="text-[10px] text-muted-foreground block mt-0.5 line-clamp-2">{example.text.slice(0, 60)}...</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <Button
@@ -341,7 +455,11 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
               className="w-full mt-6 gradient-button text-white py-7 text-lg font-semibold"
               size="lg"
             >
-              <Sparkles className="w-5 h-5 mr-2" />
+              {loading ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-5 h-5 mr-2" />
+              )}
               Generate with AI
             </Button>
           </CardContent>
@@ -351,41 +469,55 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
       {/* AI Generation Modal */}
       <AIGeneratingModal isOpen={showGeneratingModal} currentStep={generatingStep} />
 
-      {/* Step 2: Theme Selection */}
+      {/* Step 2: Theme Selection with side-by-side preview */}
       {step === "themes" && themeVariants.length > 0 && (
         <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <Palette className="w-6 h-6 text-primary" />
+          <div className="grid lg:grid-cols-[1fr_300px] gap-6">
+            {/* Theme grid */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                    <Palette className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold mb-1">Choose Your Theme</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Select a visual style for your profile. See the live preview on the right.
+                  </p>
                 </div>
-                <h2 className="text-xl font-bold mb-1">Choose Your Theme</h2>
-                <p className="text-sm text-muted-foreground">
-                  Select a visual style for your profile. You can always change it later.
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {themeVariants.map((theme, index) => (
+                    <ThemeCard
+                      key={theme.name}
+                      theme={theme}
+                      isSelected={selectedThemeIndex === index}
+                      onClick={() => handleSelectTheme(index)}
+                    />
+                  ))}
+                </div>
+
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                  Or skip to use the AI-recommended theme
                 </p>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                {themeVariants.map((theme, index) => (
-                  <ThemeCard
-                    key={theme.name}
-                    theme={theme}
-                    isSelected={selectedThemeIndex === index}
-                    onClick={() => handleSelectTheme(index)}
-                  />
-                ))}
+            {/* Live phone preview (visible on larger screens) */}
+            {generatedPage && (
+              <div className="hidden lg:flex flex-col items-center sticky top-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Live Preview</span>
+                </div>
+                <PhonePreview page={generatedPage} />
               </div>
-
-              {/* Skip theme option */}
-              <p className="text-center text-xs text-muted-foreground mt-4">
-                Or skip to use the AI-recommended theme
-              </p>
-            </CardContent>
-          </Card>
+            )}
+          </div>
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={handleStartOver} className="flex-1">
+              <RotateCcw className="w-4 h-4 mr-2" />
               Start Over
             </Button>
             <Button onClick={handleProceedToPreview} className="flex-1 gradient-button text-white">
@@ -396,7 +528,7 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
         </div>
       )}
 
-      {/* Step 3: Preview */}
+      {/* Step 3: Preview with phone mockup + details */}
       {step === "preview" && generatedPage && (
         <div className={`space-y-6 ${showSuccess ? "animate-scale-in" : ""}`}>
           <Card className="overflow-hidden">
@@ -409,107 +541,130 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
               </Badge>
             </div>
             <CardContent className="p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-primary" />
                 Your Generated Design
               </h2>
 
-              {/* Bio Preview */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Type className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Bio</span>
-                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
-                    <Sparkles className="w-3 h-3 mr-1" /> AI-written
-                  </Badge>
+              <div className="grid lg:grid-cols-[300px_1fr] gap-8">
+                {/* Phone preview */}
+                <div className="flex flex-col items-center">
+                  <PhonePreview page={generatedPage} />
+                  <p className="text-xs text-muted-foreground mt-3 text-center">
+                    This is how your profile will look to visitors
+                  </p>
                 </div>
-                <p className="text-muted-foreground bg-muted/50 p-4 rounded-lg">
-                  {generatedPage.bio}
-                </p>
-              </div>
 
-              {/* Colors Preview */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Palette className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Color Palette</span>
-                  {selectedThemeIndex !== null && (
-                    <Badge variant="outline" className="text-xs text-primary border-primary/30">
-                      {themeVariants[selectedThemeIndex]?.name}
-                    </Badge>
+                {/* Design details */}
+                <div className="space-y-5">
+                  {/* Bio */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Type className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium">Bio</span>
+                      <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                        <Sparkles className="w-3 h-3 mr-1" /> AI-written
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground bg-muted/50 p-4 rounded-lg text-sm">
+                      {generatedPage.bio}
+                    </p>
+                  </div>
+
+                  {/* Colors Preview */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Palette className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium">Color Palette</span>
+                      {selectedThemeIndex !== null && (
+                        <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                          {themeVariants[selectedThemeIndex]?.name}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      {Object.entries(generatedPage.colors).map(([name, color]) => (
+                        <div key={name} className="text-center">
+                          <div
+                            className="w-10 h-10 rounded-lg border shadow-sm"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="text-[10px] text-muted-foreground capitalize mt-1 block">
+                            {name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Layout & Font */}
+                  <div className="flex gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Layout className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">Layout</span>
+                      </div>
+                      <Badge variant="secondary" className="capitalize">
+                        {generatedPage.layout}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Type className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">Font</span>
+                      </div>
+                      <Badge variant="secondary">{generatedPage.font}</Badge>
+                    </div>
+                  </div>
+
+                  {/* CTAs Preview */}
+                  {generatedPage.ctas && generatedPage.ctas.length > 0 && (
+                    <div>
+                      <span className="font-medium block mb-2">Suggested Links</span>
+                      <div className="space-y-2">
+                        {generatedPage.ctas.map((cta, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-2">
+                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="font-medium text-sm">{cta.title}</span>
+                            </div>
+                            <Badge variant={cta.type === "primary" ? "default" : "outline"} className="text-xs">
+                              {cta.type}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggestions */}
+                  {generatedPage.suggestions && generatedPage.suggestions.length > 0 && (
+                    <div className="bg-accent/10 p-4 rounded-lg">
+                      <span className="font-medium block mb-2 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        AI Tips for Your Page
+                      </span>
+                      <ul className="text-sm text-muted-foreground space-y-1.5">
+                        {generatedPage.suggestions.map((s, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <Check className="w-3.5 h-3.5 text-green-500 mt-0.5 shrink-0" />
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  {Object.entries(generatedPage.colors).map(([name, color]) => (
-                    <div key={name} className="text-center">
-                      <div
-                        className="w-12 h-12 rounded-lg border shadow-sm"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="text-xs text-muted-foreground capitalize mt-1 block">
-                        {name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
-
-              {/* Layout & Font */}
-              <div className="mb-6 flex gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Layout className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">Layout</span>
-                  </div>
-                  <Badge variant="secondary" className="capitalize">
-                    {generatedPage.layout}
-                  </Badge>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Type className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">Font</span>
-                  </div>
-                  <Badge variant="secondary">{generatedPage.font}</Badge>
-                </div>
-              </div>
-
-              {/* CTAs Preview */}
-              {generatedPage.ctas && generatedPage.ctas.length > 0 && (
-                <div className="mb-6">
-                  <span className="font-medium block mb-2">Suggested Links</span>
-                  <div className="space-y-2">
-                    {generatedPage.ctas.map((cta, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <span className="font-medium">{cta.title}</span>
-                        <Badge variant={cta.type === "primary" ? "default" : "outline"}>
-                          {cta.type}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Suggestions */}
-              {generatedPage.suggestions && generatedPage.suggestions.length > 0 && (
-                <div className="bg-accent/10 p-4 rounded-lg">
-                  <span className="font-medium block mb-2">AI Suggestions</span>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    {generatedPage.suggestions.map((s, i) => (
-                      <li key={i}>- {s}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </CardContent>
           </Card>
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep("themes")} className="flex-1">
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Change Theme
             </Button>
             <Button
@@ -544,6 +699,7 @@ export const AIPageBuilderWizard = ({ onComplete }: AIPageBuilderWizardProps) =>
             </p>
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={handleStartOver}>
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Generate Another
               </Button>
               <Button asChild className="gradient-button text-white">

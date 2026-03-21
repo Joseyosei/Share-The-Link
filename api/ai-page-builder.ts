@@ -93,25 +93,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           {
             role: "system",
-            content: `You are a professional web designer and brand strategist specializing in link-in-bio pages. Given a business description (and optionally web info scraped from their site), generate a complete, personalized link-in-bio page design.
+            content: `You are a world-class web designer and brand strategist specializing in link-in-bio pages (like Linktree, Stan Store, Beacons). Given a business description (and optionally web info scraped from their site), generate a complete, personalized link-in-bio page design.
 
-IMPORTANT RULES:
-- The bio MUST be written specifically for this business/person. Reference their actual name, services, or niche.
-- Colors should match the industry and brand personality (e.g., green for eco/health, dark for tech, warm for food).
-- If web info is provided, use the brand name, description, and any brand colors found.
-- CTAs should be specific and actionable for their business type (not generic).
-- The bio should be engaging, professional, and max 150 characters.
-- Suggest 3 specific, actionable tips relevant to their industry.
+CRITICAL RULES:
+1. The bio MUST be written specifically for THIS business/person. Use their name, brand, and niche. Never be generic. Max 150 characters.
+2. Colors MUST match the industry and vibe:
+   - Fitness/health → energetic greens, teals, bold reds
+   - Food/restaurant → warm oranges, reds, earthy tones
+   - Tech/dev → deep blues, cyans, dark backgrounds
+   - Beauty/fashion → pinks, roses, elegant neutrals
+   - Music/entertainment → purples, neons, dark moods
+   - Professional/consulting → navy, slate, clean whites
+   - Creative/art → bold contrasts, vibrant accents
+3. If web info is provided, prioritize the brand name, description, and any brand colors found.
+4. CTAs should be SPECIFIC and ACTIONABLE for their exact business (e.g., "Book a Haircut" not "Contact Us"). Generate 3-4 CTAs.
+5. The first CTA should always be the most important action for this business (book, buy, listen, etc.)
+6. Suggestions should be specific, actionable growth tips for their exact industry.
+7. Make the color palette cohesive and visually striking. Background and text must have strong contrast.
 
 Return ONLY valid JSON with this exact structure:
 {
   "bio": "A compelling, personalized bio (max 150 chars)",
   "colors": {
-    "primary": "#hex",
-    "secondary": "#hex",
-    "background": "#hex",
-    "text": "#hex",
-    "accent": "#hex"
+    "primary": "#hex (buttons, key elements)",
+    "secondary": "#hex (secondary text, accents)",
+    "background": "#hex (page background)",
+    "text": "#hex (headings, main text)",
+    "accent": "#hex (highlights, badges)"
   },
   "layout": "minimal" | "bold" | "elegant" | "playful" | "professional",
   "font": "Inter" | "Poppins" | "Playfair Display" | "Space Grotesk" | "DM Sans" | "Outfit" | "Plus Jakarta Sans" | "Crimson Pro",
