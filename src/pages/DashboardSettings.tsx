@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSubscription, PRICING_TIERS } from "@/hooks/useSubscription";
@@ -16,9 +15,16 @@ import { authFetch } from "@/lib/auth-fetch";
 const DashboardSettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
   const { profile, loading: profileLoading, refetch } = useUserProfile();
+  const [currentUser, setCurrentUser] = useState<{ id: string; email?: string } | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUser({ id: user.id, email: user.email });
+    };
+    getUser();
+  }, []);
   const { subscription, loading: subLoading, cancelSubscription, reactivateSubscription, openCustomerPortal } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -94,7 +100,7 @@ const DashboardSettings = () => {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
-      if (!clerkUser) throw new Error("Not authenticated");
+      if (!currentUser) throw new Error("Not authenticated");
 
       // Content moderation checks
       if (isBlockedText(profileData.bio)) {
@@ -119,7 +125,7 @@ const DashboardSettings = () => {
       const { error } = await supabase
         .from("profiles")
         .upsert({
-          user_id: clerkUser.id,
+          user_id: currentUser.id,
           full_name: profileData.fullName,
           username: profileData.username,
           bio: profileData.bio,
@@ -149,21 +155,45 @@ const DashboardSettings = () => {
     }
   };
 
-  const handleChangePassword = () => {
-    // Clerk handles password changes through the user profile
-    // Open Clerk's user profile modal or redirect to their account page
-    if (clerkUser) {
-      // You can use Clerk's UserProfile component or redirect
-      window.open("https://accounts.clerk.dev/user", "_blank");
-      toast({
-        title: "Manage your password",
-        description: "You'll be redirected to manage your account security settings.",
+  const handleChangePassword = async () => {
+    // Validate password fields
+    const errors: Record<string, string> = {};
+    if (!passwordData.currentPassword) errors.currentPassword = "Current password is required";
+    if (!passwordData.newPassword) errors.newPassword = "New password is required";
+    else if (passwordData.newPassword.length < 8) errors.newPassword = "Password must be at least 8 characters";
+    if (passwordData.newPassword !== passwordData.confirmPassword) errors.confirmPassword = "Passwords do not match";
+    
+    if (Object.keys(errors).length > 0) {
+      setPasswordErrors(errors);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
       });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (!clerkUser) return;
+    if (!currentUser) return;
     
     setIsLoading(true);
     try {
@@ -171,15 +201,14 @@ const DashboardSettings = () => {
       const { error: deleteError } = await supabase
         .from("profiles")
         .delete()
-        .eq("user_id", clerkUser.id);
+        .eq("user_id", currentUser.id);
       
       if (deleteError) {
         console.error("Error deleting profile:", deleteError);
       }
 
-      // Delete the Clerk user account
-      await clerkUser.delete();
-      await signOut();
+      // Sign out the user
+      await supabase.auth.signOut();
       
       toast({
         title: "Account deleted",

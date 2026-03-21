@@ -4,7 +4,6 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
-import { useSignUp, useAuth } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
 
@@ -14,21 +13,21 @@ const Signup = () => {
   const templateId = searchParams.get("template");
   const selectedTemplate = templateId ? TEMPLATES.find((t) => t.id === templateId) : null;
   const { toast } = useToast();
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", username: "", email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [pendingVerification, setPendingVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
 
   // Redirect if already signed in
   useEffect(() => {
-    if (isSignedIn) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isSignedIn, navigate]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    checkSession();
+  }, [navigate]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -47,15 +46,10 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
-    if (!isLoaded || !signUp) {
-      setErrors({ email: "Authentication is loading. Please try again." });
-      return;
-    }
 
     setIsLoading(true);
     
-    // Check if username is already taken in Supabase
+    // Check if username is already taken
     const { data: existingUser } = await supabase
       .from("profiles")
       .select("username")
@@ -69,52 +63,36 @@ const Signup = () => {
     }
 
     try {
-      await signUp.create({
-        emailAddress: formData.email,
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
         password: formData.password,
-        firstName: formData.fullName.split(" ")[0],
-        lastName: formData.fullName.split(" ").slice(1).join(" ") || undefined,
-        unsafeMetadata: {
-          username: formData.username,
-          full_name: formData.fullName,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            username: formData.username,
+          },
         },
       });
 
-      // Send email verification
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setPendingVerification(true);
-      toast({ title: "Verification code sent", description: "Please check your email for the verification code." });
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
-      const errorMessage = clerkError.errors?.[0]?.message || "An error occurred during sign up";
-      const errorCode = clerkError.errors?.[0]?.code;
-      
-      if (errorCode === "form_identifier_exists") {
-        setErrors({ email: "This email is already registered. Please log in instead." });
-      } else if (errorCode === "form_password_pwned") {
-        setErrors({ password: "This password has been compromised. Please choose a different one." });
-      } else {
-        setErrors({ email: errorMessage });
+      if (authError) {
+        if (authError.message.includes("already registered")) {
+          setErrors({ email: "This email is already registered. Please log in instead." });
+        } else {
+          setErrors({ email: authError.message });
+        }
+        setIsLoading(false);
+        return;
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLoaded || !signUp) return;
+      if (data.user) {
+        // Create profile
+        await supabase.from("profiles").upsert({
+          user_id: data.user.id,
+          username: formData.username,
+          full_name: formData.fullName,
+          email: formData.email,
+        });
 
-    setIsLoading(true);
-    try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code: verificationCode,
-      });
-
-      if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
-        
-        // Apply template if selected (after user is authenticated)
         if (selectedTemplate) {
           toast({ 
             title: "Account created!", 
@@ -125,13 +103,9 @@ const Signup = () => {
         }
         
         navigate("/dashboard");
-      } else {
-        setErrors({ email: "Verification incomplete. Please try again." });
       }
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string }> };
-      const errorMessage = clerkError.errors?.[0]?.message || "Invalid verification code";
-      setErrors({ email: errorMessage });
+    } catch (err) {
+      setErrors({ email: "An unexpected error occurred. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -143,67 +117,6 @@ const Signup = () => {
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
-
-  // Show loading state while Clerk loads
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <div className="flex items-center gap-2 text-white">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Verification code screen
-  if (pendingVerification) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
-          </div>
-          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Verify your email</h1>
-              <p className="text-muted-foreground">
-                We've sent a verification code to <strong>{formData.email}</strong>
-              </p>
-            </div>
-            {errors.email && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{errors.email}</div>}
-            <form onSubmit={handleVerify} className="space-y-4">
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                placeholder="Enter verification code"
-                className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
-                maxLength={6}
-              />
-              <Button type="submit" disabled={isLoading || verificationCode.length < 6} className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90">
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Verifying...
-                  </span>
-                ) : "Verify Email"}
-              </Button>
-            </form>
-            <button
-              onClick={() => setPendingVerification(false)}
-              className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors w-full"
-            >
-              <ArrowLeft className="w-4 h-4" />Back to signup
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
