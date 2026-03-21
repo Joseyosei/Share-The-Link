@@ -357,7 +357,7 @@ const DashboardSettings = () => {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  sharethelink.com/{profileData.username}
+                  sharethelink.app/{profileData.username}
                 </p>
               </div>
 

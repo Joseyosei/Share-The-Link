@@ -519,7 +519,7 @@ export const AIBuilderDemo = () => {
 
                         {/* Powered by badge */}
                         <p className="mt-6 text-[10px] opacity-40" style={{ color: preview.colors.text }}>
-                          sharethelink.com
+                          sharethelink.app
                         </p>
                       </div>
                     ) : null}
