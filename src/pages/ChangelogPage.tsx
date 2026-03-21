@@ -4,6 +4,40 @@ import { Sparkles, Bug, Zap } from "lucide-react";
 
 const changelog = [
   {
+    version: "3.5.0",
+    date: "March 21, 2026",
+    changes: [
+      { type: "feature", title: "Full mobile responsiveness", description: "The entire platform is now optimized for all iOS phones (iPhone SE to iPhone 16 Pro Max) and Samsung Galaxy devices. Responsive dashboard padding, scrollable mobile sidebar, and touch-friendly navigation." },
+      { type: "feature", title: "iOS safe area support", description: "Added support for iPhone notch, Dynamic Island, and home indicator with proper safe-area insets across the app." },
+      { type: "improvement", title: "Mobile pricing comparison", description: "Pricing page comparison table now shows as stacked cards on mobile instead of requiring horizontal scrolling." },
+      { type: "improvement", title: "Touch-friendly navigation", description: "All mobile menu links and buttons now meet the 44px minimum touch target size recommended by Apple and Google." },
+      { type: "improvement", title: "Mobile dialog improvements", description: "Dialogs and modals now have proper margins, max-height, and scrolling on small screens." },
+      { type: "fix", title: "Fixed blank profile page", description: "Resolved a critical bug where public profile pages (/:username) would render blank due to a hook ordering issue." },
+      { type: "fix", title: "iOS input zoom prevention", description: "Form inputs no longer trigger the iOS auto-zoom behavior when tapped." },
+    ],
+  },
+  {
+    version: "3.4.0",
+    date: "March 18, 2026",
+    changes: [
+      { type: "feature", title: "Products on public profile", description: "Your shop products now display directly on your public profile page with images, prices, and buy links." },
+      { type: "feature", title: "210+ premium themes", description: "Expanded the appearance library to over 210 beautiful themes including animated wallpapers like aurora, gradient shift, particles, and spotlight effects." },
+      { type: "feature", title: "Command Center expanded", description: "Navigation guide now covers all 15 sidebar sections including Bookings, QR Code, AI Agent, Reviews, and Support." },
+      { type: "improvement", title: "Dashboard heading responsiveness", description: "All dashboard page headings now scale properly from mobile to desktop." },
+    ],
+  },
+  {
+    version: "3.3.0",
+    date: "March 10, 2026",
+    changes: [
+      { type: "feature", title: "Customer support system", description: "Submit and track support tickets directly from the dashboard with status updates and priority levels." },
+      { type: "feature", title: "Multi-currency bookings", description: "Booking services now support multiple currencies for international creators." },
+      { type: "feature", title: "Product image upload", description: "Upload custom images for your shop products with drag-and-drop support." },
+      { type: "feature", title: "Customer reviews", description: "Collect and display customer reviews and testimonials on your profile." },
+      { type: "improvement", title: "AI Builder UX improvements", description: "Better prompts, faster generation, and improved theme selection in the AI Page Builder." },
+    ],
+  },
+  {
     version: "3.2.0",
     date: "February 16, 2026",
     changes: [
