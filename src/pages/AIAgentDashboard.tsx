@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PlatformStatus {
   name: string;
@@ -48,7 +48,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 const AIAgentDashboard = () => {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user } = useAuth();
   const [platforms, setPlatforms] = useState<PlatformStatus[]>([
     { name: 'twitter', label: 'Twitter / X', enabled: false, webhookUrl: '' },
     { name: 'linkedin', label: 'LinkedIn', enabled: false, webhookUrl: '' },

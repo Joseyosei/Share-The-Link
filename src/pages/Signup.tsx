@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
 
@@ -13,41 +14,19 @@ const Signup = () => {
   const templateId = searchParams.get("template");
   const selectedTemplate = templateId ? TEMPLATES.find((t) => t.id === templateId) : null;
   const { toast } = useToast();
+  const { isLoaded, isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", username: "", email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [clerkTimedOut, setClerkTimedOut] = useState(false);
-  const [pendingVerification, setPendingVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [resending, setResending] = useState(false);
-  const verifyingRef = useRef(false);
-
-  // Timeout for Clerk loading
-  useEffect(() => {
-    if (isLoaded) return;
-    const timer = setTimeout(() => setClerkTimedOut(true), 8000);
-    return () => clearTimeout(timer);
-  }, [isLoaded]);
+  const [emailConfirmationPending, setEmailConfirmationPending] = useState(false);
 
   // Redirect if already signed in
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/dashboard", { replace: true });
-      }
-    };
-    checkSession();
-  }, [navigate]);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
+    if (isSignedIn) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isSignedIn, navigate]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -67,16 +46,11 @@ const Signup = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (!isLoaded || !signUp) {
-      setErrors({ email: "Authentication service is still loading. Please wait a moment and try again." });
-      return;
-    }
-
     setIsLoading(true);
     setErrors({});
 
     try {
-      // Check if username is already taken in Supabase
+      // Check if username is already taken
       const { data: existingUser } = await supabase
         .from("profiles")
         .select("username")
@@ -89,143 +63,74 @@ const Signup = () => {
         return;
       }
 
-      // Create the Clerk signup — use the RETURN VALUE, not the hook object
-      const result = await signUp.create({
-        emailAddress: formData.email,
+      // Sign up with Supabase
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
         password: formData.password,
         options: {
           data: {
-            full_name: formData.fullName,
             username: formData.username,
+            full_name: formData.fullName,
           },
         },
       });
 
-      // If signup is immediately complete (no verification required)
-      if (result.status === "complete") {
-        if (result.createdSessionId) {
-          await setActive({ session: result.createdSessionId });
-          showWelcomeToast();
-          window.location.href = "/dashboard";
+      if (authError) {
+        if (authError.message.includes("already registered")) {
+          setErrors({ email: "This email is already registered. Please log in instead." });
+        } else if (authError.message.includes("Password")) {
+          setErrors({ password: authError.message });
+        } else if (authError.message.includes("rate") || authError.message.includes("Too many")) {
+          setErrors({ email: "Too many attempts. Please wait a few minutes and try again." });
         } else {
-          // Complete but no session — shouldn't happen, but handle it
-          setErrors({ email: "Account created but session failed. Please log in." });
-          setTimeout(() => { window.location.href = "/login"; }, 2000);
+          setErrors({ email: authError.message });
         }
         return;
       }
 
-      // Email verification is required — prepare verification
-      if (result.status === "missing_requirements" || result.unverifiedFields?.includes("email_address")) {
-        try {
-          await result.prepareEmailAddressVerification({ strategy: "email_code" });
-          setPendingVerification(true);
-          setResendCooldown(30);
-          toast({ title: "Verification code sent", description: "Check your email for the code." });
-        } catch (prepareErr) {
-          console.error("Failed to prepare email verification:", prepareErr);
-          setErrors({ email: "Failed to send verification email. Please try again." });
+      // If we got a session back, signup is complete (no email confirmation required)
+      if (data.session) {
+        // Create profile in Supabase
+        await supabase.from("profiles").upsert({
+          id: data.user!.id,
+          username: formData.username,
+          full_name: formData.fullName,
+          email: formData.email,
+        });
+
+        if (selectedTemplate) {
+          toast({
+            title: "Account created!",
+            description: `Welcome! The "${selectedTemplate.name}" template will be applied.`,
+          });
+        } else {
+          toast({ title: "Account created!", description: "Welcome to Share The Link!" });
         }
+        window.location.href = "/dashboard";
         return;
       }
 
-      // Some other status we don't expect
-      console.error("Unexpected signup status:", result.status);
-      setErrors({ email: "Something went wrong. Please try again." });
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string; code: string; longMessage?: string }> };
-      const firstError = clerkError.errors?.[0];
-      const errorCode = firstError?.code;
-      const errorMessage = firstError?.longMessage || firstError?.message || "An error occurred during sign up";
+      // If we got a user but no session, email confirmation is required
+      if (data.user) {
+        // Still create profile
+        await supabase.from("profiles").upsert({
+          id: data.user.id,
+          username: formData.username,
+          full_name: formData.fullName,
+          email: formData.email,
+        });
 
-      if (errorCode === "form_identifier_exists") {
-        setErrors({ email: "This email is already registered. Please log in instead." });
-      } else if (errorCode === "form_password_pwned") {
-        setErrors({ password: "This password has been found in a data breach. Please choose a different one." });
-      } else if (errorCode === "form_password_length_too_short") {
-        setErrors({ password: "Password must be at least 8 characters." });
-      } else if (errorCode === "form_password_not_strong_enough") {
-        setErrors({ password: "Please choose a stronger password." });
-      } else if (errorMessage.toLowerCase().includes("rate") || errorMessage.toLowerCase().includes("too many")) {
-        setErrors({ email: "Too many attempts. Please wait a few minutes and try again." });
-      } else {
-        setErrors({ email: errorMessage });
+        setEmailConfirmationPending(true);
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation link to verify your account.",
+        });
       }
+    } catch (err) {
+      console.error("Signup error:", err);
+      setErrors({ email: "An unexpected error occurred. Please try again." });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const showWelcomeToast = () => {
-    if (selectedTemplate) {
-      toast({
-        title: "Account created!",
-        description: `Welcome! The "${selectedTemplate.name}" template will be applied.`,
-      });
-    } else {
-      toast({ title: "Account created!", description: "Welcome to Share The Link!" });
-    }
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLoaded || !signUp || verifyingRef.current) return;
-    verifyingRef.current = true;
-    setIsLoading(true);
-    setErrors({});
-
-    try {
-      const result = await signUp.attemptEmailAddressVerification({
-        code: verificationCode,
-      });
-
-      if (result.status === "complete") {
-        if (result.createdSessionId) {
-          await setActive({ session: result.createdSessionId });
-          showWelcomeToast();
-          window.location.href = "/dashboard";
-        } else {
-          // Account verified but no session — try setting active from signUp
-          toast({ title: "Email verified!", description: "Redirecting to dashboard..." });
-          window.location.href = "/dashboard";
-        }
-      } else {
-        setErrors({ verification: "Verification incomplete. Please try again." });
-      }
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string; code: string }> };
-      const firstError = clerkError.errors?.[0];
-      const errorCode = firstError?.code;
-      const errorMessage = firstError?.message || "Invalid verification code";
-
-      if (errorCode === "form_code_incorrect") {
-        setErrors({ verification: "Incorrect verification code. Please check and try again." });
-      } else if (errorCode === "verification_expired") {
-        setErrors({ verification: "Code expired. Please request a new one." });
-      } else if (errorMessage.toLowerCase().includes("too many")) {
-        setErrors({ verification: "Too many attempts. Please wait a moment and try again." });
-      } else {
-        setErrors({ verification: errorMessage });
-      }
-    } finally {
-      setIsLoading(false);
-      verifyingRef.current = false;
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (!isLoaded || !signUp || resendCooldown > 0) return;
-    setResending(true);
-    setErrors({});
-    try {
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setResendCooldown(60);
-      toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string }> };
-      setErrors({ verification: clerkError.errors?.[0]?.message || "Failed to resend code. Please try again." });
-    } finally {
-      setResending(false);
     }
   };
 
@@ -236,8 +141,8 @@ const Signup = () => {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Show loading state while Clerk loads
-  if (!isLoaded && !clerkTimedOut) {
+  // Show loading state while auth loads
+  if (!isLoaded) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="flex items-center gap-2 text-white">
@@ -248,81 +153,31 @@ const Signup = () => {
     );
   }
 
-  // Email verification screen
-  if (pendingVerification) {
+  // Email confirmation pending screen
+  if (emailConfirmationPending) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
+            <Link to="/">
+              <Logo textClassName="text-primary-foreground" />
+            </Link>
           </div>
-          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Verify your email</h1>
-              <p className="text-muted-foreground">
-                We sent a 6-digit code to <strong>{formData.email}</strong>
-              </p>
+          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-primary" />
             </div>
-            {errors.verification && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{errors.verification}</div>
-            )}
-            <form onSubmit={handleVerifyCode} className="space-y-4">
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => {
-                  setVerificationCode(e.target.value.replace(/\D/g, ""));
-                  if (errors.verification) setErrors({});
-                }}
-                placeholder="Enter 6-digit code"
-                className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-2xl tracking-widest"
-                maxLength={6}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                autoFocus
-              />
-              <Button
-                type="submit"
-                disabled={isLoading || verificationCode.length < 6}
-                className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />Verifying...
-                  </span>
-                ) : (
-                  "Verify & Continue"
-                )}
-              </Button>
-            </form>
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <button
-                onClick={handleResendCode}
-                disabled={resending || resendCooldown > 0}
-                className="flex items-center gap-1.5 text-sm text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
-              >
-                {resending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                setPendingVerification(false);
-                setVerificationCode("");
-                setErrors({});
-              }}
-              className="flex items-center justify-center gap-2 mt-4 text-muted-foreground hover:text-foreground transition-colors w-full"
+            <h1 className="text-2xl font-bold text-foreground mb-2">Check your email</h1>
+            <p className="text-muted-foreground mb-6">
+              We've sent a confirmation link to <strong>{formData.email}</strong>. Click the link to activate your account.
+            </p>
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to sign up
-            </button>
+              Back to login
+            </Link>
           </div>
         </div>
       </div>
@@ -354,11 +209,6 @@ const Signup = () => {
                   {selectedTemplate.description}
                 </p>
               </div>
-            </div>
-          )}
-          {clerkTimedOut && !isLoaded && (
-            <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">
-              Authentication service is unavailable. Please refresh the page or try again later.
             </div>
           )}
           <p className="text-muted-foreground mb-6">
@@ -424,7 +274,7 @@ const Signup = () => {
             </div>
             <Button
               type="submit"
-              disabled={isLoading || (clerkTimedOut && !isLoaded)}
+              disabled={isLoading}
               className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
             >
               {isLoading ? (

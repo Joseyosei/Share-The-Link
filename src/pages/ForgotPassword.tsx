@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Mail, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -7,19 +7,11 @@ import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 
 const ForgotPassword = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [clerkTimedOut, setClerkTimedOut] = useState(false);
-
-  // Timeout for Clerk loading
-  useEffect(() => {
-    if (isLoaded) return;
-    const timer = setTimeout(() => setClerkTimedOut(true), 5000);
-    return () => clearTimeout(timer);
-  }, [isLoaded]);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,18 +46,6 @@ const ForgotPassword = () => {
     }
   };
 
-  // Show loading state while Clerk loads, but not forever
-  if (!isLoaded && !clerkTimedOut) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <div className="flex items-center gap-2 text-white">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   // Success screen
   if (emailSent) {
     return (
@@ -82,12 +62,12 @@ const ForgotPassword = () => {
             <p className="text-muted-foreground mb-6">
               We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to reset your password.
             </p>
-            <Button 
-              onClick={() => window.location.href = "/dashboard"}
-              className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
+            <Link
+              to="/login"
+              className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90 inline-flex items-center justify-center rounded-md"
             >
               Back to Login
-            </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -117,9 +97,9 @@ const ForgotPassword = () => {
                 className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
               />
             </div>
-            <Button 
-              type="submit" 
-              disabled={isLoading} 
+            <Button
+              type="submit"
+              disabled={isLoading}
               className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
             >
               {isLoading ? (
@@ -130,8 +110,8 @@ const ForgotPassword = () => {
               ) : "Send Reset Link"}
             </Button>
           </form>
-          <Link 
-            to="/login" 
+          <Link
+            to="/login"
             className="flex items-center justify-center gap-2 mt-6 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />Back to login
