@@ -90,7 +90,17 @@ const WALLPAPER_OPTIONS = [
   { id: "none", label: "None", preview: "bg-card" },
   { id: "gradient", label: "Gradient", preview: "bg-gradient-to-br from-purple-500 to-pink-500" },
   { id: "pattern", label: "Pattern", preview: "bg-card bg-[radial-gradient(circle,_rgba(0,0,0,0.05)_1px,_transparent_1px)] bg-[size:16px_16px]" },
+  { id: "animated", label: "Animated", preview: "bg-gradient-to-br from-violet-600 to-cyan-500" },
   { id: "image", label: "Image", preview: "bg-card" },
+];
+
+const ANIMATION_OPTIONS = [
+  { id: "aurora", label: "Aurora", description: "Flowing northern lights effect" },
+  { id: "gradient-shift", label: "Gradient Shift", description: "Smooth color transitions" },
+  { id: "particles", label: "Particles", description: "Floating particle effect" },
+  { id: "waves", label: "Waves", description: "Gentle wave motion" },
+  { id: "spotlight", label: "Spotlight", description: "Moving light beam" },
+  { id: "mesh", label: "Mesh Gradient", description: "Organic color blending" },
 ];
 
 const GRADIENT_OPTIONS = [
@@ -125,6 +135,7 @@ const DashboardAppearance = () => {
   const [wallpaperType, setWallpaperType] = useState("none");
   const [backgroundGradient, setBackgroundGradient] = useState("from-purple-500 to-pink-500");
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [backgroundAnimation, setBackgroundAnimation] = useState("aurora");
   const [fontFamily, setFontFamily] = useState("Inter");
   const [titleColor, setTitleColor] = useState("#1a1a2e");
   const [bioColor, setBioColor] = useState("#6b7280");
@@ -143,6 +154,7 @@ const DashboardAppearance = () => {
       if (settings.bio_color) setBioColor(settings.bio_color);
       if (settings.button_style) setButtonStyle(settings.button_style);
       if (settings.button_color) setButtonColor(settings.button_color);
+      if ((settings as any).background_animation) setBackgroundAnimation((settings as any).background_animation);
     }
   }, [settings]);
 
@@ -206,6 +218,11 @@ const DashboardAppearance = () => {
   const handleButtonColor = async (color: string) => {
     setButtonColor(color);
     await saveSettings({ button_color: color });
+  };
+
+  const handleAnimation = async (animation: string) => {
+    setBackgroundAnimation(animation);
+    await saveSettings({ background_animation: animation });
   };
 
   // Enhance button -- auto-pick appealing settings based on profile
@@ -470,6 +487,58 @@ const DashboardAppearance = () => {
                     </div>
                   )}
 
+                  {/* Animation Picker */}
+                  {wallpaperType === "animated" && (
+                    <div className="space-y-4">
+                      <label className="text-sm font-medium text-foreground block">Choose Animation</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {ANIMATION_OPTIONS.map((anim) => (
+                          <button
+                            key={anim.id}
+                            onClick={() => handleAnimation(anim.id)}
+                            className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden ${
+                              backgroundAnimation === anim.id
+                                ? "border-primary ring-2 ring-primary ring-offset-2"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            {/* Mini animation preview */}
+                            <div className={`absolute inset-0 opacity-30 ${
+                              anim.id === "aurora" ? "bg-gradient-to-br from-green-400 via-cyan-500 to-blue-600 animate-pulse" :
+                              anim.id === "gradient-shift" ? "bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400" :
+                              anim.id === "particles" ? "bg-gradient-to-br from-gray-900 to-gray-800" :
+                              anim.id === "waves" ? "bg-gradient-to-br from-blue-400 to-cyan-300" :
+                              anim.id === "spotlight" ? "bg-gradient-to-br from-gray-950 to-gray-900" :
+                              "bg-gradient-to-br from-violet-500 via-fuchsia-400 to-pink-500"
+                            }`} />
+                            <div className="relative text-center">
+                              <p className="text-sm font-semibold text-foreground">{anim.label}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{anim.description}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      {/* Gradient picker for animated background base */}
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-3 block">Base Colors</label>
+                        <div className="grid grid-cols-4 gap-3">
+                          {GRADIENT_OPTIONS.map((grad) => (
+                            <button
+                              key={grad.id}
+                              onClick={() => handleGradient(grad.value)}
+                              className={`h-12 rounded-xl bg-gradient-to-br ${grad.value} border-2 transition-all ${
+                                backgroundGradient === grad.value
+                                  ? "border-primary ring-2 ring-primary ring-offset-2"
+                                  : "border-transparent hover:border-border"
+                              }`}
+                              title={grad.label}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Solid Color Picker */}
                   {wallpaperType === "none" && (
                     <div>
@@ -626,6 +695,17 @@ const DashboardAppearance = () => {
                 theme={selectedThemeData}
                 links={previewLinks}
                 socialLinks={profile?.social_links as any}
+                customAppearance={{
+                  wallpaperType,
+                  backgroundGradient,
+                  backgroundColor,
+                  backgroundAnimation,
+                  fontFamily,
+                  titleColor,
+                  bioColor,
+                  buttonStyle,
+                  buttonColor,
+                }}
               />
             </div>
           </div>

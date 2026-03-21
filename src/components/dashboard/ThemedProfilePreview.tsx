@@ -22,6 +22,18 @@ interface SocialLinks {
   whatsapp?: string;
 }
 
+interface CustomAppearance {
+  wallpaperType?: string;
+  backgroundGradient?: string;
+  backgroundColor?: string;
+  backgroundAnimation?: string;
+  fontFamily?: string;
+  titleColor?: string;
+  bioColor?: string;
+  buttonStyle?: string;
+  buttonColor?: string;
+}
+
 interface ThemedProfilePreviewProps {
   username: string;
   fullName: string;
@@ -30,6 +42,7 @@ interface ThemedProfilePreviewProps {
   theme?: Theme;
   links?: PreviewLink[];
   socialLinks?: SocialLinks;
+  customAppearance?: CustomAppearance;
 }
 
 const socialIcons = [
@@ -52,6 +65,7 @@ export const ThemedProfilePreview = ({
   theme,
   links,
   socialLinks,
+  customAppearance,
 }: ThemedProfilePreviewProps) => {
   const [animateIn, setAnimateIn] = useState(false);
 
@@ -69,14 +83,61 @@ export const ThemedProfilePreview = ({
 
   const activeTheme = theme || defaultTheme;
 
-  const buttonTextColor =
-    activeTheme.buttonStyle.includes("bg-white") ||
-    activeTheme.buttonStyle.includes("bg-amber-100") ||
-    activeTheme.buttonStyle.includes("bg-lime-") ||
-    activeTheme.buttonStyle.includes("bg-amber-200") ||
-    activeTheme.buttonStyle.includes("bg-yellow-")
-      ? "text-gray-900"
-      : "text-white";
+  // Compute effective background based on custom wallpaper settings
+  const ca = customAppearance;
+  const hasCustomWallpaper = ca?.wallpaperType && ca.wallpaperType !== "none";
+  const isAnimated = ca?.wallpaperType === "animated";
+  const effectiveBackground = hasCustomWallpaper
+    ? ca?.wallpaperType === "gradient" || isAnimated
+      ? `bg-gradient-to-br ${ca?.backgroundGradient || "from-purple-500 to-pink-500"}`
+      : ca?.wallpaperType === "pattern"
+        ? "bg-card bg-[radial-gradient(circle,_rgba(0,0,0,0.05)_1px,_transparent_1px)] bg-[size:16px_16px]"
+        : activeTheme.background
+    : activeTheme.background;
+
+  // Animation class for animated wallpapers
+  const animationClass = isAnimated ? `stl-anim-${ca?.backgroundAnimation || "aurora"}` : "";
+
+  // Compute effective background style for solid color
+  const bgStyle: React.CSSProperties = {};
+  if (ca?.wallpaperType === "none" && ca?.backgroundColor) {
+    bgStyle.backgroundColor = ca.backgroundColor;
+  }
+
+  // Compute effective button style
+  const customBtnRadius = ca?.buttonStyle === "pill"
+    ? "rounded-full"
+    : ca?.buttonStyle === "sharp"
+      ? "rounded-none"
+      : ca?.buttonStyle === "outline"
+        ? "rounded-xl bg-transparent border-2"
+        : "rounded-xl";
+
+  const hasCustomButton = !!(ca?.buttonColor || ca?.buttonStyle);
+  const effectiveBtnClass = hasCustomButton ? customBtnRadius : activeTheme.buttonStyle;
+
+  const btnInlineStyle: React.CSSProperties = ca?.buttonColor
+    ? {
+        backgroundColor: ca.buttonStyle === "outline" ? "transparent" : ca.buttonColor,
+        borderColor: ca.buttonColor,
+        color: ca.buttonStyle === "outline" ? ca.buttonColor : "#ffffff",
+      }
+    : {};
+
+  const buttonTextColor = ca?.buttonColor
+    ? (ca?.buttonStyle === "outline" ? "" : "text-white")
+    : activeTheme.buttonStyle.includes("bg-white") ||
+      activeTheme.buttonStyle.includes("bg-amber-100") ||
+      activeTheme.buttonStyle.includes("bg-lime-") ||
+      activeTheme.buttonStyle.includes("bg-amber-200") ||
+      activeTheme.buttonStyle.includes("bg-yellow-")
+        ? "text-gray-900"
+        : "text-white";
+
+  // Font and text color overrides
+  const fontStyle: React.CSSProperties = ca?.fontFamily ? { fontFamily: ca.fontFamily } : {};
+  const titleStyle: React.CSSProperties = ca?.titleColor ? { color: ca.titleColor, ...fontStyle } : fontStyle;
+  const bioStyle: React.CSSProperties = ca?.bioColor ? { color: ca.bioColor, ...fontStyle } : fontStyle;
 
   const activeLinks = links ? links.filter((l) => l.isActive) : null;
 
@@ -125,7 +186,7 @@ export const ThemedProfilePreview = ({
           </div>
 
           {/* Profile Content */}
-          <div className={`min-h-[480px] ${activeTheme.background} overflow-y-auto`} style={{ maxHeight: "520px" }}>
+          <div className={`min-h-[480px] ${effectiveBackground} ${animationClass} overflow-y-auto`} style={{ maxHeight: "520px", ...bgStyle }}>
             {/* Share button */}
             <div className="flex justify-end px-4 pt-3">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm ${activeTheme.textColor}`}>
@@ -156,6 +217,7 @@ export const ThemedProfilePreview = ({
                 className={`font-bold text-base leading-tight text-center ${activeTheme.textColor} transition-all duration-500 delay-100 ${
                   animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
                 }`}
+                style={titleStyle}
               >
                 {fullName || "Your Name"}
               </h4>
@@ -163,6 +225,7 @@ export const ThemedProfilePreview = ({
                 className={`text-[11px] opacity-60 mt-0.5 ${activeTheme.textColor} transition-all duration-500 delay-150 ${
                   animateIn ? "opacity-60" : "opacity-0"
                 }`}
+                style={fontStyle}
               >
                 @{username || "username"}
               </p>
@@ -171,6 +234,7 @@ export const ThemedProfilePreview = ({
                   className={`text-[11px] text-center mt-1.5 opacity-75 leading-relaxed px-2 ${activeTheme.textColor} transition-all duration-500 delay-200 ${
                     animateIn ? "opacity-75 translate-y-0" : "opacity-0 translate-y-2"
                   }`}
+                  style={bioStyle}
                 >
                   {bio.length > 80 ? bio.slice(0, 80) + "..." : bio}
                 </p>
@@ -210,11 +274,13 @@ export const ThemedProfilePreview = ({
                   activeLinks.map((link, index) => (
                     <div
                       key={link.id}
-                      className={`w-full py-2.5 px-3.5 rounded-xl font-medium flex items-center justify-between text-[12px] transition-all duration-300 hover:scale-[1.03] hover:shadow-md cursor-pointer ${activeTheme.buttonStyle} ${buttonTextColor}`}
+                      className={`w-full py-2.5 px-3.5 font-medium flex items-center justify-between text-[12px] transition-all duration-300 hover:scale-[1.03] hover:shadow-md cursor-pointer ${hasCustomButton ? effectiveBtnClass : activeTheme.buttonStyle} ${buttonTextColor}`}
                       style={{
                         transitionDelay: animateIn ? `${350 + index * 80}ms` : "0ms",
                         opacity: animateIn ? 1 : 0,
                         transform: animateIn ? "translateY(0)" : "translateY(8px)",
+                        ...btnInlineStyle,
+                        ...fontStyle,
                       }}
                     >
                       <span className="truncate">{link.title}</span>
@@ -230,11 +296,13 @@ export const ThemedProfilePreview = ({
                 ["My Website", "Latest Video", "Shop Now"].map((link, index) => (
                   <div
                     key={link}
-                    className={`w-full py-2.5 px-3.5 rounded-xl font-medium flex items-center justify-between text-[12px] transition-all duration-300 hover:scale-[1.03] ${activeTheme.buttonStyle} ${buttonTextColor}`}
+                    className={`w-full py-2.5 px-3.5 font-medium flex items-center justify-between text-[12px] transition-all duration-300 hover:scale-[1.03] ${hasCustomButton ? effectiveBtnClass : activeTheme.buttonStyle} ${buttonTextColor}`}
                     style={{
                       transitionDelay: animateIn ? `${350 + index * 80}ms` : "0ms",
                       opacity: animateIn ? 1 : 0,
                       transform: animateIn ? "translateY(0)" : "translateY(8px)",
+                      ...btnInlineStyle,
+                      ...fontStyle,
                     }}
                   >
                     <span>{link}</span>

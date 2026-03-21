@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
@@ -8,6 +8,136 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
+
+// ── Embedded media helpers ───────────────────────────────────────────
+const getYouTubeId = (url: string) => {
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+};
+
+const getSpotifyEmbed = (url: string) => {
+  // Matches open.spotify.com/track/ID, /album/ID, /playlist/ID
+  const match = url.match(/open\.spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
+  if (match) return { type: match[1], id: match[2] };
+  return null;
+};
+
+const MediaPreview = ({ url }: { url: string }) => {
+  const ytId = getYouTubeId(url);
+  if (ytId) {
+    return (
+      <div className="w-full aspect-video rounded-lg overflow-hidden mt-1.5 mb-1">
+        <img
+          src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+          alt="YouTube thumbnail"
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  const spotify = getSpotifyEmbed(url);
+  if (spotify) {
+    return (
+      <div className="w-full rounded-lg overflow-hidden mt-1.5 mb-1" style={{ height: "80px" }}>
+        <iframe
+          src={`https://open.spotify.com/embed/${spotify.type}/${spotify.id}?utm_source=generator&theme=0`}
+          width="100%"
+          height="80"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          style={{ border: 0, borderRadius: "8px" }}
+          title="Spotify embed"
+        />
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const hasMediaPreview = (url: string) => !!(getYouTubeId(url) || getSpotifyEmbed(url));
+
+// ── Link Button component ───────────────────────────────────────────
+interface LinkButtonProps {
+  link: { id: string; title: string; url: string; link_type: string };
+  onClick: (id: string, url: string) => void;
+  btnClass: string;
+  btnInlineStyle: React.CSSProperties;
+  btnTextColor: string;
+  btnTextInlineStyle: React.CSSProperties;
+  fontStyle: React.CSSProperties;
+}
+
+const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btnTextInlineStyle, fontStyle }: LinkButtonProps) => {
+  const showMedia = hasMediaPreview(link.url);
+  return (
+    <button
+      key={link.id}
+      onClick={() => onClick(link.id, link.url)}
+      className={`w-full text-left p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${btnClass}`}
+      style={{ ...btnInlineStyle, ...fontStyle }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <span className={`font-semibold block ${btnTextColor}`} style={btnTextInlineStyle}>{link.title}</span>
+          {link.link_type === "product" && <span className="text-xs text-accent font-medium">Product</span>}
+          {link.link_type === "video" && <span className="text-xs text-destructive font-medium">Video</span>}
+        </div>
+        <ExternalLink className={`w-5 h-5 opacity-70 ${btnTextColor}`} style={btnTextInlineStyle} />
+      </div>
+      {showMedia && <MediaPreview url={link.url} />}
+    </button>
+  );
+};
+
+// ── Link Group (collapsible) ────────────────────────────────────────
+interface LinkGroupProps {
+  groupName: string;
+  links: { id: string; title: string; url: string; link_type: string }[];
+  onLinkClick: (id: string, url: string) => void;
+  btnClass: string;
+  btnInlineStyle: React.CSSProperties;
+  btnTextColor: string;
+  btnTextInlineStyle: React.CSSProperties;
+  fontStyle: React.CSSProperties;
+  textColor: string;
+}
+
+const LinkGroup = ({ groupName, links, onLinkClick, btnClass, btnInlineStyle, btnTextColor, btnTextInlineStyle, fontStyle, textColor }: LinkGroupProps) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 text-sm font-semibold ${textColor} opacity-70 hover:opacity-100 transition-opacity w-full`}
+        style={fontStyle}
+      >
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+        {groupName}
+        <span className="text-xs opacity-50">({links.length})</span>
+      </button>
+      {isOpen && (
+        <div className="space-y-2 pl-1">
+          {links.map((link) => (
+            <LinkButton
+              key={link.id}
+              link={link}
+              onClick={onLinkClick}
+              btnClass={btnClass}
+              btnInlineStyle={btnInlineStyle}
+              btnTextColor={btnTextColor}
+              btnTextInlineStyle={btnTextInlineStyle}
+              fontStyle={fontStyle}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface BookingServicePreview {
   id: string;
@@ -40,6 +170,9 @@ interface LinkData {
   url: string;
   link_type: string;
   link_position: number;
+  schedule_start?: string | null;
+  schedule_end?: string | null;
+  link_group?: string | null;
 }
 
 const Profile = () => {
@@ -50,6 +183,17 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [themeId, setThemeId] = useState<string>("air");
+  const [customAppearance, setCustomAppearance] = useState<{
+    wallpaperType?: string;
+    backgroundGradient?: string;
+    backgroundColor?: string;
+    backgroundAnimation?: string;
+    fontFamily?: string;
+    titleColor?: string;
+    bioColor?: string;
+    buttonStyle?: string;
+    buttonColor?: string;
+  }>({});
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [hasBookingServices, setHasBookingServices] = useState(false);
   const [bookingServicesPreview, setBookingServicesPreview] = useState<BookingServicePreview[]>([]);
@@ -103,12 +247,25 @@ const Profile = () => {
         if (profileRecord) {
           const { data: appearanceData } = await supabase
             .from("appearance_settings")
-            .select("theme")
+            .select("theme, background_type, background_gradient, background_color, background_animation, font_family, title_color, bio_color, button_style, button_color")
             .eq("user_id", profileRecord.user_id)
             .single();
 
           if (appearanceData?.theme) {
             setThemeId(appearanceData.theme);
+          }
+          if (appearanceData) {
+            setCustomAppearance({
+              wallpaperType: appearanceData.background_type || undefined,
+              backgroundGradient: appearanceData.background_gradient || undefined,
+              backgroundColor: appearanceData.background_color || undefined,
+              backgroundAnimation: (appearanceData as any).background_animation || undefined,
+              fontFamily: appearanceData.font_family || undefined,
+              titleColor: appearanceData.title_color || undefined,
+              bioColor: appearanceData.bio_color || undefined,
+              buttonStyle: appearanceData.button_style || undefined,
+              buttonColor: appearanceData.button_color || undefined,
+            });
           }
 
           // Store creator ID for booking widget
@@ -155,6 +312,65 @@ const Profile = () => {
     fetchProfile();
   }, [username]);
 
+  // SEO meta tags - dynamic per profile
+  useEffect(() => {
+    if (!profile) return;
+    const name = profile.full_name || username || "";
+    const desc = profile.bio || `Check out ${name}'s links on Share The Link`;
+    const url = `${window.location.origin}/${username}`;
+
+    document.title = `${name} | Share The Link`;
+
+    // Helper to set or create meta tags
+    const setMeta = (property: string, content: string, isOG = false) => {
+      const attr = isOG ? "property" : "name";
+      let el = document.querySelector(`meta[${attr}="${property}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta("description", desc);
+    setMeta("og:title", `${name} | Share The Link`, true);
+    setMeta("og:description", desc, true);
+    setMeta("og:url", url, true);
+    setMeta("og:type", "profile", true);
+    if (profile.avatar_url) {
+      setMeta("og:image", profile.avatar_url, true);
+    }
+    setMeta("twitter:card", "summary");
+    setMeta("twitter:title", `${name} | Share The Link`);
+    setMeta("twitter:description", desc);
+    if (profile.avatar_url) {
+      setMeta("twitter:image", profile.avatar_url);
+    }
+
+    // Structured data (JSON-LD)
+    let ldScript = document.querySelector('script[data-stl-ld]');
+    if (!ldScript) {
+      ldScript = document.createElement("script");
+      ldScript.setAttribute("type", "application/ld+json");
+      ldScript.setAttribute("data-stl-ld", "true");
+      document.head.appendChild(ldScript);
+    }
+    ldScript.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: name,
+      description: desc,
+      url: url,
+      image: profile.avatar_url || undefined,
+      sameAs: visibleLinks.map((l) => l.url),
+    });
+
+    return () => {
+      document.title = "Share The Link";
+    };
+  }, [profile, username, visibleLinks]);
+
   // Get theme data
   const creatorTheme = themes.find((t) => t.id === themeId) || themes[0];
 
@@ -174,15 +390,25 @@ const Profile = () => {
 
   // -- ALL HOOKS MUST BE ABOVE CONDITIONAL RETURNS --
 
+  // Filter links by schedule (hide links outside their schedule window)
+  const visibleLinks = useMemo(() => {
+    const now = new Date();
+    return links.filter((link) => {
+      if (link.schedule_start && new Date(link.schedule_start) > now) return false;
+      if (link.schedule_end && new Date(link.schedule_end) < now) return false;
+      return true;
+    });
+  }, [links]);
+
   // Flipbook: split links into pages of 4
   const LINKS_PER_PAGE = 4;
   const linkPages = useMemo(() => {
     const pages: LinkData[][] = [];
-    for (let i = 0; i < links.length; i += LINKS_PER_PAGE) {
-      pages.push(links.slice(i, i + LINKS_PER_PAGE));
+    for (let i = 0; i < visibleLinks.length; i += LINKS_PER_PAGE) {
+      pages.push(visibleLinks.slice(i, i + LINKS_PER_PAGE));
     }
     return pages;
-  }, [links]);
+  }, [visibleLinks]);
 
   // Pages: cover + link pages + (optional booking) + footer
   const totalPages = 1 + Math.max(linkPages.length, 1) + (hasBookingServices ? 1 : 0) + 1;
@@ -314,8 +540,49 @@ const Profile = () => {
     }
   };
 
+  // Custom appearance helpers
+  const ca = customAppearance;
+  const hasCustomWallpaper = ca.wallpaperType && ca.wallpaperType !== "none";
+  const isAnimated = ca.wallpaperType === "animated";
+  const effectiveBackground = hasCustomWallpaper
+    ? ca.wallpaperType === "gradient" || isAnimated
+      ? `bg-gradient-to-br ${ca.backgroundGradient || "from-purple-500 to-pink-500"}`
+      : ca.wallpaperType === "pattern"
+        ? `${currentTheme.background} bg-[radial-gradient(circle,_rgba(255,255,255,0.08)_1px,_transparent_1px)] bg-[size:20px_20px]`
+        : currentTheme.background
+    : currentTheme.background;
+  const animationClass = isAnimated ? `stl-anim-${ca.backgroundAnimation || "aurora"}` : "";
+  const bgInlineStyle: React.CSSProperties = ca.wallpaperType === "none" && ca.backgroundColor
+    ? { backgroundColor: ca.backgroundColor }
+    : {};
+  const fontStyle: React.CSSProperties = ca.fontFamily ? { fontFamily: ca.fontFamily } : {};
+  const titleInlineStyle: React.CSSProperties = ca.titleColor ? { color: ca.titleColor, ...fontStyle } : fontStyle;
+  const bioInlineStyle: React.CSSProperties = ca.bioColor ? { color: ca.bioColor, ...fontStyle } : fontStyle;
+
+  // Custom button styling
+  const customBtnRadius = ca.buttonStyle === "pill"
+    ? "rounded-full"
+    : ca.buttonStyle === "sharp"
+      ? "rounded-none"
+      : ca.buttonStyle === "outline"
+        ? "rounded-2xl bg-transparent border-2"
+        : "rounded-2xl";
+  const hasCustomButton = !!(ca.buttonColor || ca.buttonStyle);
+  const effectiveBtnClass = hasCustomButton ? customBtnRadius : currentTheme.buttonStyle;
+  const btnInlineStyle: React.CSSProperties = ca.buttonColor
+    ? {
+        backgroundColor: ca.buttonStyle === "outline" ? "transparent" : ca.buttonColor,
+        borderColor: ca.buttonColor,
+      }
+    : {};
+
   // Button text color helper
-  const btnTextColor = currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white";
+  const btnTextColor = ca.buttonColor
+    ? (ca.buttonStyle === "outline" ? "" : "text-white")
+    : currentTheme.buttonStyle.includes("bg-white") || currentTheme.buttonStyle.includes("bg-amber-100") || currentTheme.buttonStyle.includes("bg-lime-") || currentTheme.buttonStyle.includes("bg-amber-200") ? "text-gray-900" : "text-white";
+  const btnTextInlineStyle: React.CSSProperties = ca.buttonColor && ca.buttonStyle === "outline"
+    ? { color: ca.buttonColor }
+    : {};
 
   const renderPage = (pageIndex: number) => {
     // Page 0: Cover page (avatar + name + bio + socials)
@@ -329,12 +596,12 @@ const Profile = () => {
               <User className={`w-14 h-14 ${currentTheme.textColor}`} />
             )}
           </div>
-          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1 text-balance text-center`}>
+          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1 text-balance text-center`} style={titleInlineStyle}>
             {profile?.full_name || username}
           </h1>
-          <p className={`${currentTheme.textColor} opacity-70 mb-3`}>@{username}</p>
+          <p className={`${currentTheme.textColor} opacity-70 mb-3`} style={fontStyle}>@{username}</p>
           {profile?.bio && (
-            <p className={`${currentTheme.textColor} opacity-90 max-w-xs text-center mb-5 text-pretty leading-relaxed`}>
+            <p className={`${currentTheme.textColor} opacity-90 max-w-xs text-center mb-5 text-pretty leading-relaxed`} style={bioInlineStyle}>
               {profile.bio}
             </p>
           )}
@@ -460,29 +727,58 @@ const Profile = () => {
     // Middle pages: Links
     const linkPageIdx = pageIndex - 1;
     const pageLinks = linkPages[linkPageIdx] || [];
+
+    // Group links by link_group (null group = ungrouped)
+    const groupedLinks: Record<string, LinkData[]> = {};
+    const ungroupedLinks: LinkData[] = [];
+    for (const link of pageLinks) {
+      if (link.link_group) {
+        if (!groupedLinks[link.link_group]) groupedLinks[link.link_group] = [];
+        groupedLinks[link.link_group].push(link);
+      } else {
+        ungroupedLinks.push(link);
+      }
+    }
+    const groupNames = Object.keys(groupedLinks);
+    const hasGroups = groupNames.length > 0;
+
     return (
       <div className="flex flex-col h-full px-6 py-8">
         <p className={`text-xs ${currentTheme.textColor} opacity-40 mb-4 text-center`}>
-          Links {linkPageIdx * LINKS_PER_PAGE + 1}-{Math.min((linkPageIdx + 1) * LINKS_PER_PAGE, links.length)} of {links.length}
+          Links {linkPageIdx * LINKS_PER_PAGE + 1}-{Math.min((linkPageIdx + 1) * LINKS_PER_PAGE, visibleLinks.length)} of {visibleLinks.length}
         </p>
-        <div className="flex-1 flex flex-col gap-4 justify-center">
+        <div className="flex-1 flex flex-col gap-3 justify-center">
           {pageLinks.length > 0 ? (
-            pageLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => handleLinkClick(link.id, link.url)}
-                className={`w-full text-left rounded-2xl p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${currentTheme.buttonStyle}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <span className={`font-semibold block ${btnTextColor}`}>{link.title}</span>
-                    {link.link_type === "product" && <span className="text-xs text-accent font-medium">Product</span>}
-                    {link.link_type === "video" && <span className="text-xs text-destructive font-medium">Video</span>}
-                  </div>
-                  <ExternalLink className={`w-5 h-5 opacity-70 ${btnTextColor}`} />
-                </div>
-              </button>
-            ))
+            <>
+              {/* Grouped links */}
+              {groupNames.map((groupName) => (
+                <LinkGroup
+                  key={groupName}
+                  groupName={groupName}
+                  links={groupedLinks[groupName]}
+                  onLinkClick={handleLinkClick}
+                  btnClass={hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle}
+                  btnInlineStyle={btnInlineStyle}
+                  btnTextColor={btnTextColor}
+                  btnTextInlineStyle={btnTextInlineStyle}
+                  fontStyle={fontStyle}
+                  textColor={currentTheme.textColor}
+                />
+              ))}
+              {/* Ungrouped links */}
+              {ungroupedLinks.map((link) => (
+                <LinkButton
+                  key={link.id}
+                  link={link}
+                  onClick={handleLinkClick}
+                  btnClass={hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle}
+                  btnInlineStyle={btnInlineStyle}
+                  btnTextColor={btnTextColor}
+                  btnTextInlineStyle={btnTextInlineStyle}
+                  fontStyle={fontStyle}
+                />
+              ))}
+            </>
           ) : (
             <div className={`text-center ${currentTheme.textColor} opacity-50 py-8`}>No links yet</div>
           )}
@@ -500,7 +796,7 @@ const Profile = () => {
   };
 
   return (
-    <div className={`min-h-screen ${currentTheme.background} flex flex-col items-center justify-center py-8 px-4`}>
+    <div className={`min-h-screen ${effectiveBackground} ${animationClass} flex flex-col items-center justify-center py-8 px-4`} style={bgInlineStyle}>
       {/* Top-left logo */}
       <Link to="/" className="fixed top-4 left-4 z-10 opacity-60 hover:opacity-100 transition-opacity">
         <Logo textClassName={`${currentTheme.textColor} text-sm`} />
