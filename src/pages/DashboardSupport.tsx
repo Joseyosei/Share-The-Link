@@ -251,7 +251,7 @@ const DashboardSupport = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

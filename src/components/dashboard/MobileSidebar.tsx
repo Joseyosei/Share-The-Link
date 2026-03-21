@@ -88,7 +88,7 @@ export const MobileSidebar = () => {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border px-4 py-3">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <Link to="/">
             <Logo textClassName="text-sidebar-foreground" />
@@ -114,19 +114,19 @@ export const MobileSidebar = () => {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-screen w-64 bg-sidebar text-sidebar-foreground z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed top-0 left-0 h-screen w-[280px] max-w-[85vw] bg-sidebar text-sidebar-foreground z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-sidebar-border">
+        <div className="p-4 sm:p-6 border-b border-sidebar-border flex-shrink-0">
           <Link to="/" onClick={() => setIsOpen(false)}>
             <Logo textClassName="text-sidebar-foreground" />
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        {/* Navigation - scrollable */}
+        <nav className="flex-1 p-3 sm:p-4 space-y-1 overflow-y-auto overscroll-contain">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href;
             const IconComponent = item.icon;
@@ -135,16 +135,16 @@ export const MobileSidebar = () => {
                 key={item.href}
                 to={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-colors ${
                   isActive
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 }`}
               >
-                <IconComponent className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <IconComponent className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium text-sm sm:text-base">{item.label}</span>
                 {item.isNew && (
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold">
+                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold flex-shrink-0">
                     NEW
                   </span>
                 )}
@@ -157,23 +157,23 @@ export const MobileSidebar = () => {
             <Link
               to="/admin"
               onClick={() => setIsOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mt-2 border border-destructive/20 ${
+              className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-colors mt-2 border border-destructive/20 ${
                 location.pathname === "/admin"
                   ? "bg-destructive text-destructive-foreground"
                   : "text-destructive hover:bg-destructive/10"
               }`}
             >
-              <Shield className="w-5 h-5" />
-              <span className="font-medium">Admin Panel</span>
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium text-sm sm:text-base">Admin Panel</span>
             </Link>
           )}
         </nav>
 
-        {/* User Profile */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-sidebar-accent mb-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
-              <User className="w-5 h-5 text-primary-foreground" />
+        {/* User Profile - fixed at bottom */}
+        <div className="flex-shrink-0 p-3 sm:p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-sidebar-accent mb-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center flex-shrink-0">
+              <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               {loading ? (
@@ -183,18 +183,18 @@ export const MobileSidebar = () => {
                 </>
               ) : (
                 <>
-                  <p className="font-medium truncate">{displayName}</p>
-                  <p className="text-sm text-sidebar-foreground/60 truncate">{displayEmail}</p>
+                  <p className="font-medium truncate text-sm sm:text-base">{displayName}</p>
+                  <p className="text-xs sm:text-sm text-sidebar-foreground/60 truncate">{displayEmail}</p>
                 </>
               )}
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span className="font-medium">Log out</span>
+            <span className="font-medium text-sm sm:text-base">Log out</span>
           </button>
         </div>
       </aside>

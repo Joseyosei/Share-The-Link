@@ -106,17 +106,17 @@ export const Footer = () => {
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-background/40 text-sm">
+          <p className="text-background/40 text-sm text-center md:text-left">
             &copy; {new Date().getFullYear()} Share The Link. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link to="/privacy" className="text-background/40 text-sm hover:text-background/70 transition-colors">
               Privacy
             </Link>
             <Link to="/terms" className="text-background/40 text-sm hover:text-background/70 transition-colors">
               Terms
             </Link>
-            <p className="text-background/40 text-sm">
+            <p className="text-background/40 text-sm hidden sm:block">
               Made with <span className="text-pink-400">&#9829;</span> for creators worldwide
             </p>
             <Link

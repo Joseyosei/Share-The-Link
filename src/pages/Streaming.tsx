@@ -123,12 +123,12 @@ const Streaming = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-1 flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center gap-2">
                 <Radio className="w-8 h-8 text-destructive" />
                 Live Streaming
               </h1>

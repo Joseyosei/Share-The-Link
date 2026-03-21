@@ -297,12 +297,12 @@ const DashboardIntegrations = () => {
     <div className="min-h-screen bg-muted">
       <Sidebar />
       <MobileSidebar />
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-1 flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 flex items-center gap-2.5">
                 <Puzzle className="w-7 h-7 text-primary" />
                 Integrations
               </h1>

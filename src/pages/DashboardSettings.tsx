@@ -247,7 +247,7 @@ const DashboardSettings = () => {
       <div className="min-h-screen bg-muted">
         <Sidebar />
         <MobileSidebar />
-        <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+        <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
           <div className="max-w-2xl mx-auto">
             <div className="bg-card rounded-2xl p-6 shadow-lg animate-pulse">
               <div className="h-8 bg-muted-foreground/20 rounded w-1/3 mb-6" />
@@ -269,7 +269,7 @@ const DashboardSettings = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
@@ -279,7 +279,7 @@ const DashboardSettings = () => {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Settings</h1>
               <p className="text-muted-foreground">Manage your account settings</p>
             </div>
           </div>

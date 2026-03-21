@@ -205,14 +205,14 @@ const HelpPage = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-10">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <HelpCircle className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Help Center</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Help Center</h1>
             <p className="text-muted-foreground max-w-lg mx-auto">
               Everything you need to know about using Share The Link. Search or browse the guides below.
             </p>

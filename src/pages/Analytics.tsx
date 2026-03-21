@@ -164,12 +164,12 @@ const Analytics = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 p-8 pt-20 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
                 Analytics
               </h1>
               <p className="text-muted-foreground">
@@ -490,7 +490,7 @@ const StatCard = ({ icon: Icon, label, value, color, bgColor }: StatCardProps) =
     <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center mb-3`}>
       <Icon className={`w-5 h-5 ${color}`} />
     </div>
-    <p className="text-3xl font-bold text-foreground">{typeof value === "number" ? value.toLocaleString() : value}</p>
+    <p className="text-2xl sm:text-3xl font-bold text-foreground">{typeof value === "number" ? value.toLocaleString() : value}</p>
     <p className="text-sm text-muted-foreground mt-0.5">{label}</p>
   </div>
 );
