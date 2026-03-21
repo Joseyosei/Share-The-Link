@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
@@ -139,6 +139,16 @@ const LinkGroup = ({ groupName, links, onLinkClick, btnClass, btnInlineStyle, bt
   );
 };
 
+interface ProductData {
+  id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  image_url: string | null;
+  category: string;
+  external_url: string | null;
+}
+
 interface BookingServicePreview {
   id: string;
   title: string;
@@ -197,6 +207,7 @@ const Profile = () => {
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [hasBookingServices, setHasBookingServices] = useState(false);
   const [bookingServicesPreview, setBookingServicesPreview] = useState<BookingServicePreview[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
   const [viewerDarkMode, setViewerDarkMode] = useState<boolean | null>(null); // null = use theme default
 
   useEffect(() => {
@@ -281,6 +292,15 @@ const Profile = () => {
             .limit(3);
           setHasBookingServices(!!(bookingSvcs && bookingSvcs.length > 0));
           setBookingServicesPreview((bookingSvcs || []) as BookingServicePreview[]);
+
+          // Fetch user products for shop section
+          const { data: productsData } = await supabase
+            .from("user_products")
+            .select("id, name, description, price_cents, image_url, category, external_url")
+            .eq("user_id", profileRecord.user_id)
+            .eq("is_active", true)
+            .order("created_at", { ascending: false });
+          setProducts((productsData || []) as ProductData[]);
 
           // Track profile view
           try {
@@ -410,8 +430,9 @@ const Profile = () => {
     return pages;
   }, [visibleLinks]);
 
-  // Pages: cover + link pages + (optional booking) + footer
-  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasBookingServices ? 1 : 0) + 1;
+  const hasProducts = products.length > 0;
+  // Pages: cover + link pages + (optional shop) + (optional booking) + footer
+  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasProducts ? 1 : 0) + (hasBookingServices ? 1 : 0) + 1;
   const [currentPage, setCurrentPage] = useState(0);
   const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -640,6 +661,29 @@ const Profile = () => {
             </div>
           )}
           
+          {/* Shop CTA - Show if creator has products */}
+          {hasProducts && (
+            <button
+              onClick={() => {
+                const shopIdx = 1 + Math.max(linkPages.length, 1);
+                if (shopIdx !== currentPage && !isFlipping) {
+                  setFlipDirection(shopIdx > currentPage ? "next" : "prev");
+                  setIsFlipping(true);
+                  setTimeout(() => {
+                    setCurrentPage(shopIdx);
+                    setFlipDirection(null);
+                    setIsFlipping(false);
+                  }, 500);
+                }
+              }}
+              className={`mt-4 w-full max-w-xs px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500/90 to-orange-500 text-white font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Shop Products
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
+          )}
+
           {/* Booking CTA - Show if creator has booking services */}
           {hasBookingServices && bookingServicesPreview.length > 0 && (
             <button
@@ -711,7 +755,74 @@ const Profile = () => {
       );
     }
 
+    // Shop page: inserted after links, before booking/footer
+    const shopPageIndex = 1 + Math.max(linkPages.length, 1);
+    if (hasProducts && pageIndex === shopPageIndex) {
+      return (
+        <div className="flex flex-col h-full px-5 py-6 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-4">
+            <ShoppingBag className={`w-5 h-5 ${currentTheme.textColor}`} style={titleInlineStyle} />
+            <h2 className={`text-lg font-bold ${currentTheme.textColor}`} style={titleInlineStyle}>Shop</h2>
+          </div>
+          <div className="flex-1 space-y-3">
+            {products.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => {
+                  if (product.external_url) {
+                    window.open(
+                      product.external_url.startsWith("http") ? product.external_url : `https://${product.external_url}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }
+                }}
+                className={`w-full text-left rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
+                  product.external_url ? "cursor-pointer" : "cursor-default"
+                }`}
+                style={btnInlineStyle}
+              >
+                <div className={`flex gap-3 p-3 ${hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle}`} style={btnInlineStyle}>
+                  {/* Product image */}
+                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white/10 flex items-center justify-center">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className={`w-6 h-6 ${btnTextColor} opacity-40`} style={btnTextInlineStyle} />
+                    )}
+                  </div>
+                  {/* Product info */}
+                  <div className="flex-1 min-w-0">
+                    <span className={`font-semibold text-sm block truncate ${btnTextColor}`} style={btnTextInlineStyle}>
+                      {product.name}
+                    </span>
+                    {product.description && (
+                      <span className={`text-xs block truncate mt-0.5 ${btnTextColor} opacity-70`} style={btnTextInlineStyle}>
+                        {product.description}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-sm font-bold ${btnTextColor}`} style={btnTextInlineStyle}>
+                        ${(product.price_cents / 100).toFixed(2)}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 ${btnTextColor}`} style={btnTextInlineStyle}>
+                        {product.category === "digital" ? "Digital" : product.category === "physical" ? "Physical" : product.category === "service" ? "Service" : product.category === "course" ? "Course" : product.category}
+                      </span>
+                    </div>
+                  </div>
+                  {product.external_url && (
+                    <ExternalLink className={`w-4 h-4 shrink-0 mt-1 opacity-60 ${btnTextColor}`} style={btnTextInlineStyle} />
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     // Booking page: inserted between links and footer
+    const bookingOffset = hasProducts ? 1 : 0;
     if (hasBookingServices && creatorId && pageIndex === totalPages - 2) {
       return (
         <div className="flex flex-col h-full px-4 py-6 overflow-y-auto">
