@@ -4,7 +4,6 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lu
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
-import { useSignUp, useAuth } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
 
@@ -14,8 +13,6 @@ const Signup = () => {
   const templateId = searchParams.get("template");
   const selectedTemplate = templateId ? TEMPLATES.find((t) => t.id === templateId) : null;
   const { toast } = useToast();
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", username: "", email: "", password: "" });
@@ -36,10 +33,14 @@ const Signup = () => {
 
   // Redirect if already signed in
   useEffect(() => {
-    if (isSignedIn) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isSignedIn, navigate]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    checkSession();
+  }, [navigate]);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -92,11 +93,11 @@ const Signup = () => {
       const result = await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
-        firstName: formData.fullName.split(" ")[0],
-        lastName: formData.fullName.split(" ").slice(1).join(" ") || undefined,
-        unsafeMetadata: {
-          username: formData.username,
-          full_name: formData.fullName,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            username: formData.username,
+          },
         },
       });
 

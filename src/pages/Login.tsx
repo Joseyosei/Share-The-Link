@@ -4,14 +4,12 @@ import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, RefreshCw } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
-import { useSignIn, useAuth } from "@clerk/clerk-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -74,8 +72,20 @@ const Login = () => {
         password: formData.password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+      if (authError) {
+        if (authError.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please check your credentials and try again.");
+        } else if (authError.message.includes("Email not confirmed")) {
+          setError("Please verify your email address before logging in. Check your inbox for a confirmation link.");
+        } else if (authError.message.includes("Too many requests")) {
+          setError("Too many login attempts. Please wait a few minutes and try again.");
+        } else {
+          setError(authError.message);
+        }
+        return;
+      }
+
+      if (data.session) {
         toast({ title: "Welcome back!", description: "You've successfully logged in." });
         window.location.href = getRedirectUrl();
         return;
@@ -131,6 +141,8 @@ const Login = () => {
       } else {
         setError(errorMessage);
       }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

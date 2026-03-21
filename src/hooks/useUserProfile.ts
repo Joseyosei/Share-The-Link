@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import { useUser, useAuth } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserProfile {
@@ -14,25 +13,21 @@ interface UserProfile {
 }
 
 export const useUserProfile = () => {
-  const { user, isLoaded: isUserLoaded } = useUser();
-  const { isSignedIn, isLoaded: isAuthLoaded } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
-    if (!isUserLoaded || !isAuthLoaded) {
-      return;
-    }
-
-    if (!isSignedIn || !user) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
 
       // First check if profile exists
       const { data, error: profileError } = await supabase
@@ -54,21 +49,21 @@ export const useUserProfile = () => {
           bio: data.bio,
           avatar_url: data.avatar_url,
           social_links: (data.social_links as Record<string, string> | null) ?? null,
-          email: user.primaryEmailAddress?.emailAddress,
+          email: user.email,
         });
       } else {
         // Profile doesn't exist yet, create it
-        const username = (user.unsafeMetadata?.username as string) || 
-                        user.primaryEmailAddress?.emailAddress?.split("@")[0]?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
+        const username = user.user_metadata?.username || 
+                        user.email?.split("@")[0]?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
                         `user${Date.now()}`;
 
         const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
           .insert({
             user_id: user.id,
-            full_name: (user.unsafeMetadata?.full_name as string) || user.fullName || null,
+            full_name: user.user_metadata?.full_name || null,
             username,
-            avatar_url: user.imageUrl || null,
+            avatar_url: user.user_metadata?.avatar_url || null,
           })
           .select()
           .single();
@@ -81,9 +76,9 @@ export const useUserProfile = () => {
               .from("profiles")
               .insert({
                 user_id: user.id,
-                full_name: (user.unsafeMetadata?.full_name as string) || user.fullName || null,
+                full_name: user.user_metadata?.full_name || null,
                 username: uniqueUsername,
-                avatar_url: user.imageUrl || null,
+                avatar_url: user.user_metadata?.avatar_url || null,
               })
               .select()
               .single();
@@ -99,7 +94,7 @@ export const useUserProfile = () => {
                 bio: retryProfile.bio,
                 avatar_url: retryProfile.avatar_url,
                 social_links: null,
-                email: user.primaryEmailAddress?.emailAddress,
+                email: user.email,
               });
             }
           } else {
@@ -114,7 +109,7 @@ export const useUserProfile = () => {
             bio: newProfile.bio,
             avatar_url: newProfile.avatar_url,
             social_links: null,
-            email: user.primaryEmailAddress?.emailAddress,
+            email: user.email,
           });
         }
       }
@@ -124,10 +119,16 @@ export const useUserProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, isUserLoaded, isAuthLoaded, isSignedIn]);
+  }, []);
 
   useEffect(() => {
     fetchProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchProfile();
+    });
+
+    return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
   return { profile, loading, error, refetch: fetchProfile };
