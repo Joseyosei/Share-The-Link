@@ -167,6 +167,26 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
         payment_status: selectedService.price > 0 ? "pending" : "free",
       });
       if (error) throw error;
+
+      // Send confirmation email (fire-and-forget — don't block the UI)
+      supabase.functions.invoke("send-booking-email", {
+        body: {
+          clientName,
+          clientEmail,
+          serviceName: selectedService.title,
+          creatorName,
+          bookingDate: dateStr,
+          bookingTime: selectedTime,
+          duration: selectedService.duration,
+          amount: selectedService.price,
+          currency: selectedService.currency,
+        },
+      }).then((res) => {
+        if (res.error) console.warn("Booking email failed:", res.error);
+      }).catch((err) => {
+        console.warn("Booking email failed:", err);
+      });
+
       setBooked(true);
     } catch (err: any) {
       console.error("Booking error:", err);

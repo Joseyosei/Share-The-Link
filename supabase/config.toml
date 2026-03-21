@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.stripe-connect-webhook]
 verify_jwt = false
+
+[functions.send-booking-email]
+verify_jwt = false
