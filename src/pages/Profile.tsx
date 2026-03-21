@@ -332,6 +332,17 @@ const Profile = () => {
     fetchProfile();
   }, [username]);
 
+  // Filter links by schedule (hide links outside their schedule window)
+  // NOTE: must be defined before the SEO useEffect which references it
+  const visibleLinks = useMemo(() => {
+    const now = new Date();
+    return links.filter((link) => {
+      if (link.schedule_start && new Date(link.schedule_start) > now) return false;
+      if (link.schedule_end && new Date(link.schedule_end) < now) return false;
+      return true;
+    });
+  }, [links]);
+
   // SEO meta tags - dynamic per profile
   useEffect(() => {
     if (!profile) return;
@@ -409,16 +420,6 @@ const Profile = () => {
       : lightOverride;
 
   // -- ALL HOOKS MUST BE ABOVE CONDITIONAL RETURNS --
-
-  // Filter links by schedule (hide links outside their schedule window)
-  const visibleLinks = useMemo(() => {
-    const now = new Date();
-    return links.filter((link) => {
-      if (link.schedule_start && new Date(link.schedule_start) > now) return false;
-      if (link.schedule_end && new Date(link.schedule_end) < now) return false;
-      return true;
-    });
-  }, [links]);
 
   // Flipbook: split links into pages of 4
   const LINKS_PER_PAGE = 4;
