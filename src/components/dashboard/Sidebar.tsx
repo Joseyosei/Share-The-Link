@@ -18,7 +18,8 @@ import {
   CalendarCheck,
   MessageSquareQuote,
   Bot,
-  HeadphonesIcon
+  HeadphonesIcon,
+  MessageCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
@@ -40,6 +41,7 @@ const navItems = [
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
   { icon: Bot, label: "AI Agent", href: "/dashboard/ai-agent", isNew: true },
+  { icon: MessageCircle, label: "AI Assistant", href: "/dashboard/ai-assistant", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
   { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support", isNew: true },

@@ -43,6 +43,7 @@ import DashboardBookings from "./pages/DashboardBookings";
 import DashboardReviews from "./pages/DashboardReviews";
 import AdminPage from "./pages/AdminPage";
 import AIAgentDashboard from "./pages/AIAgentDashboard";
+import AIAssistantChat from "./pages/AIAssistantChat";
 import DashboardSupport from "./pages/DashboardSupport";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import AuthCallback from "./pages/AuthCallback";
@@ -107,6 +108,7 @@ const App = () => (
           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><DashboardIntegrations /></ProtectedRoute>} />
           <Route path="/dashboard/ai-agent" element={<ProtectedRoute><AIAgentDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/ai-assistant" element={<ProtectedRoute><AIAssistantChat /></ProtectedRoute>} />
           <Route path="/dashboard/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           
