@@ -44,9 +44,9 @@ export const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center px-4 pt-4">
       <div
-        className={`w-full max-w-3xl rounded-full border border-border/60 bg-background/80 backdrop-blur-xl shadow-lg transition-all duration-300 ${
-          scrolled ? "shadow-xl border-border" : ""
-        }`}
+        className={`w-full max-w-3xl border border-border/60 bg-background/80 backdrop-blur-xl shadow-lg transition-all duration-300 ${
+          isOpen ? "rounded-2xl" : "rounded-full"
+        } ${scrolled ? "shadow-xl border-border" : ""}`}
       >
         <div className="flex items-center justify-between h-14 px-6">
           {/* Logo */}
