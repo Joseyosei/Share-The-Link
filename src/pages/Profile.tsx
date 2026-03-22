@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
+import { ProfileVideoAsk } from "@/components/ProfileVideoAsk";
 
 // ── Embedded media helpers ───────────────────────────────────────────
 const getYouTubeId = (url: string) => {
@@ -208,6 +209,7 @@ const Profile = () => {
   const [hasBookingServices, setHasBookingServices] = useState(false);
   const [bookingServicesPreview, setBookingServicesPreview] = useState<BookingServicePreview[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
+  const [introVideoUrl, setIntroVideoUrl] = useState<string | null>(null);
   const [viewerDarkMode, setViewerDarkMode] = useState<boolean | null>(null); // null = use theme default
 
   useEffect(() => {
@@ -251,11 +253,16 @@ const Profile = () => {
         // Fetch appearance settings for this user
         const { data: profileRecord } = await supabase
           .from("profiles")
-          .select("user_id")
+          .select("user_id, social_links")
           .eq("username", username)
           .single();
 
         if (profileRecord) {
+          // Extract intro video URL from social_links
+          const sl = profileRecord.social_links as Record<string, string> | null;
+          if (sl && typeof sl === "object" && sl.intro_video_url) {
+            setIntroVideoUrl(sl.intro_video_url);
+          }
           const { data: appearanceData } = await supabase
             .from("appearance_settings")
             .select("theme, background_type, background_gradient, background_color, background_animation, font_family, title_color, bio_color, button_style, button_color")
@@ -1023,6 +1030,15 @@ const Profile = () => {
           </button>
         </div>
       </div>
+
+      {/* VideoAsk-style intro video bubble */}
+      {introVideoUrl && (
+        <ProfileVideoAsk
+          videoUrl={introVideoUrl}
+          avatarUrl={profile?.avatar_url}
+          name={profile?.full_name || username}
+        />
+      )}
 
       {/* Flipbook CSS animations */}
       <style>{`
