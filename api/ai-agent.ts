@@ -462,8 +462,9 @@ async function handleChat(req: VercelRequest, res: VercelResponse) {
   const auth = await verifyAuth(req);
   if (!auth) return unauthorized(res);
 
-  const apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: "AI service is not configured." });
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
+  const provider: "anthropic" | "openai" = process.env.ANTHROPIC_API_KEY ? "anthropic" : "openai";
+  if (!apiKey) return res.status(503).json({ error: "AI service is not configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY to your environment variables." });
 
   try {
     const { messages } = req.body;
@@ -473,7 +474,7 @@ async function handleChat(req: VercelRequest, res: VercelResponse) {
 
     const trimmedMessages = messages.slice(-20);
 
-    const systemPrompt = `You are the Share The Link AI Assistant — a helpful, friendly agent built into the Share The Link platform. You help users manage their link-in-bio pages, profile, appearance, links, bookings, and products.
+    const systemPrompt = `You are STL Bot — a helpful, friendly AI agent built into the Share The Link platform. You help users manage their link-in-bio pages, profile, appearance, links, bookings, and products.
 
 Your capabilities:
 - View and update the user's profile (bio, name, social links)
@@ -504,30 +505,62 @@ Important:
 - Never share sensitive information like API keys or passwords
 - If you can't do something, explain what the user can do manually`;
 
-    const apiMessages: any[] = [
-      { role: "system", content: systemPrompt },
-      ...trimmedMessages.map((m: any) => ({ role: m.role, content: m.content })),
-    ];
+    if (provider === "anthropic") {
+      // ── Anthropic Claude path ──
+      const anthropicMessages = trimmedMessages.map((m: any) => ({ role: m.role, content: m.content }));
+      let claudeResponse = await callChatAnthropic(apiKey, systemPrompt, anthropicMessages, ANTHROPIC_TOOLS);
+      let iterations = 0;
 
-    let response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
-    let iterations = 0;
+      while (iterations < 5) {
+        const toolUseBlocks = (claudeResponse.content || []).filter((b: any) => b.type === "tool_use");
+        if (toolUseBlocks.length === 0) break;
+        iterations++;
 
-    while (response.choices[0]?.message?.tool_calls && iterations < 5) {
-      iterations++;
-      const assistantMessage = response.choices[0].message;
-      apiMessages.push(assistantMessage);
+        // Add assistant response to messages
+        anthropicMessages.push({ role: "assistant", content: claudeResponse.content });
 
-      for (const toolCall of assistantMessage.tool_calls) {
-        const args = JSON.parse(toolCall.function.arguments || "{}");
-        const result = await executeChatTool(toolCall.function.name, args, auth.userId);
-        apiMessages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+        // Execute tools and add results
+        const toolResults: any[] = [];
+        for (const toolUse of toolUseBlocks) {
+          const result = await executeChatTool(toolUse.name, toolUse.input || {}, auth.userId);
+          toolResults.push({ type: "tool_result", tool_use_id: toolUse.id, content: result });
+        }
+        anthropicMessages.push({ role: "user", content: toolResults });
+
+        claudeResponse = await callChatAnthropic(apiKey, systemPrompt, anthropicMessages, ANTHROPIC_TOOLS);
       }
 
-      response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
-    }
+      const textBlocks = (claudeResponse.content || []).filter((b: any) => b.type === "text");
+      const reply = textBlocks.map((b: any) => b.text).join("\n") || "I'm sorry, I couldn't process that.";
+      return res.status(200).json({ reply, toolsUsed: iterations > 0 });
 
-    const reply = response.choices[0]?.message?.content || "I'm sorry, I couldn't process that.";
-    return res.status(200).json({ reply, toolsUsed: iterations > 0 });
+    } else {
+      // ── OpenAI path ──
+      const apiMessages: any[] = [
+        { role: "system", content: systemPrompt },
+        ...trimmedMessages.map((m: any) => ({ role: m.role, content: m.content })),
+      ];
+
+      let response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
+      let iterations = 0;
+
+      while (response.choices[0]?.message?.tool_calls && iterations < 5) {
+        iterations++;
+        const assistantMessage = response.choices[0].message;
+        apiMessages.push(assistantMessage);
+
+        for (const toolCall of assistantMessage.tool_calls) {
+          const args = JSON.parse(toolCall.function.arguments || "{}");
+          const result = await executeChatTool(toolCall.function.name, args, auth.userId);
+          apiMessages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+        }
+
+        response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
+      }
+
+      const reply = response.choices[0]?.message?.content || "I'm sorry, I couldn't process that.";
+      return res.status(200).json({ reply, toolsUsed: iterations > 0 });
+    }
   } catch (error) {
     console.error("AI Chat error:", error);
     return res.status(500).json({ error: "Something went wrong. Please try again." });
@@ -543,6 +576,37 @@ async function callChatOpenAI(apiKey: string, messages: any[], tools: any[]) {
   if (!response.ok) {
     const err = await response.text();
     throw new Error(`OpenAI API error: ${response.status} ${err}`);
+  }
+  return response.json();
+}
+
+// ── Anthropic Claude tools format ──
+const ANTHROPIC_TOOLS = CHAT_TOOLS.map((t: any) => ({
+  name: t.function.name,
+  description: t.function.description,
+  input_schema: t.function.parameters,
+}));
+
+async function callChatAnthropic(apiKey: string, system: string, messages: any[], tools: any[]) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      system,
+      messages,
+      tools,
+      max_tokens: 1500,
+      temperature: 0.7,
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Anthropic API error: ${response.status} ${err}`);
   }
   return response.json();
 }
