@@ -148,11 +148,16 @@ const Dashboard = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted overflow-x-hidden">
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
+      {/* Upgrade Banner - shows for free users at top */}
+      <div className="lg:ml-64 pt-16 lg:pt-0">
+        <UpgradePopup />
+      </div>
+
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-4 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -358,8 +363,6 @@ const Dashboard = () => {
       {/* Navigation Guide - shows on first visit */}
       <NavigationGuide />
 
-      {/* Upgrade Popup - shows for free users */}
-      <UpgradePopup />
     </div>
   );
 };

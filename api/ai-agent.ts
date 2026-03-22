@@ -462,9 +462,10 @@ async function handleChat(req: VercelRequest, res: VercelResponse) {
   const auth = await verifyAuth(req);
   if (!auth) return unauthorized(res);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
-  const provider: "anthropic" | "openai" = process.env.ANTHROPIC_API_KEY ? "anthropic" : "openai";
-  if (!apiKey) return res.status(503).json({ error: "AI service is not configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY to your environment variables." });
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || "";
+  const openaiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY || "";
+  if (!anthropicKey && !openaiKey) return res.status(503).json({ error: "AI service is not configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY to your environment variables." });
+  const provider: "anthropic" | "openai" = anthropicKey ? "anthropic" : "openai";
 
   try {
     const { messages } = req.body;
@@ -505,43 +506,55 @@ Important:
 - Never share sensitive information like API keys or passwords
 - If you can't do something, explain what the user can do manually`;
 
-    if (provider === "anthropic") {
-      // ── Anthropic Claude path ──
-      const anthropicMessages = trimmedMessages.map((m: any) => ({ role: m.role, content: m.content }));
-      let claudeResponse = await callChatAnthropic(apiKey, systemPrompt, anthropicMessages, ANTHROPIC_TOOLS);
-      let iterations = 0;
+    // Try the primary provider, fall back to the other if available
+    const useAnthropic = provider === "anthropic";
 
-      while (iterations < 5) {
-        const toolUseBlocks = (claudeResponse.content || []).filter((b: any) => b.type === "tool_use");
-        if (toolUseBlocks.length === 0) break;
-        iterations++;
+    // ── Try Anthropic first (if selected) ──
+    if (useAnthropic) {
+      try {
+        const anthropicMessages = trimmedMessages.map((m: any) => ({ role: m.role, content: m.content }));
+        let claudeResponse = await callChatAnthropic(anthropicKey, systemPrompt, anthropicMessages, ANTHROPIC_TOOLS);
+        let iterations = 0;
 
-        // Add assistant response to messages
-        anthropicMessages.push({ role: "assistant", content: claudeResponse.content });
+        while (iterations < 5) {
+          const toolUseBlocks = (claudeResponse.content || []).filter((b: any) => b.type === "tool_use");
+          if (toolUseBlocks.length === 0) break;
+          iterations++;
 
-        // Execute tools and add results
-        const toolResults: any[] = [];
-        for (const toolUse of toolUseBlocks) {
-          const result = await executeChatTool(toolUse.name, toolUse.input || {}, auth.userId);
-          toolResults.push({ type: "tool_result", tool_use_id: toolUse.id, content: result });
+          anthropicMessages.push({ role: "assistant", content: claudeResponse.content });
+
+          const toolResults: any[] = [];
+          for (const toolUse of toolUseBlocks) {
+            const result = await executeChatTool(toolUse.name, toolUse.input || {}, auth.userId);
+            toolResults.push({ type: "tool_result", tool_use_id: toolUse.id, content: result });
+          }
+          anthropicMessages.push({ role: "user", content: toolResults });
+
+          claudeResponse = await callChatAnthropic(anthropicKey, systemPrompt, anthropicMessages, ANTHROPIC_TOOLS);
         }
-        anthropicMessages.push({ role: "user", content: toolResults });
 
-        claudeResponse = await callChatAnthropic(apiKey, systemPrompt, anthropicMessages, ANTHROPIC_TOOLS);
+        const textBlocks = (claudeResponse.content || []).filter((b: any) => b.type === "text");
+        const reply = textBlocks.map((b: any) => b.text).join("\n") || "I'm sorry, I couldn't process that.";
+        return res.status(200).json({ reply, toolsUsed: iterations > 0 });
+      } catch (anthropicError) {
+        console.error("Anthropic API failed:", anthropicError);
+        // Fall back to OpenAI if available
+        if (!openaiKey) {
+          const errMsg = anthropicError instanceof Error ? anthropicError.message : "Anthropic API error";
+          return res.status(500).json({ error: errMsg });
+        }
+        console.log("Falling back to OpenAI...");
       }
+    }
 
-      const textBlocks = (claudeResponse.content || []).filter((b: any) => b.type === "text");
-      const reply = textBlocks.map((b: any) => b.text).join("\n") || "I'm sorry, I couldn't process that.";
-      return res.status(200).json({ reply, toolsUsed: iterations > 0 });
-
-    } else {
-      // ── OpenAI path ──
+    // ── OpenAI path (primary or fallback) ──
+    try {
       const apiMessages: any[] = [
         { role: "system", content: systemPrompt },
         ...trimmedMessages.map((m: any) => ({ role: m.role, content: m.content })),
       ];
 
-      let response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
+      let response = await callChatOpenAI(openaiKey, apiMessages, CHAT_TOOLS);
       let iterations = 0;
 
       while (response.choices[0]?.message?.tool_calls && iterations < 5) {
@@ -555,15 +568,20 @@ Important:
           apiMessages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
         }
 
-        response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
+        response = await callChatOpenAI(openaiKey, apiMessages, CHAT_TOOLS);
       }
 
       const reply = response.choices[0]?.message?.content || "I'm sorry, I couldn't process that.";
       return res.status(200).json({ reply, toolsUsed: iterations > 0 });
+    } catch (openaiError) {
+      console.error("OpenAI API failed:", openaiError);
+      const errMsg = openaiError instanceof Error ? openaiError.message : "AI service error";
+      return res.status(500).json({ error: errMsg });
     }
   } catch (error) {
     console.error("AI Chat error:", error);
-    return res.status(500).json({ error: "Something went wrong. Please try again." });
+    const errMsg = error instanceof Error ? error.message : "Something went wrong";
+    return res.status(500).json({ error: errMsg });
   }
 }
 
@@ -572,10 +590,11 @@ async function callChatOpenAI(apiKey: string, messages: any[], tools: any[]) {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ model: "gpt-4o-mini", messages, tools, tool_choice: "auto", temperature: 0.7, max_tokens: 1500 }),
+    signal: AbortSignal.timeout(25000),
   });
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} ${err}`);
+    const err = await response.text().catch(() => "Unknown error");
+    throw new Error(`OpenAI API error ${response.status}: ${err.slice(0, 200)}`);
   }
   return response.json();
 }
@@ -601,12 +620,12 @@ async function callChatAnthropic(apiKey: string, system: string, messages: any[]
       messages,
       tools,
       max_tokens: 1500,
-      temperature: 0.7,
     }),
+    signal: AbortSignal.timeout(25000),
   });
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} ${err}`);
+    const err = await response.text().catch(() => "Unknown error");
+    throw new Error(`Anthropic API error ${response.status}: ${err.slice(0, 200)}`);
   }
   return response.json();
 }
