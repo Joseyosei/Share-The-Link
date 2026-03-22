@@ -162,7 +162,7 @@ const DashboardSettings = () => {
     if (!passwordData.newPassword) errors.newPassword = "New password is required";
     else if (passwordData.newPassword.length < 8) errors.newPassword = "Password must be at least 8 characters";
     if (passwordData.newPassword !== passwordData.confirmPassword) errors.confirmPassword = "Passwords do not match";
-    
+
     if (Object.keys(errors).length > 0) {
       setPasswordErrors(errors);
       return;
@@ -170,6 +170,20 @@ const DashboardSettings = () => {
 
     setIsLoading(true);
     try {
+      // Verify current password by re-authenticating
+      if (!currentUser?.email) throw new Error("No email found for current user");
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: passwordData.currentPassword,
+      });
+
+      if (signInError) {
+        setPasswordErrors({ currentPassword: "Current password is incorrect" });
+        return;
+      }
+
+      // Now update to the new password
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       });
