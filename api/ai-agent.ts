@@ -2,6 +2,7 @@
  * Consolidated AI Agent API endpoint.
  * Routes to sub-handlers based on ?action= query parameter.
  *
+ * POST /api/ai-agent?action=chat              ← AI Assistant chat
  * POST /api/ai-agent?action=distribute
  * POST /api/ai-agent?action=save-settings
  * POST /api/ai-agent?action=generate-key
@@ -26,6 +27,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action as string || "";
 
   switch (action) {
+    case "chat":
+      return handleChat(req, res);
     case "distribute":
       return handleDistribute(req, res);
     case "save-settings":
@@ -356,4 +359,190 @@ function generateContent(link: { title: string; url: string; description: string
     default:
       return `${link.title}\n${link.url}`;
   }
+}
+
+// ─── AI ASSISTANT CHAT ─────────────────────────────────────────
+
+const CHAT_TOOLS = [
+  { type: "function", function: { name: "get_profile", description: "Get the user's current profile information.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "get_links", description: "Get all of the user's links.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "add_link", description: "Add a new link to the user's profile.", parameters: { type: "object", properties: { title: { type: "string" }, url: { type: "string" } }, required: ["title", "url"] } } },
+  { type: "function", function: { name: "update_link", description: "Update a link's title, URL, or visibility.", parameters: { type: "object", properties: { link_id: { type: "string" }, title: { type: "string" }, url: { type: "string" }, is_active: { type: "boolean" } }, required: ["link_id"] } } },
+  { type: "function", function: { name: "delete_link", description: "Delete a link.", parameters: { type: "object", properties: { link_id: { type: "string" } }, required: ["link_id"] } } },
+  { type: "function", function: { name: "update_profile", description: "Update the user's bio or display name.", parameters: { type: "object", properties: { bio: { type: "string" }, full_name: { type: "string" } }, required: [] } } },
+  { type: "function", function: { name: "get_appearance", description: "Get the user's appearance/theme settings.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "update_appearance", description: "Update theme, button style, or font.", parameters: { type: "object", properties: { theme: { type: "string" }, button_style: { type: "string" }, font: { type: "string" } }, required: [] } } },
+  { type: "function", function: { name: "get_analytics_summary", description: "Get analytics summary — clicks, top links.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "get_bookings", description: "Get upcoming bookings.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "get_products", description: "Get user's digital products.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "web_search", description: "Search the web for information.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+];
+
+async function executeChatTool(toolName: string, args: Record<string, any>, userId: string): Promise<string> {
+  switch (toolName) {
+    case "get_profile": {
+      const { data, error } = await supabaseAdmin.from("profiles").select("username, full_name, bio, avatar_url, social_links").eq("user_id", userId).single();
+      return JSON.stringify(error ? { error: error.message } : data);
+    }
+    case "get_links": {
+      const { data, error } = await supabaseAdmin.from("links").select("id, title, url, is_active, click_count, position").eq("user_id", userId).order("position", { ascending: true });
+      return JSON.stringify(error ? { error: error.message } : data || []);
+    }
+    case "add_link": {
+      const { data: existing } = await supabaseAdmin.from("links").select("position").eq("user_id", userId).order("position", { ascending: false }).limit(1);
+      const nextPos = existing && existing.length > 0 ? (existing[0].position || 0) + 1 : 0;
+      const { data, error } = await supabaseAdmin.from("links").insert({ user_id: userId, title: args.title, url: args.url, is_active: true, position: nextPos }).select("id, title, url").single();
+      return JSON.stringify(error ? { error: error.message } : { success: true, link: data });
+    }
+    case "update_link": {
+      const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (args.title !== undefined) updates.title = args.title;
+      if (args.url !== undefined) updates.url = args.url;
+      if (args.is_active !== undefined) updates.is_active = args.is_active;
+      const { error } = await supabaseAdmin.from("links").update(updates).eq("id", args.link_id).eq("user_id", userId);
+      return JSON.stringify(error ? { error: error.message } : { success: true });
+    }
+    case "delete_link": {
+      const { error } = await supabaseAdmin.from("links").delete().eq("id", args.link_id).eq("user_id", userId);
+      return JSON.stringify(error ? { error: error.message } : { success: true });
+    }
+    case "update_profile": {
+      const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (args.bio !== undefined) updates.bio = args.bio;
+      if (args.full_name !== undefined) updates.full_name = args.full_name;
+      const { error } = await supabaseAdmin.from("profiles").update(updates).eq("user_id", userId);
+      return JSON.stringify(error ? { error: error.message } : { success: true });
+    }
+    case "get_appearance": {
+      const { data, error } = await supabaseAdmin.from("appearance_settings").select("*").eq("user_id", userId).single();
+      return JSON.stringify(error ? { error: error.message } : data);
+    }
+    case "update_appearance": {
+      const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (args.theme !== undefined) updates.theme = args.theme;
+      if (args.button_style !== undefined) updates.button_style = args.button_style;
+      if (args.font !== undefined) updates.font = args.font;
+      const { error } = await supabaseAdmin.from("appearance_settings").update(updates).eq("user_id", userId);
+      return JSON.stringify(error ? { error: error.message } : { success: true });
+    }
+    case "get_analytics_summary": {
+      const { data: links } = await supabaseAdmin.from("links").select("title, url, click_count").eq("user_id", userId).order("click_count", { ascending: false }).limit(5);
+      const totalClicks = (links || []).reduce((sum: number, l: any) => sum + (l.click_count || 0), 0);
+      return JSON.stringify({ total_link_clicks: totalClicks, total_links: (links || []).length, top_links: links || [] });
+    }
+    case "get_bookings": {
+      const today = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabaseAdmin.from("bookings").select("id, client_name, client_email, booking_date, booking_time, status, amount, currency").eq("creator_id", userId).gte("booking_date", today).order("booking_date", { ascending: true }).limit(10);
+      return JSON.stringify(error ? { error: error.message } : data || []);
+    }
+    case "get_products": {
+      const { data, error } = await supabaseAdmin.from("connect_products").select("id, title, description, price, currency, type, is_active").eq("user_id", userId).order("created_at", { ascending: false });
+      return JSON.stringify(error ? { error: error.message } : data || []);
+    }
+    case "web_search": {
+      try {
+        const query = encodeURIComponent(args.query as string);
+        const r = await fetch(`https://api.duckduckgo.com/?q=${query}&format=json&no_html=1`, { signal: AbortSignal.timeout(5000) });
+        const data = await r.json();
+        const results: string[] = [];
+        if (data.AbstractText) results.push(`Summary: ${data.AbstractText}`);
+        if (data.RelatedTopics) { for (const topic of data.RelatedTopics.slice(0, 5)) { if (topic.Text) results.push(`- ${topic.Text}`); } }
+        return results.length > 0 ? results.join("\n") : "No results found.";
+      } catch { return "Web search failed."; }
+    }
+    default:
+      return JSON.stringify({ error: `Unknown tool: ${toolName}` });
+  }
+}
+
+async function handleChat(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (isRateLimited(getClientIp(req), 15)) return tooManyRequests(res);
+
+  const auth = await verifyAuth(req);
+  if (!auth) return unauthorized(res);
+
+  const apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: "AI service is not configured." });
+
+  try {
+    const { messages } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Messages array is required" });
+    }
+
+    const trimmedMessages = messages.slice(-20);
+
+    const systemPrompt = `You are the Share The Link AI Assistant — a helpful, friendly agent built into the Share The Link platform. You help users manage their link-in-bio pages, profile, appearance, links, bookings, and products.
+
+Your capabilities:
+- View and update the user's profile (bio, name, social links)
+- Add, edit, delete, and reorder links
+- View and change appearance/theme settings
+- Check analytics (views, clicks, top links)
+- View upcoming bookings
+- View digital products
+- Search the web for information
+
+Personality:
+- Be concise, helpful, and proactive
+- When the user asks to do something, use the available tools — don't just explain how
+- If you make a change, confirm what you did
+- Suggest improvements when you notice opportunities
+- Use plain language, not technical jargon
+- Keep responses short and actionable
+
+Context:
+- The platform is called "Share The Link" (sharethelink.app)
+- It's a link-in-bio platform for creators and entrepreneurs
+- User's profile URL is sharethelink.app/{username}
+- The user is currently logged in as: ${auth.email}
+
+Important:
+- Always use tools to read data before answering questions about the user's profile/links/settings
+- When adding links, validate the URL format
+- Never share sensitive information like API keys or passwords
+- If you can't do something, explain what the user can do manually`;
+
+    const apiMessages: any[] = [
+      { role: "system", content: systemPrompt },
+      ...trimmedMessages.map((m: any) => ({ role: m.role, content: m.content })),
+    ];
+
+    let response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
+    let iterations = 0;
+
+    while (response.choices[0]?.message?.tool_calls && iterations < 5) {
+      iterations++;
+      const assistantMessage = response.choices[0].message;
+      apiMessages.push(assistantMessage);
+
+      for (const toolCall of assistantMessage.tool_calls) {
+        const args = JSON.parse(toolCall.function.arguments || "{}");
+        const result = await executeChatTool(toolCall.function.name, args, auth.userId);
+        apiMessages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+      }
+
+      response = await callChatOpenAI(apiKey, apiMessages, CHAT_TOOLS);
+    }
+
+    const reply = response.choices[0]?.message?.content || "I'm sorry, I couldn't process that.";
+    return res.status(200).json({ reply, toolsUsed: iterations > 0 });
+  } catch (error) {
+    console.error("AI Chat error:", error);
+    return res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+}
+
+async function callChatOpenAI(apiKey: string, messages: any[], tools: any[]) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: "gpt-4o-mini", messages, tools, tool_choice: "auto", temperature: 0.7, max_tokens: 1500 }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} ${err}`);
+  }
+  return response.json();
 }

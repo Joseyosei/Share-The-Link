@@ -87,7 +87,7 @@ const AIAssistantChat = () => {
         content: m.content,
       }));
 
-      const response = await fetch("/api/ai-assistant", {
+      const response = await fetch("/api/ai-agent?action=chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
