@@ -4,6 +4,7 @@ import { XIcon } from "@/components/icons/XIcon";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
+import { IntroVideoUploader } from "@/components/dashboard/IntroVideoUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +47,8 @@ const DashboardSettings = () => {
     website: "",
   });
 
+  const [introVideoUrl, setIntroVideoUrl] = useState("");
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -75,6 +78,7 @@ const DashboardSettings = () => {
           linkedin: saved.linkedin || "",
           website: saved.website || "",
         }));
+        setIntroVideoUrl(saved.intro_video_url || "");
       }
     }
   }, [profile]);
@@ -120,6 +124,10 @@ const DashboardSettings = () => {
       const filteredSocials: Record<string, string> = {};
       for (const [key, val] of Object.entries(socialLinks)) {
         if (val.trim()) filteredSocials[key] = val.trim();
+      }
+      // Persist intro video URL alongside social links
+      if (introVideoUrl.trim()) {
+        filteredSocials.intro_video_url = introVideoUrl.trim();
       }
 
       const { error } = await supabase
@@ -463,6 +471,15 @@ const DashboardSettings = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Intro Video (VideoAsk-style) */}
+              {currentUser && (
+                <IntroVideoUploader
+                  currentVideoUrl={introVideoUrl}
+                  userId={currentUser.id}
+                  onVideoChange={setIntroVideoUrl}
+                />
+              )}
 
               <Button
                 onClick={handleSaveProfile}
