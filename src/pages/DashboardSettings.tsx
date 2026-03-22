@@ -155,7 +155,8 @@ const DashboardSettings = () => {
     }
   };
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     // Validate password fields
     const errors: Record<string, string> = {};
     if (!passwordData.currentPassword) errors.currentPassword = "Current password is required";

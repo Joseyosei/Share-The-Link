@@ -279,12 +279,6 @@ async function executeTool(
     }
 
     case "get_analytics_summary": {
-      const { data: profile } = await sb
-        .from("profiles")
-        .select("total_views")
-        .eq("user_id", userId)
-        .single();
-
       const { data: links } = await sb
         .from("links")
         .select("title, url, click_count")
@@ -292,11 +286,12 @@ async function executeTool(
         .order("click_count", { ascending: false })
         .limit(5);
 
-      const totalClicks = (links || []).reduce((sum, l) => sum + (l.click_count || 0), 0);
+      const totalClicks = (links || []).reduce((sum: number, l: any) => sum + (l.click_count || 0), 0);
+      const totalLinks = (links || []).length;
 
       return JSON.stringify({
-        total_views: profile?.total_views || 0,
         total_link_clicks: totalClicks,
+        total_links: totalLinks,
         top_links: links || [],
       });
     }
