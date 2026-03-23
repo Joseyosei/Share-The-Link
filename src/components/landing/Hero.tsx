@@ -1,15 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowRight, Sparkles, ChevronUp, ChevronDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-const RIGHT_NAV_LINKS = [
-  { href: "/about", label: "About" },
-  { href: "/careers", label: "Careers" },
-  { href: "/contact", label: "Contact" },
-];
-
-// Social media platforms - links to be added once company handles are provided
+// Social media platforms
 const SOCIAL_LINKS = [
   { href: "#", label: "X / Twitter", icon: (
     <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -46,9 +40,13 @@ const EXAMPLE_USERNAMES = [
   "sarahcreates",
   "musicbyjay",
   "designbylisa",
-  "chefmii",
   "fitbyalex",
-  "seenhq",
+  "thebakery",
+  "codewithme",
+  "artbynova",
+  "drstyle",
+  "podcastpro",
+  "growwithem",
 ];
 
 export const Hero = () => {
@@ -56,12 +54,26 @@ export const Hero = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [isUserTyping, setIsUserTyping] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
+  const socialRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Close social dropdown when clicking outside
+  useEffect(() => {
+    if (!socialOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (socialRef.current && !socialRef.current.contains(e.target as Node)) {
+        setSocialOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [socialOpen]);
 
   // Typewriter animation for placeholder usernames
   useEffect(() => {
@@ -76,12 +88,10 @@ export const Hero = () => {
       const currentWord = EXAMPLE_USERNAMES[currentIndex];
 
       if (!isDeleting) {
-        // Typing forward
         charIndex++;
         setTypedText(currentWord.slice(0, charIndex));
 
         if (charIndex === currentWord.length) {
-          // Pause at full word
           timeout = setTimeout(() => {
             isDeleting = true;
             tick();
@@ -90,7 +100,6 @@ export const Hero = () => {
         }
         timeout = setTimeout(tick, 100 + Math.random() * 50);
       } else {
-        // Deleting
         charIndex--;
         setTypedText(currentWord.slice(0, charIndex));
 
@@ -119,27 +128,49 @@ export const Hero = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Left-side floating social icons */}
-      <div className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-20 flex-col gap-3">
-        {SOCIAL_LINKS.map((social) => (
-          <a
-            key={social.label}
-            href={social.href}
-            target={social.href === "#" ? undefined : "_blank"}
-            rel={social.href === "#" ? undefined : "noopener noreferrer"}
-            onClick={social.href === "#" ? (e) => e.preventDefault() : undefined}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 hover:scale-110 transition-all"
-            aria-label={social.label}
-            title={social.label}
-          >
-            {social.icon}
-          </a>
-        ))}
+      {/* Social media dropdown button - fixed left side */}
+      <div ref={socialRef} className="hidden md:block fixed left-5 top-1/2 -translate-y-1/2 z-20">
+        <button
+          onClick={() => setSocialOpen(!socialOpen)}
+          className={`w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center transition-all ${
+            socialOpen
+              ? "bg-white text-gray-900 border-white shadow-lg"
+              : "bg-white/10 text-white/70 border-white/20 hover:bg-white/20 hover:text-white"
+          }`}
+          aria-label="Social platforms"
+        >
+          <Share2 className="w-4.5 h-4.5" />
+        </button>
+
+        {/* Dropdown */}
+        {socialOpen && (
+          <div className="absolute left-0 top-14 flex flex-col gap-2 animate-in slide-in-from-top-2 fade-in duration-200">
+            {SOCIAL_LINKS.map((social, i) => (
+              <a
+                key={social.label}
+                href={social.href}
+                target={social.href === "#" ? undefined : "_blank"}
+                rel={social.href === "#" ? undefined : "noopener noreferrer"}
+                onClick={social.href === "#" ? (e) => e.preventDefault() : undefined}
+                className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/25 hover:scale-110 transition-all"
+                aria-label={social.label}
+                title={social.label}
+                style={{ animationDelay: `${i * 30}ms` }}
+              >
+                {social.icon}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Right-side page navigation */}
-      <div className="hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-20 flex-col gap-2">
-        {RIGHT_NAV_LINKS.map((link) => (
+      <div className="hidden lg:flex fixed right-5 top-1/2 -translate-y-1/2 z-20 flex-col gap-2">
+        {[
+          { href: "/about", label: "About" },
+          { href: "/careers", label: "Careers" },
+          { href: "/contact", label: "Contact" },
+        ].map((link) => (
           <Link
             key={link.label}
             to={link.href}
@@ -150,7 +181,7 @@ export const Hero = () => {
         ))}
       </div>
 
-      {/* Scroll up/down arrows - bottom right, always visible */}
+      {/* Scroll up/down arrows */}
       <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex flex-col gap-2 pb-[env(safe-area-inset-bottom)]">
         {showScrollTop && (
           <button
@@ -171,7 +202,7 @@ export const Hero = () => {
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card-light mb-8 animate-fade-in shimmer">
             <Sparkles className="w-4 h-4 text-yellow-300" />
@@ -181,22 +212,21 @@ export const Hero = () => {
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary-foreground leading-tight mb-6 animate-fade-in stagger-1">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-primary-foreground leading-[1.1] mb-6 animate-fade-in stagger-1 tracking-tight">
             One link to share
             <br />
             everything you create
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-10 animate-fade-in stagger-2">
-            The ultimate link-in-bio platform for founders and creators.
-            Showcase your products, content, and brand in one beautiful page.
+          <p className="text-base sm:text-lg md:text-xl text-primary-foreground/80 max-w-xl mx-auto mb-10 animate-fade-in stagger-2 leading-relaxed">
+            The link-in-bio platform for creators. Products, content, and brand — all in one page.
           </p>
 
-          {/* Username Preview with typewriter animation */}
+          {/* Username claim input */}
           <div className="max-w-md mx-auto mb-8 animate-fade-in stagger-3">
-            <div className="flex items-center bg-primary-foreground/10 backdrop-blur-lg rounded-xl p-2 border border-primary-foreground/20">
-              <span className="text-primary-foreground/60 pl-4 text-sm md:text-base whitespace-nowrap">
+            <div className="flex items-center bg-primary-foreground/10 backdrop-blur-lg rounded-2xl p-2 border border-primary-foreground/20">
+              <span className="text-primary-foreground/60 pl-4 text-sm whitespace-nowrap">
                 sharethelink.app/
               </span>
               <div className="relative flex-1">
@@ -211,11 +241,10 @@ export const Hero = () => {
                   onBlur={() => {
                     if (!username) setIsUserTyping(false);
                   }}
-                  className="w-full bg-transparent text-primary-foreground font-medium px-1 py-3 focus:outline-none text-sm md:text-base"
+                  className="w-full bg-transparent text-primary-foreground font-medium px-1 py-3 focus:outline-none text-sm"
                 />
-                {/* Typewriter placeholder when user hasn't typed */}
                 {!username && !isUserTyping && (
-                  <span className="absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-primary-foreground/40 font-medium text-sm md:text-base">
+                  <span className="absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-primary-foreground/40 font-medium text-sm">
                     {typedText}
                     <span className="inline-block w-[2px] h-[1em] bg-primary-foreground/60 ml-[1px] align-middle animate-pulse" />
                   </span>
@@ -223,7 +252,7 @@ export const Hero = () => {
               </div>
               <Button
                 asChild
-                className="bg-white text-gray-900 hover:bg-white/90 font-semibold"
+                className="bg-white text-gray-900 hover:bg-white/90 font-semibold rounded-xl"
               >
                 <Link to="/signup">
                   Claim
@@ -234,11 +263,11 @@ export const Hero = () => {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-in stagger-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8 animate-fade-in stagger-4">
             <Button
               asChild
               size="lg"
-              className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-8 py-6 text-lg hover-lift"
+              className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-8 py-6 text-base hover-lift rounded-xl"
             >
               <Link to="/signup">
                 Get started free
@@ -248,7 +277,7 @@ export const Hero = () => {
             <Button
               size="lg"
               asChild
-              className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-8 py-6 text-lg rounded-lg transition-all duration-300"
+              className="border-2 border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-8 py-6 text-base rounded-xl transition-all duration-300"
             >
               <a href="#pricing">View pricing</a>
             </Button>
@@ -261,16 +290,16 @@ export const Hero = () => {
 
           {/* Product Hunt Badge */}
           <div className="mt-8 animate-fade-in stagger-4">
-            <a 
-              href="https://www.producthunt.com/products/share-the-link?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-share-the-link" 
-              target="_blank" 
+            <a
+              href="https://www.producthunt.com/products/share-the-link?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-share-the-link"
+              target="_blank"
               rel="noopener noreferrer"
               className="inline-block hover:opacity-90 transition-opacity"
             >
-              <img 
-                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1100684&theme=light&t=1773744898498" 
-                alt="Share The Link - The link in bio platform built for creator monetisation | Product Hunt" 
-                width="250" 
+              <img
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1100684&theme=light&t=1773744898498"
+                alt="Share The Link - The link in bio platform built for creator monetisation | Product Hunt"
+                width="250"
                 height="54"
                 className="mx-auto"
               />
