@@ -1,5 +1,3 @@
-import { next } from "@vercel/edge";
-
 const BOT_USER_AGENTS = [
   "googlebot",
   "bingbot",
@@ -195,7 +193,7 @@ export default function middleware(request: Request) {
   const userAgent = request.headers.get("user-agent") || "";
 
   if (!isBot(userAgent)) {
-    return next();
+    return;
   }
 
   const url = new URL(request.url);
@@ -203,7 +201,7 @@ export default function middleware(request: Request) {
 
   const page = PRERENDERED_PAGES[pathname];
   if (!page) {
-    return next();
+    return;
   }
 
   const html = `<!DOCTYPE html>
