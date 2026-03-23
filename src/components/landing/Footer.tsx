@@ -120,7 +120,7 @@ export const Footer = () => {
               Made with <span className="text-pink-400">&#9829;</span> for creators worldwide
             </p>
             <Link
-              to="/admin"
+              to="/dashboard/admin"
               className="text-background/20 hover:text-background/50 transition-colors"
               aria-label="Admin panel"
             >

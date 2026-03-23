@@ -155,10 +155,10 @@ export const MobileSidebar = () => {
           {/* Admin Panel link */}
           {isAdmin && (
             <Link
-              to="/admin"
+              to="/dashboard/admin"
               onClick={() => setIsOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-colors mt-2 border border-destructive/20 ${
-                location.pathname === "/admin"
+                location.pathname === "/dashboard/admin"
                   ? "bg-destructive text-destructive-foreground"
                   : "text-destructive hover:bg-destructive/10"
               }`}

@@ -221,24 +221,62 @@ const Profile = () => {
       }
 
       try {
-        // Fetch profile using RPC function
-        const { data: profileData, error: profileError } = await supabase
-          .rpc('get_public_profile', { lookup_username: username });
+        // Fetch all profile page data in one RPC call (bypasses RLS for public access)
+        const { data: pageData, error: pageError } = await supabase
+          .rpc('get_profile_page_data', { lookup_username: username });
 
-        if (profileError) {
-          console.error('Profile fetch error:', profileError);
+        // Fallback to original RPC if new one doesn't exist yet
+        if (pageError && pageError.message?.includes('get_profile_page_data')) {
+          const { data: profileData, error: profileError } = await supabase
+            .rpc('get_public_profile', { lookup_username: username });
+          if (profileError || !profileData || profileData.length === 0) {
+            setNotFound(true);
+            setLoading(false);
+            return;
+          }
+          setProfile(profileData[0] as ProfileData);
+        } else if (pageError) {
+          console.error('Profile fetch error:', pageError);
           setNotFound(true);
           setLoading(false);
           return;
-        }
-
-        if (!profileData || profileData.length === 0) {
+        } else if (!pageData || pageData.length === 0) {
           setNotFound(true);
           setLoading(false);
           return;
-        }
+        } else {
+          const row = pageData[0] as any;
+          setProfile({
+            username: row.username,
+            full_name: row.full_name,
+            bio: row.bio,
+            avatar_url: row.avatar_url,
+            social_links: row.social_links,
+          } as ProfileData);
 
-        setProfile(profileData[0] as ProfileData);
+          // Set appearance from the same RPC result
+          if (row.theme) setThemeId(row.theme);
+          setCustomAppearance({
+            wallpaperType: row.background_type || undefined,
+            backgroundGradient: row.background_gradient || undefined,
+            backgroundColor: row.background_color || undefined,
+            backgroundAnimation: row.background_animation || undefined,
+            fontFamily: row.font_family || undefined,
+            titleColor: row.title_color || undefined,
+            bioColor: row.bio_color || undefined,
+            buttonStyle: row.button_style || undefined,
+            buttonColor: row.button_color || undefined,
+          });
+
+          // Extract intro video URL from social_links
+          const sl = row.social_links as Record<string, string> | null;
+          if (sl && typeof sl === "object" && sl.intro_video_url) {
+            setIntroVideoUrl(sl.intro_video_url);
+          }
+
+          // Store creator ID for booking widget
+          setCreatorId(row.user_id);
+        }
 
         // Fetch links using RPC function
         const { data: linksData, error: linksError } = await supabase
@@ -250,68 +288,22 @@ const Profile = () => {
           setLinks((linksData || []) as LinkData[]);
         }
 
-        // Fetch appearance settings for this user
-        const { data: profileRecord } = await supabase
-          .from("profiles")
-          .select("user_id, social_links")
-          .eq("username", username)
-          .single();
+        // Fetch booking services via RPC (bypasses RLS)
+        const { data: bookingSvcs } = await supabase
+          .rpc('get_public_booking_services', { lookup_username: username });
+        setHasBookingServices(!!(bookingSvcs && bookingSvcs.length > 0));
+        setBookingServicesPreview((bookingSvcs || []) as BookingServicePreview[]);
 
-        if (profileRecord) {
-          // Extract intro video URL from social_links
-          const sl = profileRecord.social_links as Record<string, string> | null;
-          if (sl && typeof sl === "object" && sl.intro_video_url) {
-            setIntroVideoUrl(sl.intro_video_url);
-          }
-          const { data: appearanceData } = await supabase
-            .from("appearance_settings")
-            .select("theme, background_type, background_gradient, background_color, background_animation, font_family, title_color, bio_color, button_style, button_color")
-            .eq("user_id", profileRecord.user_id)
-            .single();
+        // Fetch products via RPC (bypasses RLS)
+        const { data: productsData } = await supabase
+          .rpc('get_public_products', { lookup_username: username });
+        setProducts((productsData || []) as ProductData[]);
 
-          if (appearanceData?.theme) {
-            setThemeId(appearanceData.theme);
-          }
-          if (appearanceData) {
-            setCustomAppearance({
-              wallpaperType: appearanceData.background_type || undefined,
-              backgroundGradient: appearanceData.background_gradient || undefined,
-              backgroundColor: appearanceData.background_color || undefined,
-              backgroundAnimation: (appearanceData as any).background_animation || undefined,
-              fontFamily: appearanceData.font_family || undefined,
-              titleColor: appearanceData.title_color || undefined,
-              bioColor: appearanceData.bio_color || undefined,
-              buttonStyle: appearanceData.button_style || undefined,
-              buttonColor: appearanceData.button_color || undefined,
-            });
-          }
-
-          // Store creator ID for booking widget
-          setCreatorId(profileRecord.user_id);
-
-          // Check if creator has booking services and fetch preview data
-          const { data: bookingSvcs } = await supabase
-            .from("booking_services")
-            .select("id, title, type, duration, price")
-            .eq("creator_id", profileRecord.user_id)
-            .eq("is_active", true)
-            .order("price")
-            .limit(3);
-          setHasBookingServices(!!(bookingSvcs && bookingSvcs.length > 0));
-          setBookingServicesPreview((bookingSvcs || []) as BookingServicePreview[]);
-
-          // Fetch user products for shop section
-          const { data: productsData } = await supabase
-            .from("user_products")
-            .select("id, name, description, price_cents, image_url, category, external_url")
-            .eq("user_id", profileRecord.user_id)
-            .eq("is_active", true)
-            .order("created_at", { ascending: false });
-          setProducts((productsData || []) as ProductData[]);
-
-          // Track profile view
+        // Track profile view using user_id from page data
+        const resolvedUserId = pageData?.[0]?.user_id;
+        if (resolvedUserId) {
           try {
-            const visitorId = localStorage.getItem("stl_visitor_id") || 
+            const visitorId = localStorage.getItem("stl_visitor_id") ||
               `v_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
             if (!localStorage.getItem("stl_visitor_id")) {
               localStorage.setItem("stl_visitor_id", visitorId);
@@ -321,7 +313,7 @@ const Profile = () => {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 event_type: "profile_view",
-                user_id: profileRecord.user_id,
+                user_id: resolvedUserId,
                 visitor_id: visitorId,
                 referrer: document.referrer || null,
               }),

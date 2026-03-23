@@ -128,9 +128,9 @@ export const Sidebar = () => {
         {/* Admin Panel link - only visible to admins */}
         {isAdmin && (
           <Link
-            to="/admin"
+            to="/dashboard/admin"
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors mt-2 border border-destructive/20 ${
-              location.pathname === "/admin"
+              location.pathname === "/dashboard/admin"
                 ? "bg-destructive text-destructive-foreground"
                 : "text-destructive hover:bg-destructive/10"
             }`}
