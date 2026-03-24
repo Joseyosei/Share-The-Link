@@ -1,10 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Link2, 
-  Palette, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Link2,
+  Palette,
+  BarChart3,
+  Settings,
   LogOut,
   User,
   Radio,
@@ -18,7 +18,13 @@ import {
   CalendarCheck,
   MessageSquareQuote,
   Bot,
-  HeadphonesIcon
+  HeadphonesIcon,
+  Mail,
+  Heart,
+  Webhook,
+  Users,
+  Globe,
+  FlaskConical
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
@@ -41,7 +47,13 @@ const navItems = [
   { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
   { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
+  { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers", isNew: true },
+  { icon: Heart, label: "Tip Jar", href: "/dashboard/tip-jar", isNew: true },
   { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
+  { icon: FlaskConical, label: "A/B Testing", href: "/dashboard/ab-testing", isNew: true },
+  { icon: Globe, label: "Domains", href: "/dashboard/domains", isNew: true },
+  { icon: Users, label: "Team", href: "/dashboard/team", isNew: true },
+  { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks", isNew: true },
   { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support", isNew: true },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   { icon: HelpCircle, label: "Help", href: "/help" },

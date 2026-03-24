@@ -1,4 +1,4 @@
-import { GripVertical, Pencil, Trash2, ExternalLink, Calendar, FolderOpen } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ExternalLink, Calendar, FolderOpen, Timer } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 interface LinkCardProps {
@@ -12,6 +12,9 @@ interface LinkCardProps {
   scheduleStart?: string | null;
   scheduleEnd?: string | null;
   linkGroup?: string | null;
+  thumbnailUrl?: string | null;
+  countdownEnd?: string | null;
+  countdownLabel?: string | null;
   onToggle: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -34,6 +37,9 @@ export const LinkCard = ({
   scheduleStart,
   scheduleEnd,
   linkGroup,
+  thumbnailUrl,
+  countdownEnd,
+  countdownLabel,
   onToggle,
   onEdit,
   onDelete,
@@ -70,6 +76,20 @@ export const LinkCard = ({
           <GripVertical className="w-5 h-5" />
         </button>
 
+        {/* Thumbnail */}
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+            <img
+              src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(url)}&sz=32`}
+              alt=""
+              className="w-5 h-5"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -88,6 +108,12 @@ export const LinkCard = ({
             )}
           </div>
           <p className="text-sm text-muted-foreground truncate">{url}</p>
+          {countdownEnd && new Date(countdownEnd) > new Date() && (
+            <span className="inline-flex items-center gap-1 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full mt-1">
+              <Timer className="w-2.5 h-2.5" />
+              {countdownLabel || "Countdown"} &middot; {new Date(countdownEnd).toLocaleDateString()}
+            </span>
+          )}
         </div>
 
         {/* Clicks */}

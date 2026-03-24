@@ -46,6 +46,12 @@ import AIAgentDashboard from "./pages/AIAgentDashboard";
 import AIAssistantChat from "./pages/AIAssistantChat";
 import STLBot from "./pages/STLBot";
 import DashboardSupport from "./pages/DashboardSupport";
+import DashboardSubscribers from "./pages/DashboardSubscribers";
+import DashboardTipJar from "./pages/DashboardTipJar";
+import DashboardWebhooks from "./pages/DashboardWebhooks";
+import DashboardTeam from "./pages/DashboardTeam";
+import DashboardDomains from "./pages/DashboardDomains";
+import DashboardABTesting from "./pages/DashboardABTesting";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
@@ -112,6 +118,12 @@ const App = () => (
           <Route path="/dashboard/ai-agent" element={<ProtectedRoute><AIAgentDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/ai-assistant" element={<ProtectedRoute><AIAssistantChat /></ProtectedRoute>} />
           <Route path="/dashboard/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
+          <Route path="/dashboard/subscribers" element={<ProtectedRoute><DashboardSubscribers /></ProtectedRoute>} />
+          <Route path="/dashboard/tip-jar" element={<ProtectedRoute><DashboardTipJar /></ProtectedRoute>} />
+          <Route path="/dashboard/webhooks" element={<ProtectedRoute><DashboardWebhooks /></ProtectedRoute>} />
+          <Route path="/dashboard/team" element={<ProtectedRoute><DashboardTeam /></ProtectedRoute>} />
+          <Route path="/dashboard/domains" element={<ProtectedRoute><DashboardDomains /></ProtectedRoute>} />
+          <Route path="/dashboard/ab-testing" element={<ProtectedRoute><DashboardABTesting /></ProtectedRoute>} />
           <Route path="/dashboard/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}
