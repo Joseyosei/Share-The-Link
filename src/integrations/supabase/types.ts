@@ -882,6 +882,182 @@ export type Database = {
         }
         Relationships: []
       }
+      tip_settings: {
+        Row: {
+          id: string
+          user_id: string
+          is_enabled: boolean
+          suggested_amounts: number[]
+          custom_message: string | null
+          currency: string
+          stripe_account_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          is_enabled?: boolean
+          suggested_amounts?: number[]
+          custom_message?: string | null
+          currency?: string
+          stripe_account_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          is_enabled?: boolean
+          suggested_amounts?: number[]
+          custom_message?: string | null
+          currency?: string
+          stripe_account_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tips: {
+        Row: {
+          id: string
+          creator_id: string
+          amount_cents: number
+          currency: string
+          tipper_name: string | null
+          tipper_email: string | null
+          message: string | null
+          stripe_payment_id: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          amount_cents: number
+          currency?: string
+          tipper_name?: string | null
+          tipper_email?: string | null
+          message?: string | null
+          stripe_payment_id?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          amount_cents?: number
+          currency?: string
+          tipper_name?: string | null
+          tipper_email?: string | null
+          message?: string | null
+          stripe_payment_id?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      custom_domains: {
+        Row: {
+          id: string
+          user_id: string
+          domain: string
+          status: string
+          verification_token: string | null
+          verified_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          domain: string
+          status?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          domain?: string
+          status?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          id: string
+          user_id: string
+          subject: string
+          category: string
+          priority: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          subject: string
+          category?: string
+          priority?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          subject?: string
+          category?: string
+          priority?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          id: string
+          ticket_id: string
+          sender_id: string
+          sender_type: string
+          message: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          sender_id: string
+          sender_type?: string
+          message: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ticket_id?: string
+          sender_id?: string
+          sender_type?: string
+          message?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

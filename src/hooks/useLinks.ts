@@ -14,8 +14,8 @@ export const useLinks = () => {
 
   const fetchLinks = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setLoading(false);
         return;
       }
@@ -23,7 +23,7 @@ export const useLinks = () => {
       const { data, error } = await supabase
         .from("links")
         .select("*")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .order("position", { ascending: true });
 
       if (error) {
@@ -45,8 +45,8 @@ export const useLinks = () => {
   }, [fetchLinks]);
 
   const addLink = async (link: Omit<LinkInsert, "user_id">) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Not authenticated");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
 
     // Content moderation check
     const moderationError = validateLinkContent(link.title || "", link.url || "");
@@ -61,7 +61,7 @@ export const useLinks = () => {
       .from("links")
       .insert({
         ...link,
-        user_id: session.user.id,
+        user_id: user.id,
         position: link.position ?? maxPosition,
       })
       .select()
