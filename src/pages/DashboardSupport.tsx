@@ -21,12 +21,11 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface SupportMessage {
   id: string;
-  user_id: string;
+  sender_id: string;
   sender_type: "user" | "admin";
   message: string;
   is_read: boolean;
   created_at: string;
-  admin_name?: string | null;
 }
 
 interface SupportTicket {
@@ -180,11 +179,10 @@ const DashboardSupport = () => {
         .from("support_messages")
         .insert({
           ticket_id: (ticket as SupportTicket).id,
-          user_id: userId,
+          sender_id: userId,
           sender_type: "user",
           message: newTicket.message.trim(),
-          sender_name: profile?.full_name || profile?.username || "User",
-        });
+        } as any);
 
       if (msgErr) throw msgErr;
 
@@ -209,11 +207,10 @@ const DashboardSupport = () => {
         .from("support_messages")
         .insert({
           ticket_id: activeTicket.id,
-          user_id: userId,
+          sender_id: userId,
           sender_type: "user",
           message: messageText.trim(),
-          sender_name: profile?.full_name || profile?.username || "User",
-        });
+        } as any);
 
       if (error) throw error;
 
@@ -354,9 +351,9 @@ const DashboardSupport = () => {
                               : "bg-muted text-foreground rounded-bl-md"
                           }`}
                         >
-                          {msg.sender_type === "admin" && msg.admin_name && (
+                          {msg.sender_type === "admin" && (
                             <p className="text-xs font-semibold text-primary mb-1">
-                              {msg.admin_name} (Support)
+                              Support Team
                             </p>
                           )}
                           <p className="text-sm whitespace-pre-wrap">{msg.message}</p>

@@ -43,10 +43,10 @@ const DashboardTipJar = () => {
         .single();
 
       if (settings) {
-        setIsEnabled((settings as any).is_enabled || false);
-        setCustomMessage((settings as any).custom_message || "Support my work!");
-        setSuggestedAmounts(((settings as any).suggested_amounts || [3, 5, 10, 25]).join(","));
-        setCurrency((settings as any).currency || "GBP");
+        setIsEnabled(settings.is_enabled || false);
+        setCustomMessage(settings.custom_message || "Support my work!");
+        setSuggestedAmounts((settings.suggested_amounts || [3, 5, 10, 25]).join(","));
+        setCurrency(settings.currency || "GBP");
       }
 
       const { data: tipsData } = await supabase
@@ -82,7 +82,7 @@ const DashboardTipJar = () => {
         suggested_amounts: amounts,
         currency,
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: "user_id" });
 
       if (error) throw error;
       toast({ title: "Saved!", description: "Tip jar settings updated." });
@@ -166,9 +166,9 @@ const DashboardTipJar = () => {
                       onChange={(e) => setCurrency(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border-2 border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="GBP">GBP (\u00a3)</option>
+                      <option value="GBP">GBP (£)</option>
                       <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (\u20ac)</option>
+                      <option value="EUR">EUR (€)</option>
                     </select>
                   </div>
                 </CardContent>

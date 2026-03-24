@@ -38,6 +38,10 @@ CREATE POLICY "Users can view own tickets" ON support_tickets
 CREATE POLICY "Users can create tickets" ON support_tickets
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- Users can update their own tickets
+CREATE POLICY "Users can update own tickets" ON support_tickets
+  FOR UPDATE USING (auth.uid() = user_id);
+
 -- Users can view messages on their tickets
 CREATE POLICY "Users can view own ticket messages" ON support_messages
   FOR SELECT USING (

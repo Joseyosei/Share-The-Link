@@ -148,8 +148,10 @@ const STLBot = () => {
   // Simple markdown-like rendering
   const renderContent = (content: string) => {
     return content.split("\n").map((line, i) => {
+      // Strip markdown headings and render as bold text
+      let rendered = line.replace(/^#{1,4}\s+(.+)/, "<strong>$1</strong>");
       // Bold
-      let rendered = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      rendered = rendered.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
       // Inline code
       rendered = rendered.replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">$1</code>');
       // Bullet points
