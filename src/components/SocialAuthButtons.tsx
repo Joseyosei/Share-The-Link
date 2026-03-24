@@ -28,20 +28,10 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
     }
   };
 
-  const label = type === "signup" ? "Sign up" : "Continue";
+  const label = type === "signup" ? "Sign Up" : "Continue";
 
   return (
     <>
-      {/* Divider */}
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-card text-muted-foreground">OR</span>
-        </div>
-      </div>
-
       {error && (
         <div className="mb-3 p-3 bg-destructive/10 text-destructive rounded-xl text-sm text-center">
           {error}
@@ -54,7 +44,7 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
           type="button"
           onClick={() => handleOAuth("google")}
           disabled={!!loadingProvider}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-background border-2 border-border rounded-xl font-semibold text-foreground hover:bg-muted/50 hover:border-muted-foreground/30 transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-background border-2 border-border rounded-xl font-semibold text-foreground hover:bg-muted/50 hover:border-muted-foreground/30 transition-all disabled:opacity-50"
         >
           {loadingProvider === "google" ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -74,7 +64,7 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
           type="button"
           onClick={() => handleOAuth("apple")}
           disabled={!!loadingProvider}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-foreground text-background rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-foreground text-background rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50"
         >
           {loadingProvider === "apple" ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -85,6 +75,16 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
           )}
           {label} with Apple
         </button>
+      </div>
+
+      {/* OR Divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-4 bg-card text-muted-foreground">OR</span>
+        </div>
       </div>
     </>
   );
