@@ -71,6 +71,14 @@ export type Database = {
           title_color: string | null
           updated_at: string
           user_id: string
+          layout_mode: string | null
+          link_animation: string | null
+          verified_badge: boolean | null
+          show_member_since: boolean | null
+          show_follower_count: boolean | null
+          section_dividers_enabled: boolean | null
+          section_divider_style: string | null
+          featured_link_ids: string[] | null
         }
         Insert: {
           background_color?: string | null
@@ -86,6 +94,14 @@ export type Database = {
           title_color?: string | null
           updated_at?: string
           user_id: string
+          layout_mode?: string | null
+          link_animation?: string | null
+          verified_badge?: boolean | null
+          show_member_since?: boolean | null
+          show_follower_count?: boolean | null
+          section_dividers_enabled?: boolean | null
+          section_divider_style?: string | null
+          featured_link_ids?: string[] | null
         }
         Update: {
           background_color?: string | null
@@ -101,6 +117,14 @@ export type Database = {
           title_color?: string | null
           updated_at?: string
           user_id?: string
+          layout_mode?: string | null
+          link_animation?: string | null
+          verified_badge?: boolean | null
+          show_member_since?: boolean | null
+          show_follower_count?: boolean | null
+          section_dividers_enabled?: boolean | null
+          section_divider_style?: string | null
+          featured_link_ids?: string[] | null
         }
         Relationships: []
       }
@@ -442,6 +466,11 @@ export type Database = {
           updated_at: string
           url: string
           user_id: string
+          animation: string | null
+          section_color: string | null
+          section_icon: string | null
+          bento_size: string | null
+          is_featured: boolean | null
         }
         Insert: {
           clicks?: number | null
@@ -454,6 +483,11 @@ export type Database = {
           updated_at?: string
           url: string
           user_id: string
+          animation?: string | null
+          section_color?: string | null
+          section_icon?: string | null
+          bento_size?: string | null
+          is_featured?: boolean | null
         }
         Update: {
           clicks?: number | null
@@ -466,6 +500,11 @@ export type Database = {
           updated_at?: string
           url?: string
           user_id?: string
+          animation?: string | null
+          section_color?: string | null
+          section_icon?: string | null
+          bento_size?: string | null
+          is_featured?: boolean | null
         }
         Relationships: []
       }

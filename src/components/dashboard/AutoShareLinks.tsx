@@ -444,14 +444,14 @@ export function AutoShareLinks() {
               Quick Share
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {links.slice(0, 5).map((link) => (
-              <div key={link.id} className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div key={link.id} className="space-y-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="text-sm truncate">{link.title}</span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {PLATFORMS.map(({ key, icon: Icon, color }) => (
                     <button
                       key={key}

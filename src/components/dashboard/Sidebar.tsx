@@ -44,6 +44,7 @@ const navItems = [
   { icon: CalendarCheck, label: "Bookings", href: "/dashboard/bookings", isNew: true },
   { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
+  { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
   { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
   { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },

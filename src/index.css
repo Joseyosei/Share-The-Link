@@ -405,4 +405,133 @@
     50% { background-position: 100% 100%; }
     75% { background-position: 0% 100%; }
   }
+
+  /* ── Link Entry Animations ──────────────────────────────── */
+
+  /* Pulse - gentle scale throb */
+  .stl-link-pulse {
+    animation: stlLinkPulse 2s ease-in-out infinite;
+  }
+  @keyframes stlLinkPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+
+  /* Shake - horizontal wiggle to grab attention */
+  .stl-link-shake {
+    animation: stlLinkShake 3s ease-in-out infinite;
+  }
+  @keyframes stlLinkShake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-3px); }
+    20% { transform: translateX(3px); }
+    30% { transform: translateX(-2px); }
+    40% { transform: translateX(2px); }
+    50%, 100% { transform: translateX(0); }
+  }
+
+  /* Bounce - playful vertical bounce */
+  .stl-link-bounce {
+    animation: stlLinkBounce 2.5s ease-in-out infinite;
+  }
+  @keyframes stlLinkBounce {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+    50% { transform: translateY(0); }
+    65% { transform: translateY(-3px); }
+    80% { transform: translateY(0); }
+  }
+
+  /* Glow - pulsing box-shadow glow */
+  .stl-link-glow {
+    animation: stlLinkGlow 2s ease-in-out infinite;
+  }
+  @keyframes stlLinkGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.2), 0 0 0 rgba(236, 72, 153, 0); }
+    50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(236, 72, 153, 0.2); }
+  }
+
+  /* Slide-in - entrance from left on page load */
+  .stl-link-slide-in {
+    animation: stlLinkSlideIn 0.6s ease-out both;
+  }
+  .stl-link-slide-in:nth-child(1) { animation-delay: 0.05s; }
+  .stl-link-slide-in:nth-child(2) { animation-delay: 0.12s; }
+  .stl-link-slide-in:nth-child(3) { animation-delay: 0.19s; }
+  .stl-link-slide-in:nth-child(4) { animation-delay: 0.26s; }
+  .stl-link-slide-in:nth-child(5) { animation-delay: 0.33s; }
+  .stl-link-slide-in:nth-child(6) { animation-delay: 0.40s; }
+  @keyframes stlLinkSlideIn {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── Verified Badge shimmer ─────────────────────────────── */
+  .stl-badge-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .stl-badge-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.3), transparent);
+    animation: stlBadgeShimmer 3s ease-in-out infinite;
+  }
+  @keyframes stlBadgeShimmer {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+  }
+
+  /* ── Section Divider gradient line ──────────────────────── */
+  .stl-divider-gradient {
+    height: 2px;
+    border: none;
+    border-radius: 1px;
+    background: linear-gradient(90deg, transparent, var(--divider-color, rgba(255,255,255,0.4)), transparent);
+  }
+
+  .stl-divider-bold {
+    height: 3px;
+    border: none;
+    border-radius: 2px;
+    background: var(--divider-color, rgba(255,255,255,0.4));
+  }
+
+  .stl-divider-dotted {
+    height: 0;
+    border: none;
+    border-top: 2px dotted var(--divider-color, rgba(255,255,255,0.4));
+  }
+
+  /* ── Bento Grid ─────────────────────────────────────────── */
+  .stl-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .stl-bento-1x1 { grid-column: span 1; grid-row: span 1; }
+  .stl-bento-2x1 { grid-column: span 2; grid-row: span 1; }
+  .stl-bento-1x2 { grid-column: span 1; grid-row: span 2; }
+
+  /* ── Featured Carousel ──────────────────────────────────── */
+  .stl-carousel-track {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.5rem;
+  }
+  .stl-carousel-track::-webkit-scrollbar { display: none; }
+  .stl-carousel-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    width: 200px;
+  }
 }

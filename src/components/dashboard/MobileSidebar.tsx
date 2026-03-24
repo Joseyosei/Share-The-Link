@@ -45,6 +45,7 @@ const navItems = [
   { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
+  { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers", isNew: true },
   { icon: Heart, label: "Tip Jar", href: "/dashboard/tip-jar", isNew: true },

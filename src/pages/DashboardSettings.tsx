@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { IntroVideoUploader } from "@/components/dashboard/IntroVideoUploader";
+import { COMMON_TIMEZONES } from "@/components/profile/LocalTimeDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,8 @@ const DashboardSettings = () => {
   });
 
   const [introVideoUrl, setIntroVideoUrl] = useState("");
+  const [timezone, setTimezone] = useState("");
+  const [location, setLocation] = useState("");
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -81,6 +84,8 @@ const DashboardSettings = () => {
           website: saved.website || "",
         }));
         setIntroVideoUrl(saved.intro_video_url || "");
+        setTimezone(saved.timezone || "");
+        setLocation(saved.location || "");
       }
     }
   }, [profile]);
@@ -127,9 +132,15 @@ const DashboardSettings = () => {
       for (const [key, val] of Object.entries(socialLinks)) {
         if (val.trim()) filteredSocials[key] = val.trim();
       }
-      // Persist intro video URL alongside social links
+      // Persist intro video URL and timezone alongside social links
       if (introVideoUrl.trim()) {
         filteredSocials.intro_video_url = introVideoUrl.trim();
+      }
+      if (timezone) {
+        filteredSocials.timezone = timezone;
+      }
+      if (location.trim()) {
+        filteredSocials.location = location.trim();
       }
 
       const { error } = await supabase
@@ -472,6 +483,46 @@ const DashboardSettings = () => {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Timezone */}
+              <div>
+                <label htmlFor="timezone" className="block text-sm font-medium text-foreground mb-2">
+                  Your Timezone
+                </label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Display your local time on your public profile so visitors know what timezone you are in.
+                </p>
+                <select
+                  id="timezone"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-foreground mb-2">
+                  Location
+                </label>
+                <input
+                  id="location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g., London, UK"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Displayed on your public profile alongside your timezone.
+                </p>
               </div>
 
               {/* Intro Video (VideoAsk-style) */}

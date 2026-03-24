@@ -201,8 +201,8 @@ const DashboardMedia = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 pt-16 lg:pt-0">
-        <div className="p-6 max-w-6xl mx-auto">
+      <main className="lg:ml-64 pt-16 lg:pt-0 overflow-x-hidden">
+        <div className="p-3 sm:p-6 max-w-6xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
@@ -214,24 +214,24 @@ const DashboardMedia = () => {
                 Manage your stream recordings and uploaded videos
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => navigate("/media")}>
-                <Globe className="w-4 h-4 mr-2" />
-                Browse Media
+                <Globe className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Browse </span>Media
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigate("/streaming")}>
-                <Radio className="w-4 h-4 mr-2" />
+                <Radio className="w-4 h-4 mr-1 sm:mr-2" />
                 Go Live
               </Button>
               <Button size="sm" onClick={() => setShowUploader(true)}>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Video
+                <Upload className="w-4 h-4 mr-1 sm:mr-2" />
+                Upload<span className="hidden sm:inline"> Video</span>
               </Button>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -309,11 +309,11 @@ const DashboardMedia = () => {
             <div className="space-y-3">
               {filteredMedia.map((item) => (
                 <Card key={`${item.type}-${item.id}`} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                       {/* Thumbnail */}
-                      <div 
-                        className="w-32 h-20 rounded-lg bg-muted overflow-hidden shrink-0 flex items-center justify-center cursor-pointer relative group"
+                      <div
+                        className="w-24 h-16 sm:w-32 sm:h-20 rounded-lg bg-muted overflow-hidden shrink-0 flex items-center justify-center cursor-pointer relative group"
                         onClick={() => setPlayingVideo(item)}
                       >
                         {item.thumbnail_url ? (
