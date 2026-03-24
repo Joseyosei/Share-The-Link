@@ -257,6 +257,27 @@ const categories = [
   { id: "wallpaper", name: "Wallpaper", icon: Image },
   { id: "text", name: "Text", icon: Type },
   { id: "buttons", name: "Buttons", icon: Square },
+  { id: "features", name: "Features", icon: Sparkles },
+];
+
+const LAYOUT_MODES = [
+  { id: "list", label: "Classic List", description: "Vertical stacked links" },
+  { id: "bento", label: "Bento Grid", description: "Magazine-style card grid" },
+];
+
+const LINK_ANIMATIONS = [
+  { id: "none", label: "None", description: "No animation" },
+  { id: "pulse", label: "Pulse", description: "Gentle scale throb" },
+  { id: "shake", label: "Shake", description: "Attention-grabbing wiggle" },
+  { id: "bounce", label: "Bounce", description: "Playful vertical bounce" },
+  { id: "glow", label: "Glow", description: "Pulsing glow effect" },
+  { id: "slide-in", label: "Slide In", description: "Entrance from left" },
+];
+
+const DIVIDER_STYLES = [
+  { id: "gradient", label: "Gradient" },
+  { id: "bold", label: "Bold" },
+  { id: "dotted", label: "Dotted" },
 ];
 
 const FONT_OPTIONS = [
@@ -320,6 +341,15 @@ const DashboardAppearance = () => {
   const [buttonStyle, setButtonStyle] = useState("rounded");
   const [buttonColor, setButtonColor] = useState("#1a1a2e");
 
+  // New feature state
+  const [layoutMode, setLayoutMode] = useState("list");
+  const [linkAnimation, setLinkAnimation] = useState("none");
+  const [verifiedBadge, setVerifiedBadge] = useState(false);
+  const [showMemberSince, setShowMemberSince] = useState(false);
+  const [showFollowerCount, setShowFollowerCount] = useState(false);
+  const [sectionDividersEnabled, setSectionDividersEnabled] = useState(false);
+  const [sectionDividerStyle, setSectionDividerStyle] = useState("gradient");
+
   // Load settings from DB
   useEffect(() => {
     if (settings) {
@@ -333,6 +363,14 @@ const DashboardAppearance = () => {
       if (settings.button_style) setButtonStyle(settings.button_style);
       if (settings.button_color) setButtonColor(settings.button_color);
       if ((settings as any).background_animation) setBackgroundAnimation((settings as any).background_animation);
+      // New feature settings
+      if (settings.layout_mode) setLayoutMode(settings.layout_mode);
+      if (settings.link_animation) setLinkAnimation(settings.link_animation);
+      if (settings.verified_badge !== null && settings.verified_badge !== undefined) setVerifiedBadge(!!settings.verified_badge);
+      if (settings.show_member_since !== null && settings.show_member_since !== undefined) setShowMemberSince(!!settings.show_member_since);
+      if (settings.show_follower_count !== null && settings.show_follower_count !== undefined) setShowFollowerCount(!!settings.show_follower_count);
+      if (settings.section_dividers_enabled !== null && settings.section_dividers_enabled !== undefined) setSectionDividersEnabled(!!settings.section_dividers_enabled);
+      if (settings.section_divider_style) setSectionDividerStyle(settings.section_divider_style);
     }
   }, [settings]);
 
@@ -401,6 +439,46 @@ const DashboardAppearance = () => {
   const handleAnimation = async (animation: string) => {
     setBackgroundAnimation(animation);
     await saveSettings({ background_animation: animation });
+  };
+
+  // ── New feature handlers ──
+  const handleLayoutMode = async (mode: string) => {
+    setLayoutMode(mode);
+    await saveSettings({ layout_mode: mode });
+  };
+
+  const handleLinkAnimation = async (anim: string) => {
+    setLinkAnimation(anim);
+    await saveSettings({ link_animation: anim });
+  };
+
+  const handleVerifiedBadge = async (checked: boolean) => {
+    setVerifiedBadge(checked);
+    await updateSettings({ verified_badge: checked } as any);
+    toast({ title: "Saved!", description: "Appearance updated." });
+  };
+
+  const handleShowMemberSince = async (checked: boolean) => {
+    setShowMemberSince(checked);
+    await updateSettings({ show_member_since: checked } as any);
+    toast({ title: "Saved!", description: "Appearance updated." });
+  };
+
+  const handleShowFollowerCount = async (checked: boolean) => {
+    setShowFollowerCount(checked);
+    await updateSettings({ show_follower_count: checked } as any);
+    toast({ title: "Saved!", description: "Appearance updated." });
+  };
+
+  const handleSectionDividers = async (checked: boolean) => {
+    setSectionDividersEnabled(checked);
+    await updateSettings({ section_dividers_enabled: checked } as any);
+    toast({ title: "Saved!", description: "Appearance updated." });
+  };
+
+  const handleSectionDividerStyle = async (style: string) => {
+    setSectionDividerStyle(style);
+    await saveSettings({ section_divider_style: style });
   };
 
   // Enhance button -- auto-pick appealing settings based on profile
@@ -858,6 +936,174 @@ const DashboardAppearance = () => {
                         Button Preview
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FEATURES TAB */}
+              {activeCategory === "features" && (
+                <div className="bg-card rounded-2xl p-6 shadow-lg space-y-8">
+                  <h2 className="text-xl font-bold text-foreground">Features</h2>
+
+                  {/* Layout Mode */}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Layout Mode</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {LAYOUT_MODES.map((mode) => (
+                        <button
+                          key={mode.id}
+                          onClick={() => handleLayoutMode(mode.id)}
+                          className={`p-4 rounded-xl border-2 transition-all text-left ${
+                            layoutMode === mode.id
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {mode.id === "list" ? (
+                              <div className="flex flex-col gap-1">
+                                <div className="w-16 h-2 rounded-full bg-foreground/30" />
+                                <div className="w-16 h-2 rounded-full bg-foreground/30" />
+                                <div className="w-16 h-2 rounded-full bg-foreground/30" />
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-1">
+                                <div className="w-7 h-7 rounded bg-foreground/30" />
+                                <div className="w-7 h-7 rounded bg-foreground/30" />
+                                <div className="w-14 h-4 rounded bg-foreground/30 col-span-2" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-foreground">{mode.label}</p>
+                          <p className="text-xs text-muted-foreground">{mode.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Link Animations */}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Link Animations</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {LINK_ANIMATIONS.map((anim) => (
+                        <button
+                          key={anim.id}
+                          onClick={() => handleLinkAnimation(anim.id)}
+                          className={`p-3 rounded-xl border-2 transition-all text-left ${
+                            linkAnimation === anim.id
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <p className="text-sm font-medium text-foreground">{anim.label}</p>
+                          <p className="text-[11px] text-muted-foreground">{anim.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                    {/* Live preview of selected animation */}
+                    {linkAnimation !== "none" && (
+                      <div className="mt-4">
+                        <div
+                          className={`w-full py-3 px-4 text-center text-white font-medium rounded-xl bg-foreground/80 ${
+                            linkAnimation === "pulse" ? "stl-link-pulse" :
+                            linkAnimation === "shake" ? "stl-link-shake" :
+                            linkAnimation === "bounce" ? "stl-link-bounce" :
+                            linkAnimation === "glow" ? "stl-link-glow" :
+                            linkAnimation === "slide-in" ? "stl-link-slide-in" : ""
+                          }`}
+                        >
+                          Animation Preview
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Verified Badge & Social Proof */}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Verified Badge & Social Proof</label>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/50 transition-all cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={verifiedBadge}
+                          onChange={(e) => handleVerifiedBadge(e.target.checked)}
+                          className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Verified Badge</p>
+                          <p className="text-xs text-muted-foreground">Show a gold verified checkmark on your profile</p>
+                        </div>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/50 transition-all cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showMemberSince}
+                          onChange={(e) => handleShowMemberSince(e.target.checked)}
+                          className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Member Since</p>
+                          <p className="text-xs text-muted-foreground">Display when you joined Share The Link</p>
+                        </div>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/50 transition-all cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showFollowerCount}
+                          onChange={(e) => handleShowFollowerCount(e.target.checked)}
+                          className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Follower Count</p>
+                          <p className="text-xs text-muted-foreground">Show your subscriber/follower count publicly</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Section Dividers */}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Section Dividers</label>
+                    <label className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/50 transition-all cursor-pointer mb-3">
+                      <input
+                        type="checkbox"
+                        checked={sectionDividersEnabled}
+                        onChange={(e) => handleSectionDividers(e.target.checked)}
+                        className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Enable Section Dividers</p>
+                        <p className="text-xs text-muted-foreground">Color-coded dividers between link groups with icons</p>
+                      </div>
+                    </label>
+                    {sectionDividersEnabled && (
+                      <div className="grid grid-cols-3 gap-3">
+                        {DIVIDER_STYLES.map((ds) => (
+                          <button
+                            key={ds.id}
+                            onClick={() => handleSectionDividerStyle(ds.id)}
+                            className={`p-3 rounded-xl border-2 transition-all ${
+                              sectionDividerStyle === ds.id
+                                ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="mb-2">
+                              <hr
+                                className={
+                                  ds.id === "bold"
+                                    ? "h-[3px] border-none rounded bg-foreground/30"
+                                    : ds.id === "dotted"
+                                      ? "border-t-2 border-dotted border-foreground/30"
+                                      : "h-[2px] border-none rounded bg-gradient-to-r from-transparent via-foreground/30 to-transparent"
+                                }
+                              />
+                            </div>
+                            <p className="text-xs font-medium text-center text-foreground">{ds.label}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -16,6 +16,10 @@ import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
 import { ProfileVideoAsk } from "@/components/ProfileVideoAsk";
 import { LocalTimeDisplay } from "@/components/profile/LocalTimeDisplay";
+import { VerifiedBadge } from "@/components/profile/VerifiedBadge";
+import { FeaturedCarousel } from "@/components/profile/FeaturedCarousel";
+import { BentoGrid } from "@/components/profile/BentoGrid";
+import { SectionDivider } from "@/components/profile/SectionDivider";
 
 // ── Embedded media helpers ───────────────────────────────────────────
 const getYouTubeId = (url: string) => {
@@ -67,24 +71,37 @@ const MediaPreview = ({ url }: { url: string }) => {
 
 const hasMediaPreview = (url: string) => !!(getYouTubeId(url) || getSpotifyEmbed(url));
 
+// ── Animation class map ──────────────────────────────────────────────
+const animationClassMap: Record<string, string> = {
+  pulse: "stl-link-pulse",
+  shake: "stl-link-shake",
+  bounce: "stl-link-bounce",
+  glow: "stl-link-glow",
+  "slide-in": "stl-link-slide-in",
+};
+
 // ── Link Button component ───────────────────────────────────────────
 interface LinkButtonProps {
-  link: { id: string; title: string; url: string; link_type: string };
+  link: { id: string; title: string; url: string; link_type: string; animation?: string };
   onClick: (id: string, url: string) => void;
   btnClass: string;
   btnInlineStyle: React.CSSProperties;
   btnTextColor: string;
   btnTextInlineStyle: React.CSSProperties;
   fontStyle: React.CSSProperties;
+  globalAnimation?: string;
 }
 
-const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btnTextInlineStyle, fontStyle }: LinkButtonProps) => {
+const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btnTextInlineStyle, fontStyle, globalAnimation = "none" }: LinkButtonProps) => {
   const showMedia = hasMediaPreview(link.url);
+  const effectiveAnim = link.animation && link.animation !== "none" ? link.animation : globalAnimation;
+  const animClass = animationClassMap[effectiveAnim] || "";
+
   return (
     <button
       key={link.id}
       onClick={() => onClick(link.id, link.url)}
-      className={`w-full text-left p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${btnClass}`}
+      className={`w-full text-left p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${btnClass} ${animClass}`}
       style={{ ...btnInlineStyle, ...fontStyle }}
     >
       <div className="flex items-center justify-between">
@@ -103,7 +120,7 @@ const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btn
 // ── Link Group (collapsible) ────────────────────────────────────────
 interface LinkGroupProps {
   groupName: string;
-  links: { id: string; title: string; url: string; link_type: string }[];
+  links: { id: string; title: string; url: string; link_type: string; animation?: string; section_color?: string | null; section_icon?: string | null }[];
   onLinkClick: (id: string, url: string) => void;
   btnClass: string;
   btnInlineStyle: React.CSSProperties;
@@ -111,22 +128,39 @@ interface LinkGroupProps {
   btnTextInlineStyle: React.CSSProperties;
   fontStyle: React.CSSProperties;
   textColor: string;
+  globalAnimation?: string;
+  showDivider?: boolean;
+  dividerStyle?: "gradient" | "bold" | "dotted";
 }
 
-const LinkGroup = ({ groupName, links, onLinkClick, btnClass, btnInlineStyle, btnTextColor, btnTextInlineStyle, fontStyle, textColor }: LinkGroupProps) => {
+const LinkGroup = ({ groupName, links, onLinkClick, btnClass, btnInlineStyle, btnTextColor, btnTextInlineStyle, fontStyle, textColor, globalAnimation, showDivider, dividerStyle }: LinkGroupProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const firstLink = links[0];
+  const sectionColor = firstLink?.section_color || null;
+  const sectionIcon = firstLink?.section_icon || null;
 
   return (
     <div className="space-y-2">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 text-sm font-semibold ${textColor} opacity-70 hover:opacity-100 transition-opacity w-full`}
-        style={fontStyle}
-      >
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
-        {groupName}
-        <span className="text-xs opacity-50">({links.length})</span>
-      </button>
+      {showDivider ? (
+        <SectionDivider
+          label={groupName}
+          color={sectionColor}
+          icon={sectionIcon}
+          style={dividerStyle}
+          textColor={textColor}
+          fontStyle={fontStyle}
+        />
+      ) : (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`flex items-center gap-2 text-sm font-semibold ${textColor} opacity-70 hover:opacity-100 transition-opacity w-full`}
+          style={fontStyle}
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+          {groupName}
+          <span className="text-xs opacity-50">({links.length})</span>
+        </button>
+      )}
       {isOpen && (
         <div className="space-y-2 pl-1">
           {links.map((link) => (
@@ -139,6 +173,7 @@ const LinkGroup = ({ groupName, links, onLinkClick, btnClass, btnInlineStyle, bt
               btnTextColor={btnTextColor}
               btnTextInlineStyle={btnTextInlineStyle}
               fontStyle={fontStyle}
+              globalAnimation={globalAnimation}
             />
           ))}
         </div>
@@ -191,6 +226,12 @@ interface LinkData {
   schedule_start?: string | null;
   schedule_end?: string | null;
   link_group?: string | null;
+  thumbnail_url?: string | null;
+  animation?: string;
+  section_color?: string | null;
+  section_icon?: string | null;
+  bento_size?: string;
+  is_featured?: boolean;
 }
 
 const Profile = () => {
@@ -222,6 +263,18 @@ const Profile = () => {
   const [creatorTimezone, setCreatorTimezone] = useState<string | null>(null);
   const [profileViews, setProfileViews] = useState<number | null>(null);
   const [creatorLocation, setCreatorLocation] = useState<string | null>(null);
+
+  // ── New feature state ──
+  const [layoutMode, setLayoutMode] = useState<string>("list");
+  const [linkAnimation, setLinkAnimation] = useState<string>("none");
+  const [verifiedBadge, setVerifiedBadge] = useState(false);
+  const [showMemberSince, setShowMemberSince] = useState(false);
+  const [showFollowerCount, setShowFollowerCount] = useState(false);
+  const [sectionDividersEnabled, setSectionDividersEnabled] = useState(false);
+  const [sectionDividerStyle, setSectionDividerStyle] = useState<"gradient" | "bold" | "dotted">("gradient");
+  const [featuredLinkIds, setFeaturedLinkIds] = useState<string[]>([]);
+  const [profileCreatedAt, setProfileCreatedAt] = useState<string | null>(null);
+  const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -279,6 +332,17 @@ const Profile = () => {
             buttonColor: row.button_color || undefined,
           });
 
+          // Extract new feature settings from RPC result
+          if (row.layout_mode) setLayoutMode(row.layout_mode);
+          if (row.link_animation) setLinkAnimation(row.link_animation);
+          if (row.verified_badge) setVerifiedBadge(row.verified_badge);
+          if (row.show_member_since) setShowMemberSince(row.show_member_since);
+          if (row.show_follower_count) setShowFollowerCount(row.show_follower_count);
+          if (row.section_dividers_enabled) setSectionDividersEnabled(row.section_dividers_enabled);
+          if (row.section_divider_style) setSectionDividerStyle(row.section_divider_style);
+          if (row.featured_link_ids) setFeaturedLinkIds(row.featured_link_ids || []);
+          if (row.profile_created_at) setProfileCreatedAt(row.profile_created_at);
+
           // Extract intro video URL and timezone from social_links
           const sl = row.social_links as Record<string, string> | null;
           if (sl && typeof sl === "object") {
@@ -320,6 +384,16 @@ const Profile = () => {
             setTipSettings(tipData[0] as any);
           }
         } catch {} // RPC may not exist yet
+
+        // Fetch subscriber count for follower display
+        try {
+          const { count } = await supabase
+            .from("subscribers")
+            .select("*", { count: "exact", head: true })
+            .eq("creator_id", pageData?.[0]?.user_id)
+            .eq("is_active", true);
+          if (count !== null) setSubscriberCount(count);
+        } catch {} // table may not exist
 
         // Fetch profile view count
         try {
@@ -374,6 +448,13 @@ const Profile = () => {
       return true;
     });
   }, [links]);
+
+  // Featured links for carousel (marked as featured or in featured_link_ids)
+  const featuredLinks = useMemo(() => {
+    return visibleLinks.filter(
+      (l) => l.is_featured || featuredLinkIds.includes(l.id)
+    );
+  }, [visibleLinks, featuredLinkIds]);
 
   // SEO meta tags - dynamic per profile
   useEffect(() => {
@@ -661,6 +742,17 @@ const Profile = () => {
           </h1>
           <p className={`${currentTheme.textColor} opacity-70 mb-2 animate-[fadeInUp_0.5s_ease-out_0.2s_both]`} style={fontStyle}>@{username}</p>
 
+          {/* Verified Badge & Social Proof */}
+          <VerifiedBadge
+            isVerified={verifiedBadge}
+            showMemberSince={showMemberSince}
+            showFollowerCount={showFollowerCount}
+            memberSinceDate={profileCreatedAt}
+            followerCount={subscriberCount}
+            textColor={currentTheme.textColor}
+            style={fontStyle}
+          />
+
           {/* Location & Views row */}
           {(creatorLocation || profileViews !== null) && (
             <div className={`flex items-center gap-3 mb-2 text-xs ${currentTheme.textColor} opacity-60 animate-[fadeInUp_0.5s_ease-out_0.25s_both]`}>
@@ -730,6 +822,22 @@ const Profile = () => {
             </div>
           )}
           
+          {/* Featured Content Carousel */}
+          {featuredLinks.length > 0 && (
+            <div className="w-full max-w-xs mt-4 animate-[fadeInUp_0.5s_ease-out_0.5s_both]">
+              <FeaturedCarousel
+                links={featuredLinks}
+                onLinkClick={handleLinkClick}
+                textColor={currentTheme.textColor}
+                btnClass={hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle}
+                btnInlineStyle={btnInlineStyle}
+                btnTextColor={btnTextColor}
+                btnTextInlineStyle={btnTextInlineStyle}
+                fontStyle={fontStyle}
+              />
+            </div>
+          )}
+
           {/* Shop CTA - Show if creator has products */}
           {hasProducts && (
             <button
@@ -935,7 +1043,8 @@ const Profile = () => {
       }
     }
     const groupNames = Object.keys(groupedLinks);
-    const hasGroups = groupNames.length > 0;
+
+    const resolvedBtnClass = hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle;
 
     return (
       <div className="flex flex-col h-full px-6 py-8">
@@ -944,36 +1053,55 @@ const Profile = () => {
         </p>
         <div className="flex-1 flex flex-col gap-3 justify-center">
           {pageLinks.length > 0 ? (
-            <>
-              {/* Grouped links */}
-              {groupNames.map((groupName) => (
-                <LinkGroup
-                  key={groupName}
-                  groupName={groupName}
-                  links={groupedLinks[groupName]}
-                  onLinkClick={handleLinkClick}
-                  btnClass={hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle}
-                  btnInlineStyle={btnInlineStyle}
-                  btnTextColor={btnTextColor}
-                  btnTextInlineStyle={btnTextInlineStyle}
-                  fontStyle={fontStyle}
-                  textColor={currentTheme.textColor}
-                />
-              ))}
-              {/* Ungrouped links */}
-              {ungroupedLinks.map((link) => (
-                <LinkButton
-                  key={link.id}
-                  link={link}
-                  onClick={handleLinkClick}
-                  btnClass={hasCustomButton ? effectiveBtnClass : currentTheme.buttonStyle}
-                  btnInlineStyle={btnInlineStyle}
-                  btnTextColor={btnTextColor}
-                  btnTextInlineStyle={btnTextInlineStyle}
-                  fontStyle={fontStyle}
-                />
-              ))}
-            </>
+            layoutMode === "bento" ? (
+              /* ── Bento Grid Layout ── */
+              <BentoGrid
+                links={pageLinks}
+                onLinkClick={handleLinkClick}
+                btnClass={resolvedBtnClass}
+                btnInlineStyle={btnInlineStyle}
+                btnTextColor={btnTextColor}
+                btnTextInlineStyle={btnTextInlineStyle}
+                fontStyle={fontStyle}
+                globalAnimation={linkAnimation}
+              />
+            ) : (
+              /* ── Classic List Layout ── */
+              <>
+                {/* Grouped links with section dividers */}
+                {groupNames.map((groupName) => (
+                  <LinkGroup
+                    key={groupName}
+                    groupName={groupName}
+                    links={groupedLinks[groupName]}
+                    onLinkClick={handleLinkClick}
+                    btnClass={resolvedBtnClass}
+                    btnInlineStyle={btnInlineStyle}
+                    btnTextColor={btnTextColor}
+                    btnTextInlineStyle={btnTextInlineStyle}
+                    fontStyle={fontStyle}
+                    textColor={currentTheme.textColor}
+                    globalAnimation={linkAnimation}
+                    showDivider={sectionDividersEnabled}
+                    dividerStyle={sectionDividerStyle}
+                  />
+                ))}
+                {/* Ungrouped links */}
+                {ungroupedLinks.map((link) => (
+                  <LinkButton
+                    key={link.id}
+                    link={link}
+                    onClick={handleLinkClick}
+                    btnClass={resolvedBtnClass}
+                    btnInlineStyle={btnInlineStyle}
+                    btnTextColor={btnTextColor}
+                    btnTextInlineStyle={btnTextInlineStyle}
+                    fontStyle={fontStyle}
+                    globalAnimation={linkAnimation}
+                  />
+                ))}
+              </>
+            )
           ) : (
             <div className={`text-center ${currentTheme.textColor} opacity-50 py-8`}>No links yet</div>
           )}
