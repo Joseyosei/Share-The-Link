@@ -108,9 +108,11 @@ const DashboardLinks = () => {
     }
   };
 
-  const handleSaveEdit = async (id: string, updates: { title: string; url: string; type: string }) => {
+  const handleSaveEdit = async (id: string, updates: { title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null }) => {
     try {
-      await updateLink(id, updates);
+      // Only send fields that exist in the database schema
+      const { title, url, type } = updates;
+      await updateLink(id, { title, url, type });
       toast({
         title: "Link updated",
         description: "Your changes have been saved.",
