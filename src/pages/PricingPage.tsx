@@ -16,11 +16,14 @@ const comparisonFeatures = [
   {
     category: "Links & Content",
     features: [
-      { name: "Unlimited links", free: true, pro: true, business: true, enterprise: true },
+      { name: "Links", free: "5", pro: "Unlimited", business: "Unlimited", enterprise: "Unlimited" },
       { name: "Social icons", free: true, pro: true, business: true, enterprise: true },
       { name: "Video embeds", free: false, pro: true, business: true, enterprise: true },
       { name: "Product showcases", free: false, pro: true, business: true, enterprise: true },
       { name: "Link scheduling", free: false, pro: true, business: true, enterprise: true, tooltip: "Schedule links to appear and disappear automatically" },
+      { name: "Bento grid layout", free: false, pro: true, business: true, enterprise: true },
+      { name: "Link animations", free: false, pro: true, business: true, enterprise: true },
+      { name: "Featured carousel", free: false, pro: true, business: true, enterprise: true },
     ],
   },
   {
@@ -31,6 +34,8 @@ const comparisonFeatures = [
       { name: "Custom fonts", free: false, pro: true, business: true, enterprise: true },
       { name: "Custom backgrounds", free: false, pro: true, business: true, enterprise: true },
       { name: "Remove branding", free: false, pro: true, business: true, enterprise: true },
+      { name: "Verified badge", free: false, pro: true, business: true, enterprise: true },
+      { name: "Section dividers", free: false, pro: true, business: true, enterprise: true },
       { name: "Custom CSS", free: false, pro: false, business: true, enterprise: true },
       { name: "White-label solution", free: false, pro: false, business: false, enterprise: true },
     ],
