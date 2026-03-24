@@ -1,6 +1,9 @@
 -- Create an RPC function that returns all data needed for the public profile page
 -- This bypasses RLS (SECURITY DEFINER) so public visitors can view profiles
 
+-- Ensure background_animation column exists
+ALTER TABLE public.appearance_settings ADD COLUMN IF NOT EXISTS background_animation text;
+
 -- Return user_id and social_links alongside profile data
 CREATE OR REPLACE FUNCTION public.get_profile_page_data(lookup_username text)
 RETURNS TABLE (
