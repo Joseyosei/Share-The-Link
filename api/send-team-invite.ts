@@ -1,10 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ""
-);
+import { verifyAuth, unauthorized } from "./_lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") {
@@ -16,14 +11,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Verify auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return res.status(401).json({ error: "Unauthorized" });
+    const auth = await verifyAuth(req);
+    if (!auth) {
+      return unauthorized(res);
     }
 
     const { memberEmail, role, ownerName } = req.body;
