@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon, Eye, MapPin } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
@@ -15,6 +15,7 @@ import { CountdownTimer } from "@/components/profile/CountdownTimer";
 import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
 import { ProfileVideoAsk } from "@/components/ProfileVideoAsk";
+import { LocalTimeDisplay } from "@/components/profile/LocalTimeDisplay";
 
 // ── Embedded media helpers ───────────────────────────────────────────
 const getYouTubeId = (url: string) => {
@@ -218,6 +219,9 @@ const Profile = () => {
   const [introVideoUrl, setIntroVideoUrl] = useState<string | null>(null);
   const [viewerDarkMode, setViewerDarkMode] = useState<boolean | null>(null); // null = use theme default
   const [tipSettings, setTipSettings] = useState<{ is_enabled: boolean; suggested_amounts: number[]; custom_message: string; currency: string } | null>(null);
+  const [creatorTimezone, setCreatorTimezone] = useState<string | null>(null);
+  const [profileViews, setProfileViews] = useState<number | null>(null);
+  const [creatorLocation, setCreatorLocation] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -275,10 +279,12 @@ const Profile = () => {
             buttonColor: row.button_color || undefined,
           });
 
-          // Extract intro video URL from social_links
+          // Extract intro video URL and timezone from social_links
           const sl = row.social_links as Record<string, string> | null;
-          if (sl && typeof sl === "object" && sl.intro_video_url) {
-            setIntroVideoUrl(sl.intro_video_url);
+          if (sl && typeof sl === "object") {
+            if (sl.intro_video_url) setIntroVideoUrl(sl.intro_video_url);
+            if (sl.timezone) setCreatorTimezone(sl.timezone);
+            if (sl.location) setCreatorLocation(sl.location);
           }
 
           // Store creator ID for booking widget
@@ -314,6 +320,17 @@ const Profile = () => {
             setTipSettings(tipData[0] as any);
           }
         } catch {} // RPC may not exist yet
+
+        // Fetch profile view count
+        try {
+          const { data: viewData } = await supabase
+            .rpc('get_profile_views_count' as any, { lookup_username: username });
+          if (viewData && typeof viewData === 'number') {
+            setProfileViews(viewData);
+          } else if (Array.isArray(viewData) && viewData.length > 0) {
+            setProfileViews(viewData[0]?.count || viewData[0]?.views || null);
+          }
+        } catch {} // RPC may not exist
 
         // Track profile view using user_id from page data
         const resolvedUserId = pageData?.[0]?.user_id;
@@ -626,22 +643,58 @@ const Profile = () => {
     if (pageIndex === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full px-6 py-8">
-          <div className="w-28 h-28 rounded-full backdrop-blur-lg mx-auto mb-5 flex items-center justify-center border-4 shadow-xl overflow-hidden bg-white/20 border-white/30">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
-            ) : (
-              <User className={`w-14 h-14 ${currentTheme.textColor}`} />
-            )}
+          {/* Avatar with animated ring */}
+          <div className="relative mb-5">
+            <div className="w-28 h-28 rounded-full backdrop-blur-lg mx-auto flex items-center justify-center border-4 shadow-xl overflow-hidden bg-white/20 border-white/30 animate-[fadeInScale_0.5s_ease-out]">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+              ) : (
+                <User className={`w-14 h-14 ${currentTheme.textColor}`} />
+              )}
+            </div>
+            {/* Online status indicator */}
+            <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white shadow-lg" title="Online" />
           </div>
-          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1 text-balance text-center`} style={titleInlineStyle}>
+
+          <h1 className={`text-2xl font-bold ${currentTheme.textColor} mb-1 text-balance text-center animate-[fadeInUp_0.5s_ease-out_0.1s_both]`} style={titleInlineStyle}>
             {profile?.full_name || username}
           </h1>
-          <p className={`${currentTheme.textColor} opacity-70 mb-3`} style={fontStyle}>@{username}</p>
+          <p className={`${currentTheme.textColor} opacity-70 mb-2 animate-[fadeInUp_0.5s_ease-out_0.2s_both]`} style={fontStyle}>@{username}</p>
+
+          {/* Location & Views row */}
+          {(creatorLocation || profileViews !== null) && (
+            <div className={`flex items-center gap-3 mb-2 text-xs ${currentTheme.textColor} opacity-60 animate-[fadeInUp_0.5s_ease-out_0.25s_both]`}>
+              {creatorLocation && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {creatorLocation}
+                </span>
+              )}
+              {profileViews !== null && profileViews > 0 && (
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  {profileViews.toLocaleString()} views
+                </span>
+              )}
+            </div>
+          )}
+
           {profile?.bio && (
-            <p className={`${currentTheme.textColor} opacity-90 max-w-xs text-center mb-5 text-pretty leading-relaxed`} style={bioInlineStyle}>
+            <p className={`${currentTheme.textColor} opacity-90 max-w-xs text-center mb-4 text-pretty leading-relaxed animate-[fadeInUp_0.5s_ease-out_0.3s_both]`} style={bioInlineStyle}>
               {profile.bio}
             </p>
           )}
+          {/* Local Time Display */}
+          {creatorTimezone && (
+            <div className="mb-4">
+              <LocalTimeDisplay
+                timezone={creatorTimezone}
+                textColorClass={currentTheme.textColor}
+                style={fontStyle}
+              />
+            </div>
+          )}
+
           {hasAnySocials && (
             <div className="flex items-center justify-center gap-3">
               {detectedSocials.twitter && (
@@ -1074,6 +1127,14 @@ const Profile = () => {
           0% { transform: rotateY(0deg); opacity: 1; }
           50% { transform: rotateY(90deg); opacity: 0.5; }
           100% { transform: rotateY(0deg); opacity: 1; }
+        }
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>

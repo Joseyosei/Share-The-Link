@@ -179,7 +179,7 @@ const STLBot = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 flex flex-col h-screen pt-16 lg:pt-0">
+      <main className="lg:ml-64 flex flex-col h-[100dvh] pt-16 lg:pt-0 overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 border-b border-border bg-card px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between max-w-4xl mx-auto">
@@ -226,7 +226,7 @@ const STLBot = () => {
                 </p>
 
                 {/* Quick actions */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl mx-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl mx-auto px-2">
                   {QUICK_ACTIONS.map((action) => (
                     <button
                       key={action.label}
@@ -302,7 +302,7 @@ const STLBot = () => {
         </div>
 
         {/* Input area */}
-        <div className="flex-shrink-0 border-t border-border bg-card px-4 sm:px-6 py-3">
+        <div className="flex-shrink-0 border-t border-border bg-card px-3 sm:px-6 py-2 sm:py-3">
           <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
             <div className="flex items-end gap-2">
               <div className="flex-1 relative">
@@ -313,7 +313,7 @@ const STLBot = () => {
                   onKeyDown={handleKeyDown}
                   placeholder="Ask STL Bot anything... (e.g., 'Add a link to my YouTube channel')"
                   rows={1}
-                  className="w-full resize-none rounded-xl border-2 border-border bg-background px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  className="w-full resize-none rounded-xl border-2 border-border bg-background px-3 sm:px-4 py-2.5 sm:py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                   disabled={isLoading}
                 />
               </div>

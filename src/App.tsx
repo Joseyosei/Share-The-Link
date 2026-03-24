@@ -48,6 +48,7 @@ import STLBot from "./pages/STLBot";
 import DashboardSupport from "./pages/DashboardSupport";
 import DashboardSubscribers from "./pages/DashboardSubscribers";
 import DashboardTipJar from "./pages/DashboardTipJar";
+import DashboardAutoReply from "./pages/DashboardAutoReply";
 import DashboardWebhooks from "./pages/DashboardWebhooks";
 import DashboardTeam from "./pages/DashboardTeam";
 import DashboardDomains from "./pages/DashboardDomains";
@@ -124,6 +125,7 @@ const App = () => (
           <Route path="/dashboard/team" element={<ProtectedRoute><DashboardTeam /></ProtectedRoute>} />
           <Route path="/dashboard/domains" element={<ProtectedRoute><DashboardDomains /></ProtectedRoute>} />
           <Route path="/dashboard/ab-testing" element={<ProtectedRoute><DashboardABTesting /></ProtectedRoute>} />
+          <Route path="/dashboard/auto-reply" element={<ProtectedRoute><DashboardAutoReply /></ProtectedRoute>} />
           <Route path="/dashboard/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           
           {/* Public profile page - must be last due to dynamic route */}

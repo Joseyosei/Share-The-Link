@@ -169,8 +169,8 @@ const DashboardLinks = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="lg:ml-64 px-3 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8 overflow-x-hidden">
+        <div className="max-w-4xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
             <div className="flex items-center gap-3 min-w-0 flex-1">

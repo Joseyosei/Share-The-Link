@@ -59,7 +59,7 @@ export const LinkCard = ({
       onDrop={onDrop}
       onDragEnter={onDragEnter}
       onDragLeave={onDragLeave}
-      className={`group bg-card rounded-xl p-4 shadow-md transition-all border-2 ${
+      className={`group bg-card rounded-xl p-3 sm:p-4 shadow-md transition-all border-2 ${
         isDragging
           ? "opacity-40 scale-95 border-primary/50"
           : isDragOver
@@ -70,9 +70,9 @@ export const LinkCard = ({
       }`}
       style={{ cursor: "grab" }}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {/* Drag Handle */}
-        <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none">
+        <button className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none shrink-0">
           <GripVertical className="w-5 h-5" />
         </button>
 
@@ -117,8 +117,8 @@ export const LinkCard = ({
         </div>
 
         {/* Clicks */}
-        <div className="text-center px-4">
-          <p className="font-bold text-foreground">{clicks}</p>
+        <div className="text-center px-2 sm:px-4 shrink-0">
+          <p className="font-bold text-foreground text-sm sm:text-base">{clicks}</p>
           <p className="text-xs text-muted-foreground">clicks</p>
         </div>
 
@@ -130,7 +130,7 @@ export const LinkCard = ({
         />
 
         {/* Actions */}
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 sm:gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <button
             onClick={() => onEdit(id)}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

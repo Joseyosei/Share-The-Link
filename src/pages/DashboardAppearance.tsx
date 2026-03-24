@@ -531,8 +531,8 @@ const DashboardAppearance = () => {
       <Sidebar />
       <MobileSidebar />
 
-      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
-        <div className="max-w-6xl mx-auto">
+      <main className="lg:ml-64 px-3 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto w-full">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -557,15 +557,15 @@ const DashboardAppearance = () => {
             {/* Left: Categories & Content */}
             <div className="lg:col-span-2 space-y-6">
               {/* Categories */}
-              <div className="bg-card rounded-2xl p-4 shadow-lg">
-                <div className="flex gap-2">
+              <div className="bg-card rounded-2xl p-3 sm:p-4 shadow-lg">
+                <div className="flex gap-1.5 sm:gap-2 overflow-x-auto">
                   {categories.map((cat) => {
                     const IconComponent = cat.icon;
                     return (
                       <button
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl font-medium transition-all whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
                           activeCategory === cat.id
                             ? "bg-foreground text-background"
                             : "text-muted-foreground hover:bg-muted"
@@ -583,7 +583,7 @@ const DashboardAppearance = () => {
               {activeCategory === "theme" && (
                 <div className="bg-card rounded-2xl p-6 shadow-lg">
                   <h2 className="text-xl font-bold text-foreground mb-6">Theme</h2>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                     {themes.map((theme) => (
                       <button
                         key={theme.id}
