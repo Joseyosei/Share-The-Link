@@ -546,7 +546,8 @@ const Profile = () => {
 
   const hasProducts = products.length > 0;
   // Pages: cover + link pages + (optional shop) + (optional booking) + footer
-  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasProducts ? 1 : 0) + (hasBookingServices ? 1 : 0) + 1;
+  // Pages: cover + link pages + (shop?) + (booking?) + stay connected + footer
+  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasProducts ? 1 : 0) + (hasBookingServices ? 1 : 0) + 1 + 1;
   const [currentPage, setCurrentPage] = useState(0);
   const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -865,8 +866,8 @@ const Profile = () => {
           {hasBookingServices && bookingServicesPreview.length > 0 && (
             <button
               onClick={() => {
-                // Navigate to booking page (last page before footer)
-                const bookingPageIndex = totalPages - 2;
+                // Navigate to booking page (before stay-connected and footer)
+                const bookingPageIndex = totalPages - 3;
                 if (bookingPageIndex !== currentPage && !isFlipping) {
                   setFlipDirection(bookingPageIndex > currentPage ? "next" : "prev");
                   setIsFlipping(true);
@@ -912,9 +913,6 @@ const Profile = () => {
               creatorId={creatorId || undefined}
             />
           )}
-
-          {/* Email Collector */}
-          <EmailCollector username={username || ""} textColor={currentTheme.textColor} />
 
           {/* QR Code for scanning */}
           <div className="bg-white rounded-2xl p-3 shadow-lg mb-4 mt-4">
@@ -1013,9 +1011,17 @@ const Profile = () => {
       );
     }
 
-    // Booking page: inserted between links and footer
-    const bookingOffset = hasProducts ? 1 : 0;
-    if (hasBookingServices && creatorId && pageIndex === totalPages - 2) {
+    // Stay Connected page (second to last)
+    if (pageIndex === totalPages - 2) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full px-6 py-8">
+          <EmailCollector username={username || ""} textColor={currentTheme.textColor} />
+        </div>
+      );
+    }
+
+    // Booking page: inserted between links/shop and stay-connected
+    if (hasBookingServices && creatorId && pageIndex === totalPages - 3) {
       return (
         <div className="flex flex-col h-full px-4 py-6 overflow-y-auto">
           <BookingWidget
