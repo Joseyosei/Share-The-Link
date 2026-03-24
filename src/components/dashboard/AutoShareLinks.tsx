@@ -8,6 +8,14 @@ import { TwitchIcon } from "@/components/icons/TwitchIcon";
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { TelegramIcon } from "@/components/icons/TelegramIcon";
+import { RedditIcon } from "@/components/icons/RedditIcon";
+import { PinterestIcon } from "@/components/icons/PinterestIcon";
+import { SnapchatIcon } from "@/components/icons/SnapchatIcon";
+import { ThreadsIcon } from "@/components/icons/ThreadsIcon";
+import { MastodonIcon } from "@/components/icons/MastodonIcon";
+import { TumblrIcon } from "@/components/icons/TumblrIcon";
+import { LineIcon } from "@/components/icons/LineIcon";
+import { ViberIcon } from "@/components/icons/ViberIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +53,14 @@ const PLATFORMS = [
   { key: "twitch", label: "Twitch", icon: TwitchIcon, color: "bg-purple-600" },
   { key: "discord", label: "Discord", icon: DiscordIcon, color: "bg-indigo-600" },
   { key: "telegram", label: "Telegram", icon: TelegramIcon, color: "bg-sky-600" },
+  { key: "reddit", label: "Reddit", icon: RedditIcon, color: "bg-orange-600" },
+  { key: "pinterest", label: "Pinterest", icon: PinterestIcon, color: "bg-red-700" },
+  { key: "snapchat", label: "Snapchat", icon: SnapchatIcon, color: "bg-yellow-400" },
+  { key: "threads", label: "Threads", icon: ThreadsIcon, color: "bg-black" },
+  { key: "mastodon", label: "Mastodon", icon: MastodonIcon, color: "bg-indigo-500" },
+  { key: "tumblr", label: "Tumblr", icon: TumblrIcon, color: "bg-blue-900" },
+  { key: "line", label: "LINE", icon: LineIcon, color: "bg-green-600" },
+  { key: "viber", label: "Viber", icon: ViberIcon, color: "bg-violet-600" },
   { key: "email", label: "Email", icon: Mail, color: "bg-orange-500" },
 ] as const;
 
@@ -74,6 +90,22 @@ function getShareUrl(platform: string, url: string, message: string): string {
       return `https://discord.com/channels/@me`;
     case "telegram":
       return `https://t.me/share/url?url=${encodedUrl}&text=${encodedMsg}`;
+    case "reddit":
+      return `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedMsg}`;
+    case "pinterest":
+      return `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedMsg}`;
+    case "snapchat":
+      return `https://www.snapchat.com/`;
+    case "threads":
+      return `https://www.threads.net/intent/post?text=${fullText}`;
+    case "mastodon":
+      return `https://mastodon.social/share?text=${fullText}`;
+    case "tumblr":
+      return `https://www.tumblr.com/widgets/share/tool?posttype=link&canonicalUrl=${encodedUrl}&caption=${encodedMsg}`;
+    case "line":
+      return `https://social-plugins.line.me/lineit/share?url=${encodedUrl}`;
+    case "viber":
+      return `viber://forward?text=${fullText}`;
     case "email":
       return `mailto:?subject=${encodedMsg}&body=${fullText}`;
     default:
