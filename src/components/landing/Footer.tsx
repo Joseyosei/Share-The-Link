@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
-import { Instagram, Youtube, Github, Linkedin, Send, Settings } from "lucide-react";
+import { Github, Linkedin, Settings } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
+import { TelegramIcon } from "@/components/icons/TelegramIcon";
 import { Logo } from "@/components/Logo";
 
 const footerLinks = {
@@ -26,11 +29,11 @@ const footerLinks = {
 
 const socialLinks = [
   { icon: XIcon, href: "https://x.com/sharethelink", label: "X" },
-  { icon: Instagram, href: "https://instagram.com/sharethelink", label: "Instagram" },
-  { icon: Youtube, href: "https://youtube.com/@sharethelink", label: "YouTube" },
+  { icon: InstagramIcon, href: "https://instagram.com/sharethelink", label: "Instagram" },
+  { icon: YouTubeIcon, href: "https://youtube.com/@sharethelink", label: "YouTube" },
   { icon: Github, href: "https://github.com/Joseyosei/Share-The-Link", label: "GitHub" },
   { icon: Linkedin, href: "https://linkedin.com/company/sharethelink", label: "LinkedIn" },
-  { icon: Send, href: "https://t.me/sharethelink", label: "Telegram" },
+  { icon: TelegramIcon, href: "https://t.me/sharethelink", label: "Telegram" },
 ];
 
 export const Footer = () => {

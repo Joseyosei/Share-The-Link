@@ -1,11 +1,17 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
 import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { EmailCollector } from "@/components/profile/EmailCollector";
+import { TipJar } from "@/components/profile/TipJar";
+import { TestimonialsWidget } from "@/components/profile/TestimonialsWidget";
+import { CountdownTimer } from "@/components/profile/CountdownTimer";
 import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
 import { ProfileVideoAsk } from "@/components/ProfileVideoAsk";
@@ -211,6 +217,7 @@ const Profile = () => {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [introVideoUrl, setIntroVideoUrl] = useState<string | null>(null);
   const [viewerDarkMode, setViewerDarkMode] = useState<boolean | null>(null); // null = use theme default
+  const [tipSettings, setTipSettings] = useState<{ is_enabled: boolean; suggested_amounts: number[]; custom_message: string; currency: string } | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -298,6 +305,15 @@ const Profile = () => {
         const { data: productsData } = await supabase
           .rpc('get_public_products', { lookup_username: username });
         setProducts((productsData || []) as ProductData[]);
+
+        // Fetch tip jar settings
+        try {
+          const { data: tipData } = await supabase
+            .rpc('get_tip_settings', { lookup_username: username });
+          if (tipData && tipData.length > 0) {
+            setTipSettings(tipData[0] as any);
+          }
+        } catch {} // RPC may not exist yet
 
         // Track profile view using user_id from page data
         const resolvedUserId = pageData?.[0]?.user_id;
@@ -635,12 +651,12 @@ const Profile = () => {
               )}
               {detectedSocials.instagram && (
                 <a href={detectedSocials.instagram.startsWith("http") ? detectedSocials.instagram : `https://instagram.com/${detectedSocials.instagram}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-md" aria-label="Instagram">
-                  <Instagram className="w-4 h-4" />
+                  <InstagramIcon className="w-4 h-4" />
                 </a>
               )}
               {detectedSocials.youtube && (
                 <a href={detectedSocials.youtube.startsWith("http") ? detectedSocials.youtube : `https://youtube.com/${detectedSocials.youtube}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-red-600 text-white shadow-md" aria-label="YouTube">
-                  <Youtube className="w-4 h-4" />
+                  <YouTubeIcon className="w-4 h-4" />
                 </a>
               )}
               {detectedSocials.github && (
@@ -717,25 +733,40 @@ const Profile = () => {
       );
     }
 
-    // Last page: Footer with QR Code
+    // Last page: Footer with widgets, QR Code
     if (pageIndex === totalPages - 1) {
       return (
-        <div className="flex flex-col items-center justify-center h-full px-6 py-6">
+        <div className="flex flex-col items-center h-full px-6 py-6 overflow-y-auto">
+          {/* Testimonials */}
+          <TestimonialsWidget username={username || ""} textColor={currentTheme.textColor} />
+
+          {/* Tip Jar */}
+          {tipSettings?.is_enabled && (
+            <TipJar
+              username={username || ""}
+              suggestedAmounts={tipSettings.suggested_amounts}
+              customMessage={tipSettings.custom_message}
+              currency={tipSettings.currency}
+              textColor={currentTheme.textColor}
+              creatorId={creatorId || undefined}
+            />
+          )}
+
+          {/* Email Collector */}
+          <EmailCollector username={username || ""} textColor={currentTheme.textColor} />
+
           {/* QR Code for scanning */}
-          <div className="bg-white rounded-2xl p-3 shadow-lg mb-4">
+          <div className="bg-white rounded-2xl p-3 shadow-lg mb-4 mt-4">
             <QRCodeSVG
               value={`${window.location.origin}/${username}`}
-              size={120}
+              size={100}
               level="H"
               includeMargin={false}
               bgColor="#FFFFFF"
               fgColor="#000000"
             />
           </div>
-          <p className={`${currentTheme.textColor} text-sm font-semibold mb-1`}>
-            Scan to connect
-          </p>
-          <p className={`${currentTheme.textColor} opacity-50 text-xs mb-4`}>
+          <p className={`${currentTheme.textColor} opacity-50 text-xs mb-2`}>
             @{username}
           </p>
           <button
