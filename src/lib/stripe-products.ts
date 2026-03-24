@@ -36,6 +36,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Auto-share to 3 platforms",
       "Share The Link branding",
       "Community support",
+      "1 team member",
     ],
     stripeLinks: {
       monthly: "https://buy.stripe.com/5kQ14n7DH2Ie2v2bHG3AY03",
@@ -66,6 +67,12 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Remove branding",
       "Priority support",
       "SEO & UTM controls",
+      "Bento grid & link animations",
+      "Verified badge",
+      "Featured carousel",
+      "Section dividers",
+      "Up to 3 team members",
+      "Tip jar / Donations",
     ],
     stripeLinks: {
       monthly: "https://buy.stripe.com/3cI14ncY1fv0edKaDC3AY00",
@@ -94,8 +101,10 @@ export const PRICING_PLANS: PricingPlan[] = [
       "Live streaming + tips (90/10)",
       "My Shop / E-commerce",
       "All integrations included",
-      "Team collaboration",
+      "Unlimited team members",
       "Dedicated account manager",
+      "0% transaction fees",
+      "Custom CSS",
     ],
     stripeLinks: {
       monthly: "https://buy.stripe.com/00w4gz1fjgz42v29zy3AY08",

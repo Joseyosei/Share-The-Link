@@ -7,6 +7,8 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface TeamMember {
   id: string;
@@ -26,6 +28,7 @@ const ROLES = [
 
 const DashboardTeam = () => {
   const { toast } = useToast();
+  const { profile } = useUserProfile();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
@@ -86,6 +89,23 @@ const DashboardTeam = () => {
         }
       } else {
         setMembers((prev) => [data as TeamMember, ...prev]);
+
+        // Send invite email in background
+        try {
+          await authFetch("/api/send-team-invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              memberEmail: inviteEmail.trim().toLowerCase(),
+              role: inviteRole,
+              ownerName: profile?.full_name || "A creator",
+            }),
+          });
+        } catch {
+          // Email send failure is non-blocking; invite is already saved
+          console.warn("Team invite email failed to send");
+        }
+
         setInviteEmail("");
         setShowInvite(false);
         toast({ title: "Invite sent!", description: `${inviteEmail} has been invited as ${inviteRole}` });

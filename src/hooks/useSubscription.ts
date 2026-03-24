@@ -20,11 +20,11 @@ export interface SubscriptionData {
 // Re-export pricing tiers for components that import PRICING_TIERS from here
 export const PRICING_TIERS = PRICING_PLANS;
 
-const TIER_LIMITS: Record<SubscriptionTier, { links: number; profiles: number }> = {
-  free: { links: 5, profiles: 1 },
-  pro: { links: Infinity, profiles: 5 },
-  business: { links: Infinity, profiles: Infinity },
-  enterprise: { links: Infinity, profiles: Infinity },
+const TIER_LIMITS: Record<SubscriptionTier, { links: number; profiles: number; teamMembers: number }> = {
+  free: { links: 5, profiles: 1, teamMembers: 1 },
+  pro: { links: Infinity, profiles: 5, teamMembers: 3 },
+  business: { links: Infinity, profiles: Infinity, teamMembers: Infinity },
+  enterprise: { links: Infinity, profiles: Infinity, teamMembers: Infinity },
 };
 
 export function useSubscription() {

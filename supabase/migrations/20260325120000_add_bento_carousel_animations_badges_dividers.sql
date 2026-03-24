@@ -24,7 +24,10 @@ ALTER TABLE public.links
   ADD COLUMN IF NOT EXISTS section_color text,
   ADD COLUMN IF NOT EXISTS section_icon text,
   ADD COLUMN IF NOT EXISTS bento_size text DEFAULT '1x1',
-  ADD COLUMN IF NOT EXISTS is_featured boolean DEFAULT false;
+  ADD COLUMN IF NOT EXISTS is_featured boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS schedule_start timestamptz,
+  ADD COLUMN IF NOT EXISTS schedule_end timestamptz,
+  ADD COLUMN IF NOT EXISTS link_group text;
 
 -- ── 3. Profiles: ensure created_at exists for "member since" ─
 ALTER TABLE public.profiles
