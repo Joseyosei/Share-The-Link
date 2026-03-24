@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
-import { User, ExternalLink, Instagram, Youtube, Github, Linkedin, Globe, Share2, Music, MessageCircle } from "lucide-react";
+import { User, ExternalLink, Github, Linkedin, Globe, Share2, Music } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
+import { TikTokIcon } from "@/components/icons/TikTokIcon";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import type { Theme } from "@/pages/DashboardAppearance";
 
 interface PreviewLink {
@@ -47,13 +51,13 @@ interface ThemedProfilePreviewProps {
 
 const socialIcons = [
   { key: "twitter", Icon: XIcon, label: "X", color: "#000000" },
-  { key: "instagram", Icon: Instagram, label: "Instagram", color: "#E4405F" },
-  { key: "youtube", Icon: Youtube, label: "YouTube", color: "#FF0000" },
+  { key: "instagram", Icon: InstagramIcon, label: "Instagram", color: "#E4405F" },
+  { key: "youtube", Icon: YouTubeIcon, label: "YouTube", color: "#FF0000" },
   { key: "github", Icon: Github, label: "GitHub", color: "#333" },
   { key: "linkedin", Icon: Linkedin, label: "LinkedIn", color: "#0A66C2" },
-  { key: "tiktok", Icon: Music, label: "TikTok", color: "#000" },
+  { key: "tiktok", Icon: TikTokIcon, label: "TikTok", color: "#000" },
   { key: "spotify", Icon: Music, label: "Spotify", color: "#1DB954" },
-  { key: "whatsapp", Icon: MessageCircle, label: "WhatsApp", color: "#25D366" },
+  { key: "whatsapp", Icon: WhatsAppIcon, label: "WhatsApp", color: "#25D366" },
   { key: "website", Icon: Globe, label: "Website", color: "#6B7280" },
 ];
 

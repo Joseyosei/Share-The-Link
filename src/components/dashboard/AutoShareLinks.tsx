@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Share2, Clock, Facebook, Linkedin, MessageCircle, Mail, Link2, Trash2, Send, Plus, CalendarClock, ExternalLink, Bell, CheckCircle, Instagram, Youtube, Twitch, Music, Gamepad2 } from "lucide-react";
+import { Share2, Clock, Facebook, Linkedin, Mail, Link2, Trash2, Plus, CalendarClock, ExternalLink, Bell, CheckCircle } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
+import { TikTokIcon } from "@/components/icons/TikTokIcon";
+import { TwitchIcon } from "@/components/icons/TwitchIcon";
+import { DiscordIcon } from "@/components/icons/DiscordIcon";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { TelegramIcon } from "@/components/icons/TelegramIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,13 +38,13 @@ const PLATFORMS = [
   { key: "twitter", label: "X (Twitter)", icon: XIcon, color: "bg-black" },
   { key: "facebook", label: "Facebook", icon: Facebook, color: "bg-blue-600" },
   { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "bg-blue-700" },
-  { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "bg-green-500" },
-  { key: "instagram", label: "Instagram", icon: Instagram, color: "bg-gradient-to-br from-purple-600 to-pink-500" },
-  { key: "youtube", label: "YouTube", icon: Youtube, color: "bg-red-600" },
-  { key: "tiktok", label: "TikTok", icon: Music, color: "bg-gray-900" },
-  { key: "twitch", label: "Twitch", icon: Twitch, color: "bg-purple-600" },
-  { key: "discord", label: "Discord", icon: Gamepad2, color: "bg-indigo-600" },
-  { key: "telegram", label: "Telegram", icon: Send, color: "bg-sky-600" },
+  { key: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon, color: "bg-green-500" },
+  { key: "instagram", label: "Instagram", icon: InstagramIcon, color: "bg-gradient-to-br from-purple-600 to-pink-500" },
+  { key: "youtube", label: "YouTube", icon: YouTubeIcon, color: "bg-red-600" },
+  { key: "tiktok", label: "TikTok", icon: TikTokIcon, color: "bg-gray-900" },
+  { key: "twitch", label: "Twitch", icon: TwitchIcon, color: "bg-purple-600" },
+  { key: "discord", label: "Discord", icon: DiscordIcon, color: "bg-indigo-600" },
+  { key: "telegram", label: "Telegram", icon: TelegramIcon, color: "bg-sky-600" },
   { key: "email", label: "Email", icon: Mail, color: "bg-orange-500" },
 ] as const;
 

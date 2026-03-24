@@ -1,6 +1,8 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Instagram, Youtube, Github, Globe, Linkedin, Music, MessageCircle, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
 import { QRCodeSVG } from "qrcode.react";
 import { Logo } from "@/components/Logo";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -635,12 +637,12 @@ const Profile = () => {
               )}
               {detectedSocials.instagram && (
                 <a href={detectedSocials.instagram.startsWith("http") ? detectedSocials.instagram : `https://instagram.com/${detectedSocials.instagram}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-md" aria-label="Instagram">
-                  <Instagram className="w-4 h-4" />
+                  <InstagramIcon className="w-4 h-4" />
                 </a>
               )}
               {detectedSocials.youtube && (
                 <a href={detectedSocials.youtube.startsWith("http") ? detectedSocials.youtube : `https://youtube.com/${detectedSocials.youtube}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 bg-red-600 text-white shadow-md" aria-label="YouTube">
-                  <Youtube className="w-4 h-4" />
+                  <YouTubeIcon className="w-4 h-4" />
                 </a>
               )}
               {detectedSocials.github && (

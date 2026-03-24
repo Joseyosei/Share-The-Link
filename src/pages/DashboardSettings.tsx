@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Lock, Trash2, Camera, Instagram, Youtube, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, User, Lock, Trash2, Camera, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
@@ -415,7 +417,7 @@ const DashboardSettings = () => {
                     />
                   </div>
                   <div className="relative">
-                    <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <InstagramIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       name="instagram"
@@ -426,7 +428,7 @@ const DashboardSettings = () => {
                     />
                   </div>
                   <div className="relative">
-                    <Youtube className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <YouTubeIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       name="youtube"
