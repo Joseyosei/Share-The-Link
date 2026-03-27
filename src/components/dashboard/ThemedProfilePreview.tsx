@@ -36,6 +36,7 @@ interface CustomAppearance {
   bioColor?: string;
   buttonStyle?: string;
   buttonColor?: string;
+  backgroundImage?: string;
 }
 
 interface ThemedProfilePreviewProps {
@@ -96,7 +97,9 @@ export const ThemedProfilePreview = ({
       ? `bg-gradient-to-br ${ca?.backgroundGradient || "from-purple-500 to-pink-500"}`
       : ca?.wallpaperType === "pattern"
         ? "bg-card bg-[radial-gradient(circle,_rgba(0,0,0,0.05)_1px,_transparent_1px)] bg-[size:16px_16px]"
-        : activeTheme.background
+        : ca?.wallpaperType === "image"
+          ? ""
+          : activeTheme.background
     : activeTheme.background;
 
   // Animation class for animated wallpapers
@@ -106,6 +109,11 @@ export const ThemedProfilePreview = ({
   const bgStyle: React.CSSProperties = {};
   if (ca?.wallpaperType === "none" && ca?.backgroundColor) {
     bgStyle.backgroundColor = ca.backgroundColor;
+  }
+  if (ca?.wallpaperType === "image" && ca?.backgroundImage) {
+    bgStyle.backgroundImage = `url(${ca.backgroundImage})`;
+    bgStyle.backgroundSize = "cover";
+    bgStyle.backgroundPosition = "center";
   }
 
   // Compute effective button style

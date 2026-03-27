@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
-import { Palette, Image, Type, Square, Sparkles, Check, Upload, Loader2 } from "lucide-react";
+import { Palette, Image, Type, Square, Sparkles, Check, Upload, Loader2, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -335,6 +336,9 @@ const DashboardAppearance = () => {
   const [backgroundGradient, setBackgroundGradient] = useState("from-purple-500 to-pink-500");
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [backgroundAnimation, setBackgroundAnimation] = useState("aurora");
+  const [backgroundImage, setBackgroundImage] = useState("");
+  const [isUploadingBgImage, setIsUploadingBgImage] = useState(false);
+  const bgImageInputRef = useRef<HTMLInputElement>(null);
   const [fontFamily, setFontFamily] = useState("Inter");
   const [titleColor, setTitleColor] = useState("#1a1a2e");
   const [bioColor, setBioColor] = useState("#6b7280");
@@ -363,6 +367,7 @@ const DashboardAppearance = () => {
       if (settings.button_style) setButtonStyle(settings.button_style);
       if (settings.button_color) setButtonColor(settings.button_color);
       if ((settings as any).background_animation) setBackgroundAnimation((settings as any).background_animation);
+      if ((settings as any).background_image) setBackgroundImage((settings as any).background_image);
       // New feature settings
       if (settings.layout_mode) setLayoutMode(settings.layout_mode);
       if (settings.link_animation) setLinkAnimation(settings.link_animation);
@@ -439,6 +444,56 @@ const DashboardAppearance = () => {
   const handleAnimation = async (animation: string) => {
     setBackgroundAnimation(animation);
     await saveSettings({ background_animation: animation });
+  };
+
+  const handleBackgroundImage = async (url: string) => {
+    setBackgroundImage(url);
+    await saveSettings({ background_image: url });
+  };
+
+  const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, WebP, or GIF image.", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max file size is 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingBgImage(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (!userId) {
+        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+        return;
+      }
+
+      const ext = file.name.split(".").pop() || "jpg";
+      const fileName = `backgrounds/${userId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("background-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
+      if (error) {
+        console.error("Upload error:", error);
+        toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from("background-images").getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl;
+      await handleBackgroundImage(publicUrl);
+    } catch (err) {
+      console.error("Background image upload error:", err);
+      toast({ title: "Error", description: "Failed to upload image. Try again.", variant: "destructive" });
+    } finally {
+      setIsUploadingBgImage(false);
+      if (bgImageInputRef.current) bgImageInputRef.current.value = "";
+    }
   };
 
   // ── New feature handlers ──
@@ -795,6 +850,62 @@ const DashboardAppearance = () => {
                     </div>
                   )}
 
+                  {/* Background Image Upload */}
+                  {wallpaperType === "image" && (
+                    <div className="space-y-4">
+                      <label className="text-sm font-medium text-foreground block">Background Image</label>
+
+                      {backgroundImage && (
+                        <div className="relative rounded-xl overflow-hidden border border-border">
+                          <img
+                            src={backgroundImage}
+                            alt="Background preview"
+                            className="w-full h-48 object-cover"
+                          />
+                          <button
+                            onClick={() => handleBackgroundImage("")}
+                            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                            title="Remove background image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      <div>
+                        <input
+                          ref={bgImageInputRef}
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.webp,.gif"
+                          onChange={handleBgImageUpload}
+                          className="hidden"
+                          id="bg-image-upload"
+                        />
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          disabled={isUploadingBgImage}
+                          onClick={() => bgImageInputRef.current?.click()}
+                        >
+                          {isUploadingBgImage ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              {backgroundImage ? "Change Image" : "Upload Image"}
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Accepted formats: JPG, PNG, WebP, GIF. Max 5MB.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Solid Color Picker */}
                   {wallpaperType === "none" && (
                     <div>
@@ -1124,6 +1235,7 @@ const DashboardAppearance = () => {
                   backgroundGradient,
                   backgroundColor,
                   backgroundAnimation,
+                  backgroundImage,
                   fontFamily,
                   titleColor,
                   bioColor,

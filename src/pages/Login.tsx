@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -105,6 +106,8 @@ const Login = () => {
               Sign up
             </Link>
           </p>
+          <SocialAuthButtons type="login" />
+
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>
           )}
