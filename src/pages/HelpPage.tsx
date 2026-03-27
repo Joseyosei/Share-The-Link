@@ -129,6 +129,8 @@ const guideSections: GuideSection[] = [
       "Select font families for your profile page",
       "Preview changes in real-time before saving",
       "Pro users can access premium themes and remove branding",
+      "Upload a custom background image under Wallpaper → Image",
+      "Choose animated backgrounds like aurora, particles, or waves",
     ],
   },
   {
@@ -176,6 +178,10 @@ const faqItems: FAQItem[] = [
   {
     question: "Can I use my own domain?",
     answer: "Custom domains are available on the Business plan. You can map your own domain (e.g., links.yourbrand.com) to your Share The Link profile.",
+  },
+  {
+    question: "Can I sign in with Google or Apple?",
+    answer: "Yes! You can sign up or log in with Google or Apple for instant one-click access. Just click the Google or Apple button on the login or signup page. Your account will be automatically created and linked.",
   },
   {
     question: "How do I cancel my subscription?",

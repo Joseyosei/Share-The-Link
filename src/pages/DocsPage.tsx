@@ -61,10 +61,10 @@ const docs: DocSection[] = [
 **Step 1: Create Your Account (1 min)**
 1. Go to sharethelink.app
 2. Click "Sign Up"
-3. Enter your email and create a password
-4. Verify your email — you're in!
+3. Sign up with Google or Apple for instant access, OR enter your email and create a password
+4. If using email, verify your email — you're in!
 
-You can also use social login (Google, Twitter, LinkedIn) for faster signup.
+You can also sign up with Google or Apple for one-click instant access.
 
 **Step 2: Build Your Page (2 min)**
 Option A — AI Builder (Recommended):
@@ -107,9 +107,8 @@ Email and Password (Standard):
 - Click the link to verify
 
 Social Login (Faster):
-- Google (one-click)
-- Twitter (one-click)
-- LinkedIn (one-click)
+- Google (one-click sign up and login)
+- Apple (one-click sign up and login — keeps your email private if you choose)
 
 **Profile Setup:**
 
@@ -215,7 +214,7 @@ Click any theme to preview it, then click Apply to save.`,
 **Color Settings:**
 - Primary color — Your main brand color (buttons, links, accents)
 - Secondary color — Supporting hover states, borders, icons
-- Background — Solid color, gradient, image, or video (Pro)
+- Background — Solid color, gradient, pattern, animated effects, or custom background image
 - Text color — Auto adjusts for contrast, or pick manually
 
 **Typography:**
@@ -239,7 +238,15 @@ All layouts automatically adapt to single column on mobile.
 Shapes: Rounded, Square, Pill, Custom border-radius
 Sizes: Small (32px), Medium (48px), Large (64px)
 Styles: Filled, Outlined, Minimal, Shadow, 3D
-Animations: None, Fade, Lift, Glow, Pulse`,
+Animations: None, Fade, Lift, Glow, Pulse
+
+**Background Image:**
+Upload your own background image for a fully personalized profile:
+- Supported formats: JPG, PNG, WebP, GIF
+- Maximum file size: 5MB
+- The image will cover the entire profile background
+- Works with all button styles and text colors
+- Go to Appearance → Wallpaper → Image to upload`,
       },
       {
         id: "templates",

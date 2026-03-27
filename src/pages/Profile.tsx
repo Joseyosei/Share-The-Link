@@ -252,6 +252,7 @@ const Profile = () => {
     bioColor?: string;
     buttonStyle?: string;
     buttonColor?: string;
+    backgroundImage?: string;
   }>({});
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [hasBookingServices, setHasBookingServices] = useState(false);
@@ -330,6 +331,7 @@ const Profile = () => {
             bioColor: row.bio_color || undefined,
             buttonStyle: row.button_style || undefined,
             buttonColor: row.button_color || undefined,
+            backgroundImage: row.background_image || undefined,
           });
 
           // Extract new feature settings from RPC result
@@ -685,12 +687,19 @@ const Profile = () => {
       ? `bg-gradient-to-br ${ca.backgroundGradient || "from-purple-500 to-pink-500"}`
       : ca.wallpaperType === "pattern"
         ? `${currentTheme.background} bg-[radial-gradient(circle,_rgba(255,255,255,0.08)_1px,_transparent_1px)] bg-[size:20px_20px]`
-        : currentTheme.background
+        : ca.wallpaperType === "image"
+          ? ""
+          : currentTheme.background
     : currentTheme.background;
   const animationClass = isAnimated ? `stl-anim-${ca.backgroundAnimation || "aurora"}` : "";
   const bgInlineStyle: React.CSSProperties = ca.wallpaperType === "none" && ca.backgroundColor
     ? { backgroundColor: ca.backgroundColor }
     : {};
+  if (ca.wallpaperType === "image" && ca.backgroundImage) {
+    bgInlineStyle.backgroundImage = `url(${ca.backgroundImage})`;
+    bgInlineStyle.backgroundSize = "cover";
+    bgInlineStyle.backgroundPosition = "center";
+  }
   const fontStyle: React.CSSProperties = ca.fontFamily ? { fontFamily: ca.fontFamily } : {};
   const titleInlineStyle: React.CSSProperties = ca.titleColor ? { color: ca.titleColor, ...fontStyle } : fontStyle;
   const bioInlineStyle: React.CSSProperties = ca.bioColor ? { color: ca.bioColor, ...fontStyle } : fontStyle;
