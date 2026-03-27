@@ -14,7 +14,7 @@ import { handleCors } from "./_lib/cors.js";
 import { verifyAuth, unauthorized } from "./_lib/auth.js";
 import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 import { sanitizeString, isValidUUID, isValidUrl, badRequest } from "./_lib/validate.js";
-import crypto from "crypto";
+import * as crypto from "crypto";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",

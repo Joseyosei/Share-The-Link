@@ -58,8 +58,10 @@ export type Database = {
       }
       appearance_settings: {
         Row: {
+          background_animation: string | null
           background_color: string | null
           background_gradient: string | null
+          background_image: string | null
           background_type: string | null
           bio_color: string | null
           button_color: string | null
@@ -81,8 +83,10 @@ export type Database = {
           featured_link_ids: string[] | null
         }
         Insert: {
+          background_animation?: string | null
           background_color?: string | null
           background_gradient?: string | null
+          background_image?: string | null
           background_type?: string | null
           bio_color?: string | null
           button_color?: string | null
@@ -104,8 +108,10 @@ export type Database = {
           featured_link_ids?: string[] | null
         }
         Update: {
+          background_animation?: string | null
           background_color?: string | null
           background_gradient?: string | null
+          background_image?: string | null
           background_type?: string | null
           bio_color?: string | null
           button_color?: string | null

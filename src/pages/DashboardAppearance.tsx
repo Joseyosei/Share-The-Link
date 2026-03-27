@@ -366,8 +366,8 @@ const DashboardAppearance = () => {
       if (settings.bio_color) setBioColor(settings.bio_color);
       if (settings.button_style) setButtonStyle(settings.button_style);
       if (settings.button_color) setButtonColor(settings.button_color);
-      if ((settings as any).background_animation) setBackgroundAnimation((settings as any).background_animation);
-      if ((settings as any).background_image) setBackgroundImage((settings as any).background_image);
+      if (settings.background_animation) setBackgroundAnimation(settings.background_animation);
+      if (settings.background_image) setBackgroundImage(settings.background_image);
       // New feature settings
       if (settings.layout_mode) setLayoutMode(settings.layout_mode);
       if (settings.link_animation) setLinkAnimation(settings.link_animation);
@@ -509,26 +509,50 @@ const DashboardAppearance = () => {
 
   const handleVerifiedBadge = async (checked: boolean) => {
     setVerifiedBadge(checked);
-    await updateSettings({ verified_badge: checked } as any);
-    toast({ title: "Saved!", description: "Appearance updated." });
+    try {
+      await updateSettings({ verified_badge: checked });
+      toast({ title: "Saved!", description: "Appearance updated." });
+    } catch (error) {
+      console.error("Error saving verified badge:", error);
+      setVerifiedBadge(!checked);
+      toast({ title: "Error", description: "Failed to save. Try again.", variant: "destructive" });
+    }
   };
 
   const handleShowMemberSince = async (checked: boolean) => {
     setShowMemberSince(checked);
-    await updateSettings({ show_member_since: checked } as any);
-    toast({ title: "Saved!", description: "Appearance updated." });
+    try {
+      await updateSettings({ show_member_since: checked });
+      toast({ title: "Saved!", description: "Appearance updated." });
+    } catch (error) {
+      console.error("Error saving show_member_since:", error);
+      setShowMemberSince(!checked);
+      toast({ title: "Error", description: "Failed to save. Try again.", variant: "destructive" });
+    }
   };
 
   const handleShowFollowerCount = async (checked: boolean) => {
     setShowFollowerCount(checked);
-    await updateSettings({ show_follower_count: checked } as any);
-    toast({ title: "Saved!", description: "Appearance updated." });
+    try {
+      await updateSettings({ show_follower_count: checked });
+      toast({ title: "Saved!", description: "Appearance updated." });
+    } catch (error) {
+      console.error("Error saving show_follower_count:", error);
+      setShowFollowerCount(!checked);
+      toast({ title: "Error", description: "Failed to save. Try again.", variant: "destructive" });
+    }
   };
 
   const handleSectionDividers = async (checked: boolean) => {
     setSectionDividersEnabled(checked);
-    await updateSettings({ section_dividers_enabled: checked } as any);
-    toast({ title: "Saved!", description: "Appearance updated." });
+    try {
+      await updateSettings({ section_dividers_enabled: checked });
+      toast({ title: "Saved!", description: "Appearance updated." });
+    } catch (error) {
+      console.error("Error saving section_dividers:", error);
+      setSectionDividersEnabled(!checked);
+      toast({ title: "Error", description: "Failed to save. Try again.", variant: "destructive" });
+    }
   };
 
   const handleSectionDividerStyle = async (style: string) => {
