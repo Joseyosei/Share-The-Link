@@ -225,7 +225,8 @@ export const useStripeConnect = () => {
       if (!accountStatus?.accountId) throw new Error("No connected account found");
 
       // 1. Create in Stripe
-      const stripeResult = await callStripeApi("create-connect-product", {
+      const stripeResult = await callStripeApi("create-connected-account", {
+        action: "create-product",
         accountId: accountStatus.accountId,
         name,
         description,
