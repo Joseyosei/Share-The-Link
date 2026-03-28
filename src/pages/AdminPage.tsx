@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink, Camera, Loader2, Search, HeadphonesIcon, Send, CheckCheck, MessageSquare } from "lucide-react";
+import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink, Camera, Loader2, Search, HeadphonesIcon, Send, CheckCheck, MessageSquare, Settings2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,7 +79,7 @@ const AdminPage = () => {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content" | "applications" | "support">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content" | "applications" | "support" | "settings">("overview");
 
   // Data
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -117,6 +117,13 @@ const AdminPage = () => {
     streamCount?: number;
   }>>([]);
   const [userSearch, setUserSearch] = useState("");
+
+  // App countdown settings
+  const [appLaunchDate, setAppLaunchDate] = useState("2026-09-01");
+  const [appLaunchTime, setAppLaunchTime] = useState("00:00");
+  const [iosEnabled, setIosEnabled] = useState(true);
+  const [androidEnabled, setAndroidEnabled] = useState(true);
+  const [savingCountdown, setSavingCountdown] = useState(false);
 
   // Hard-coded admin emails as a fallback
   const ADMIN_EMAILS = ["admin@sharethelink.io"];
@@ -241,6 +248,25 @@ const AdminPage = () => {
       totalStreams: streamsRes.count || 0,
       totalRecordings: recordingsRes.count || 0,
     });
+
+    // Fetch app launch countdown settings
+    try {
+      const { data: countdownData } = await (supabase
+        .from("site_settings" as never)
+        .select("value")
+        .eq("key", "app_launch_date")
+        .single() as any);
+      if (countdownData?.value) {
+        const val = countdownData.value as any;
+        if (val.date) {
+          const d = new Date(val.date);
+          setAppLaunchDate(d.toISOString().split("T")[0]);
+          setAppLaunchTime(d.toISOString().split("T")[1]?.substring(0, 5) || "00:00");
+        }
+        if (val.ios_enabled !== undefined) setIosEnabled(val.ios_enabled);
+        if (val.android_enabled !== undefined) setAndroidEnabled(val.android_enabled);
+      }
+    } catch { /* site_settings table may not exist yet */ }
   }, []);
 
   useEffect(() => {
@@ -470,6 +496,7 @@ const AdminPage = () => {
             { id: "content" as const, label: "Site Content", icon: FileText },
             { id: "applications" as const, label: `Applications (${applications.length})`, icon: Briefcase },
             { id: "support" as const, label: `Support (${tickets.filter((t) => t.status === "open" || t.status === "in_progress").length})`, icon: HeadphonesIcon },
+            { id: "settings" as const, label: "Settings", icon: Settings2 },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1015,6 +1042,112 @@ const AdminPage = () => {
                 </div>
               ))
             )}
+          </div>
+        )}
+        {/* Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="space-y-8">
+            {/* App Launch Countdown */}
+            <div className="bg-card rounded-xl border border-border p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">App Launch Countdown</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Set the launch date for iOS and Android apps. This countdown is shown when users click the App Store / Google Play buttons in the footer.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="text-sm font-medium block mb-1">Launch Date</label>
+                  <Input
+                    type="date"
+                    value={appLaunchDate}
+                    onChange={(e) => setAppLaunchDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium block mb-1">Launch Time (UTC)</label>
+                  <Input
+                    type="time"
+                    value={appLaunchTime}
+                    onChange={(e) => setAppLaunchTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6 mb-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={iosEnabled}
+                    onChange={(e) => setIosEnabled(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <span className="text-sm">iOS App Store enabled</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={androidEnabled}
+                    onChange={(e) => setAndroidEnabled(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <span className="text-sm">Google Play enabled</span>
+                </label>
+              </div>
+
+              {/* Preview */}
+              <div className="bg-muted/30 rounded-lg p-4 mb-4">
+                <p className="text-xs text-muted-foreground mb-1">Launch date preview:</p>
+                <p className="font-semibold">
+                  {new Date(`${appLaunchDate}T${appLaunchTime}:00Z`).toLocaleString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZoneName: "short",
+                  })}
+                </p>
+              </div>
+
+              <Button
+                onClick={async () => {
+                  setSavingCountdown(true);
+                  try {
+                    const dateStr = `${appLaunchDate}T${appLaunchTime}:00Z`;
+                    const { error } = await supabase
+                      .from("site_settings" as never)
+                      .upsert({
+                        key: "app_launch_date",
+                        value: {
+                          date: dateStr,
+                          ios_enabled: iosEnabled,
+                          android_enabled: androidEnabled,
+                        },
+                        updated_at: new Date().toISOString(),
+                      } as never, { onConflict: "key" } as never) as any;
+
+                    if (error) throw error;
+                    toast({ title: "Saved!", description: "App launch countdown updated." });
+                  } catch (error) {
+                    console.error("Save countdown error:", error);
+                    toast({ title: "Error", description: "Failed to save countdown settings.", variant: "destructive" });
+                  }
+                  setSavingCountdown(false);
+                }}
+                disabled={savingCountdown}
+              >
+                {savingCountdown ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Save Countdown Settings
+              </Button>
+            </div>
           </div>
         )}
       </div>

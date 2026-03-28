@@ -24,7 +24,8 @@ import {
   Webhook,
   Users,
   Globe,
-  FlaskConical
+  FlaskConical,
+  ClipboardList
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/Logo";
@@ -43,6 +44,7 @@ const navItems = [
   { icon: Store, label: "My Shop", href: "/connect", isNew: true },
   { icon: CalendarCheck, label: "Bookings", href: "/dashboard/bookings", isNew: true },
   { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
+  { icon: ClipboardList, label: "Forms", href: "/dashboard/forms", isNew: true },
   { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
   { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
   { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
