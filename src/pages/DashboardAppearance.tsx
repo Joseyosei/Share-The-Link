@@ -477,14 +477,26 @@ const DashboardAppearance = () => {
 
       const ext = file.name.split(".").pop() || "jpg";
       const fileName = `backgrounds/${userId}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("background-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
-      if (error) {
-        console.error("Upload error:", error);
-        toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+
+      // Try background-images bucket first, fall back to product-images
+      let uploadBucket = "background-images";
+      let uploadError = null;
+
+      const { error: bgError } = await supabase.storage.from("background-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
+      if (bgError) {
+        // Fallback: use product-images bucket which is guaranteed to exist
+        uploadBucket = "product-images";
+        const { error: fallbackError } = await supabase.storage.from("product-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
+        uploadError = fallbackError;
+      }
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
         return;
       }
 
-      const { data: urlData } = supabase.storage.from("background-images").getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from(uploadBucket).getPublicUrl(fileName);
       const publicUrl = urlData.publicUrl;
       await handleBackgroundImage(publicUrl);
     } catch (err) {

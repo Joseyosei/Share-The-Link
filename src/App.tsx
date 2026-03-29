@@ -53,6 +53,7 @@ import DashboardWebhooks from "./pages/DashboardWebhooks";
 import DashboardTeam from "./pages/DashboardTeam";
 import DashboardDomains from "./pages/DashboardDomains";
 import DashboardABTesting from "./pages/DashboardABTesting";
+import DashboardForms from "./pages/DashboardForms";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
@@ -125,6 +126,7 @@ const App = () => (
           <Route path="/dashboard/team" element={<ProtectedRoute><DashboardTeam /></ProtectedRoute>} />
           <Route path="/dashboard/domains" element={<ProtectedRoute><DashboardDomains /></ProtectedRoute>} />
           <Route path="/dashboard/ab-testing" element={<ProtectedRoute><DashboardABTesting /></ProtectedRoute>} />
+          <Route path="/dashboard/forms" element={<ProtectedRoute><DashboardForms /></ProtectedRoute>} />
           <Route path="/dashboard/auto-reply" element={<ProtectedRoute><DashboardAutoReply /></ProtectedRoute>} />
           <Route path="/dashboard/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           
