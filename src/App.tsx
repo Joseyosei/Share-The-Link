@@ -54,6 +54,7 @@ import DashboardTeam from "./pages/DashboardTeam";
 import DashboardDomains from "./pages/DashboardDomains";
 import DashboardABTesting from "./pages/DashboardABTesting";
 import DashboardForms from "./pages/DashboardForms";
+import PublicForm from "./pages/PublicForm";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
@@ -94,6 +95,9 @@ const App = () => (
           {/* Public live stream viewer page */}
           <Route path="/live/:username" element={<LiveStreamPage />} />
           
+          {/* Public form submission page */}
+          <Route path="/form/:formId" element={<PublicForm />} />
+
           {/* Public media/explore page */}
           <Route path="/media" element={<MediaPage />} />
           
