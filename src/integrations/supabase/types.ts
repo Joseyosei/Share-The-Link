@@ -1103,6 +1103,141 @@ export type Database = {
           },
         ]
       }
+      forms: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          category: string
+          status: string
+          is_active: boolean
+          settings: Json
+          thank_you_message: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string
+          description?: string | null
+          category?: string
+          status?: string
+          is_active?: boolean
+          settings?: Json
+          thank_you_message?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          category?: string
+          status?: string
+          is_active?: boolean
+          settings?: Json
+          thank_you_message?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      form_fields: {
+        Row: {
+          id: string
+          form_id: string
+          field_type: string
+          label: string
+          placeholder: string | null
+          help_text: string | null
+          is_required: boolean
+          options: Json
+          validation: Json
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          form_id: string
+          field_type: string
+          label: string
+          placeholder?: string | null
+          help_text?: string | null
+          is_required?: boolean
+          options?: Json
+          validation?: Json
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          form_id?: string
+          field_type?: string
+          label?: string
+          placeholder?: string | null
+          help_text?: string | null
+          is_required?: boolean
+          options?: Json
+          validation?: Json
+          position?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      form_submissions: {
+        Row: {
+          id: string
+          form_id: string
+          responses: Json
+          submitter_email: string | null
+          submitter_name: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          form_id: string
+          responses?: Json
+          submitter_email?: string | null
+          submitter_name?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          form_id?: string
+          responses?: Json
+          submitter_email?: string | null
+          submitter_name?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          id: string
+          key: string
+          value: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          value?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

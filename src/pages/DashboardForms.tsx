@@ -228,7 +228,8 @@ const DashboardForms = () => {
       .single();
 
     if (error || !form) {
-      toast({ title: "Error", description: "Failed to create form", variant: "destructive" });
+      console.error("Form creation error:", error);
+      toast({ title: "Error", description: error?.message || "Failed to create form", variant: "destructive" });
       return;
     }
 
@@ -240,7 +241,7 @@ const DashboardForms = () => {
         label: f.label,
         placeholder: (f as any).placeholder || null,
         is_required: f.is_required || false,
-        options: (f as any).options ? JSON.stringify((f as any).options) : "[]",
+        options: (f as any).options || [],
         position: i,
       }));
       await supabase.from("form_fields").insert(fieldsToInsert);
@@ -327,7 +328,7 @@ const DashboardForms = () => {
           placeholder: f.placeholder || null,
           help_text: f.help_text || null,
           is_required: f.is_required,
-          options: JSON.stringify(f.options || []),
+          options: f.options || [],
           position: i,
         }));
         await supabase.from("form_fields").insert(fieldsToInsert);
