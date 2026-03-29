@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
-import { Palette, Image, Type, Square, Sparkles, Check, Upload, Loader2, X } from "lucide-react";
+import { Palette, Image, Type, Square, Sparkles, Check, Upload, Loader2, X, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -392,6 +392,41 @@ const DashboardAppearance = () => {
     }
   };
 
+  const handleResetToDefault = async () => {
+    setIsSaving(true);
+    try {
+      const defaults = {
+        theme: "air",
+        background_type: "none",
+        background_gradient: "from-purple-500 to-pink-500",
+        background_color: "#ffffff",
+        font_family: "Inter",
+        title_color: "#1a1a2e",
+        bio_color: "#6b7280",
+        button_style: "rounded",
+        button_color: "#1a1a2e",
+      };
+      await updateSettings(defaults as any);
+      setSelectedTheme("air");
+      setWallpaperType("none");
+      setBackgroundGradient("from-purple-500 to-pink-500");
+      setBackgroundColor("#ffffff");
+      setBackgroundImage("");
+      setBackgroundAnimation("aurora");
+      setFontFamily("Inter");
+      setTitleColor("#1a1a2e");
+      setBioColor("#6b7280");
+      setButtonStyle("rounded");
+      setButtonColor("#1a1a2e");
+      toast({ title: "Reset!", description: "Appearance restored to defaults." });
+    } catch (error) {
+      console.error("Error resetting:", error);
+      toast({ title: "Error", description: "Failed to reset. Try again.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSelectTheme = async (themeId: string, isPro?: boolean) => {
     if (isPro) {
       toast({ title: "Pro Feature", description: "Upgrade to Pro to unlock this theme!" });
@@ -708,18 +743,29 @@ const DashboardAppearance = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Appearance</h1>
               <p className="text-muted-foreground">Customize your profile's look and feel.</p>
             </div>
-            <Button
-              className="gradient-button text-primary-foreground hover:opacity-90 gap-2"
-              disabled={isEnhancing || isSaving}
-              onClick={handleEnhance}
-            >
-              {isEnhancing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              {isEnhancing ? "Enhancing..." : "Enhance"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={isEnhancing || isSaving}
+                onClick={handleResetToDefault}
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </Button>
+              <Button
+                className="gradient-button text-primary-foreground hover:opacity-90 gap-2"
+                disabled={isEnhancing || isSaving}
+                onClick={handleEnhance}
+              >
+                {isEnhancing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                {isEnhancing ? "Enhancing..." : "Enhance"}
+              </Button>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
