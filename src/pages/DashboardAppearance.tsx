@@ -513,22 +513,35 @@ const DashboardAppearance = () => {
       const ext = file.name.split(".").pop() || "jpg";
       const fileName = `backgrounds/${userId}/${Date.now()}.${ext}`;
 
-      // Try background-images bucket first, fall back to product-images
-      let uploadBucket = "background-images";
-      let uploadError = null;
+      // Try multiple buckets in order; create a fallback bucket if none exist
+      const buckets = ["background-images", "product-images"];
+      let uploadBucket = "";
+      let lastError: any = null;
 
-      const { error: bgError } = await supabase.storage.from("background-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
-      if (bgError) {
-        // Fallback: use product-images bucket which is guaranteed to exist
-        uploadBucket = "product-images";
-        const { error: fallbackError } = await supabase.storage.from("product-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
-        uploadError = fallbackError;
+      for (const bucket of buckets) {
+        const { error: err } = await supabase.storage.from(bucket).upload(fileName, file, { cacheControl: "3600", upsert: false });
+        if (!err) {
+          uploadBucket = bucket;
+          lastError = null;
+          break;
+        }
+        lastError = err;
       }
 
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
-        return;
+      // If all buckets failed, try creating background-images bucket then upload
+      if (lastError) {
+        try {
+          await supabase.storage.createBucket("background-images", { public: true });
+          const { error: retryErr } = await supabase.storage.from("background-images").upload(fileName, file, { cacheControl: "3600", upsert: false });
+          if (retryErr) {
+            throw retryErr;
+          }
+          uploadBucket = "background-images";
+        } catch (createErr: any) {
+          console.error("Upload error after bucket creation attempt:", createErr);
+          toast({ title: "Upload failed", description: createErr?.message || "Could not upload image. Please check storage settings.", variant: "destructive" });
+          return;
+        }
       }
 
       const { data: urlData } = supabase.storage.from(uploadBucket).getPublicUrl(fileName);
