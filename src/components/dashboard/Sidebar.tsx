@@ -36,27 +36,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const navItems = [
+  // ── Core ──
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Link2, label: "Links", href: "/dashboard/links" },
-  { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
-  { icon: Play, label: "Media", href: "/dashboard/media", isNew: true },
-  { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
+  { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
+  { icon: BarChart3, label: "Analytics", href: "/analytics" },
+  // ── Content & Commerce ──
+  { icon: ClipboardList, label: "Forms", href: "/dashboard/forms", isNew: true },
   { icon: Store, label: "My Shop", href: "/connect", isNew: true },
   { icon: CalendarCheck, label: "Bookings", href: "/dashboard/bookings", isNew: true },
-  { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
-  { icon: ClipboardList, label: "Forms", href: "/dashboard/forms", isNew: true },
-  { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
-  { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
-  { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
-  { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
-  { icon: BarChart3, label: "Analytics", href: "/analytics" },
-  { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers", isNew: true },
   { icon: Heart, label: "Tip Jar", href: "/dashboard/tip-jar", isNew: true },
+  // ── Media & Live ──
+  { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
+  { icon: Play, label: "Media", href: "/dashboard/media", isNew: true },
+  { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
+  // ── AI & Automation ──
+  { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
+  { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
+  { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
+  // ── Audience & Growth ──
+  { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers", isNew: true },
   { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
   { icon: FlaskConical, label: "A/B Testing", href: "/dashboard/ab-testing", isNew: true },
+  // ── Tools & Config ──
+  { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
+  { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks", isNew: true },
   { icon: Globe, label: "Domains", href: "/dashboard/domains", isNew: true },
   { icon: Users, label: "Team", href: "/dashboard/team", isNew: true },
-  { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks", isNew: true },
+  // ── Support & Settings ──
   { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support", isNew: true },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
   { icon: HelpCircle, label: "Help", href: "/help" },
