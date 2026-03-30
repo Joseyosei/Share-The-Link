@@ -1262,6 +1262,36 @@ export type Database = {
           username: string
         }[]
       }
+      subscribe_to_creator: {
+        Args: {
+          creator_username: string
+          subscriber_email: string
+          subscriber_name?: string
+        }
+        Returns: boolean
+      }
+      get_profile_page_data: {
+        Args: { lookup_username: string }
+        Returns: Record<string, unknown>[]
+      }
+      get_public_reviews: {
+        Args: { lookup_username: string }
+        Returns: {
+          id: string
+          reviewer_name: string
+          rating: number
+          comment: string
+          created_at: string
+        }[]
+      }
+      get_tip_settings: {
+        Args: { lookup_username: string }
+        Returns: {
+          enabled: boolean
+          suggested_amounts: number[]
+          custom_message: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
