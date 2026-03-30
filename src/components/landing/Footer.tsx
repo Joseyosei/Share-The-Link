@@ -7,6 +7,7 @@ import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
 import { TelegramIcon } from "@/components/icons/TelegramIcon";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
 
 const footerLinks = {
   Product: [
@@ -83,6 +84,7 @@ const CountdownTimer = ({ targetDate }: { targetDate: string }) => {
 };
 
 export const Footer = () => {
+  const { t } = useTranslation();
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [launchDate, setLaunchDate] = useState("2026-09-01T00:00:00Z");
   const [clickedStore, setClickedStore] = useState<"ios" | "android">("ios");
@@ -121,9 +123,7 @@ export const Footer = () => {
               <Logo textClassName="text-background" />
             </Link>
             <p className="text-background/70 mb-6 max-w-sm leading-relaxed">
-              The ultimate link-in-bio platform for entrepreneurs and creators.
-              Share everything in one beautiful page. AI-powered, with built-in
-              live streaming and monetization.
+              {t("footer.description")}
             </p>
 
             {/* Social links */}
@@ -148,13 +148,13 @@ export const Footer = () => {
             {/* User attach prompt */}
             <div className="mt-6 p-4 rounded-xl bg-background/5 border border-background/10">
               <p className="text-sm text-background/60 mb-2">
-                Add your social links to your profile
+                {t("footer.addSocial")}
               </p>
               <Link
                 to="/signup"
                 className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1"
               >
-                Create your page for free
+                {t("footer.createPage")}
                 <span aria-hidden="true">&rarr;</span>
               </Link>
             </div>
@@ -182,7 +182,7 @@ export const Footer = () => {
         {/* App Store Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 mb-8 border-b border-background/10">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-background/50">Get the app:</span>
+            <span className="text-sm text-background/50">{t("footer.getApp")}</span>
           </div>
           <div className="flex items-center gap-3">
             {/* App Store button */}
@@ -194,8 +194,8 @@ export const Footer = () => {
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
               </svg>
               <div className="text-left">
-                <p className="text-[10px] text-background/60 leading-none">Download on the</p>
-                <p className="text-sm font-semibold text-background leading-tight">App Store</p>
+                <p className="text-[10px] text-background/60 leading-none">{t("footer.downloadAppStore")}</p>
+                <p className="text-sm font-semibold text-background leading-tight">{t("footer.appStore")}</p>
               </div>
             </button>
 
@@ -208,8 +208,8 @@ export const Footer = () => {
                 <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.196 12l2.502-2.492zM5.864 2.658L16.8 9.99l-2.301 2.302L5.864 2.658z"/>
               </svg>
               <div className="text-left">
-                <p className="text-[10px] text-background/60 leading-none">GET IT ON</p>
-                <p className="text-sm font-semibold text-background leading-tight">Google Play</p>
+                <p className="text-[10px] text-background/60 leading-none">{t("footer.getItOn")}</p>
+                <p className="text-sm font-semibold text-background leading-tight">{t("footer.googlePlay")}</p>
               </div>
             </button>
           </div>
@@ -218,7 +218,7 @@ export const Footer = () => {
         {/* Bottom bar */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-background/40 text-sm text-center md:text-left">
-            &copy; {new Date().getFullYear()} Share The Link. All rights reserved.
+            &copy; {new Date().getFullYear()} Share The Link. {t("footer.rights")}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link to="/privacy" className="text-background/40 text-sm hover:text-background/70 transition-colors">
@@ -228,7 +228,7 @@ export const Footer = () => {
               Terms
             </Link>
             <p className="text-background/40 text-sm hidden sm:block">
-              Made with <span className="text-pink-400">&#9829;</span> for creators worldwide
+              {t("footer.madeWith")} <span className="text-pink-400">&#9829;</span> {t("footer.forCreators")}
             </p>
             <Link
               to="/dashboard/admin"
@@ -266,14 +266,14 @@ export const Footer = () => {
               )}
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-2">Coming Soon</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("footer.comingSoon")}</h2>
             <p className="text-white/60 mb-6">
-              The Share The Link {clickedStore === "ios" ? "iOS" : "Android"} app is on its way. Be the first to know when it launches!
+              {t("footer.comingSoonDesc", { store: clickedStore === "ios" ? "iOS" : "Android" })}
             </p>
 
             {/* Countdown */}
             <div className="bg-white/5 rounded-xl p-5 mb-6 border border-white/10">
-              <p className="text-xs uppercase tracking-wider text-white/40 mb-3">Launching in</p>
+              <p className="text-xs uppercase tracking-wider text-white/40 mb-3">{t("footer.launchingIn")}</p>
               <div className="flex justify-center">
                 <CountdownTimer targetDate={launchDate} />
               </div>
@@ -291,7 +291,7 @@ export const Footer = () => {
               onClick={() => setShowComingSoon(false)}
               className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors w-full"
             >
-              Sign Up for Early Access
+              {t("footer.earlyAccess")}
             </Link>
           </div>
         </div>

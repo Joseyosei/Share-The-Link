@@ -1,20 +1,22 @@
 import { useRef, useState } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize2, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const DEMO_VIDEOS = [
   {
     id: "overview",
-    label: "Platform Overview",
+    labelKey: "productDemo.overview",
     src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SHARE%20THE%20LINK%20PLATFORM%20OVERVIEW-eD8liUWt4yGZk5HonUbf0Ah9xJEYBb.mp4",
   },
   {
     id: "walkthrough",
-    label: "Full Walkthrough",
+    labelKey: "productDemo.walkthrough",
     src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SHARE%20THE%20LINK%20WALKTHROUGH-AZ7rLxaQ3kYfU7vdFuxNOMmYTUbBt0.mp4",
   },
 ];
 
 export function ProductDemo() {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -81,13 +83,13 @@ export function ProductDemo() {
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-10">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            See It In Action
+            {t("productDemo.badge")}
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
-            Watch how it works
+            {t("productDemo.title")}
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            See how Share The Link helps creators and entrepreneurs build, share, and grow their audience.
+            {t("productDemo.description")}
           </p>
         </div>
 
@@ -103,7 +105,7 @@ export function ProductDemo() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
-              {video.label}
+              {t(video.labelKey)}
               {activeVideo === i && <ChevronRight className="w-3.5 h-3.5" />}
             </button>
           ))}

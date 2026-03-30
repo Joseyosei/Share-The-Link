@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, ChevronUp, ChevronDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 // Social media platforms
 const SOCIAL_LINKS = [
@@ -50,6 +51,7 @@ const EXAMPLE_USERNAMES = [
 ];
 
 export const Hero = () => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [typedText, setTypedText] = useState("");
@@ -167,16 +169,16 @@ export const Hero = () => {
       {/* Right-side page navigation */}
       <div className="hidden lg:flex fixed right-5 top-1/2 -translate-y-1/2 z-20 flex-col gap-2">
         {[
-          { href: "/about", label: "About" },
-          { href: "/careers", label: "Careers" },
-          { href: "/contact", label: "Contact" },
+          { href: "/about", key: "hero.about" },
+          { href: "/careers", key: "hero.careers" },
+          { href: "/contact", key: "hero.contact" },
         ].map((link) => (
           <Link
-            key={link.label}
+            key={link.key}
             to={link.href}
             className="px-3 py-2 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-white/20 transition-all text-xs font-medium text-center"
           >
-            {link.label}
+            {t(link.key)}
           </Link>
         ))}
       </div>
@@ -207,27 +209,27 @@ export const Hero = () => {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-card-light mb-8 animate-fade-in shimmer">
             <Sparkles className="w-4 h-4 text-yellow-300" />
             <span className="text-sm font-medium text-white">
-              Built for Entrepreneurs & Creators
+              {t("hero.badge")}
             </span>
           </div>
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-primary-foreground leading-[1.1] mb-6 animate-fade-in stagger-1 tracking-tight">
-            One link to share
+            {t("hero.headline1")}
             <br />
-            everything you create
+            {t("hero.headline2")}
           </h1>
 
           {/* Subheadline */}
           <p className="text-base sm:text-lg md:text-xl text-primary-foreground/80 max-w-xl mx-auto mb-10 animate-fade-in stagger-2 leading-relaxed">
-            The link-in-bio platform for creators. Products, content, and brand — all in one page.
+            {t("hero.subheadline")}
           </p>
 
           {/* Username claim input */}
           <div className="max-w-md mx-auto mb-8 animate-fade-in stagger-3">
             <div className="flex items-center bg-primary-foreground/10 backdrop-blur-lg rounded-2xl p-2 border border-primary-foreground/20">
               <span className="text-primary-foreground/60 pl-4 text-sm whitespace-nowrap">
-                sharethelink.app/
+                {t("hero.claimPrefix")}
               </span>
               <div className="relative flex-1">
                 <input
@@ -255,7 +257,7 @@ export const Hero = () => {
                 className="bg-white text-gray-900 hover:bg-white/90 font-semibold rounded-xl"
               >
                 <Link to="/signup">
-                  Claim
+                  {t("hero.claimButton")}
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Link>
               </Button>
@@ -270,7 +272,7 @@ export const Hero = () => {
               className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-8 py-6 text-base hover-lift rounded-xl"
             >
               <Link to="/signup">
-                Get started free
+                {t("hero.ctaPrimary")}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
@@ -279,13 +281,13 @@ export const Hero = () => {
               asChild
               className="border-2 border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-8 py-6 text-base rounded-xl transition-all duration-300"
             >
-              <a href="#pricing">View pricing</a>
+              <a href="#pricing">{t("hero.ctaSecondary")}</a>
             </Button>
           </div>
 
           {/* Trust text */}
           <p className="text-sm text-primary-foreground/60 animate-fade-in stagger-4">
-            No credit card required • Free forever plan
+            {t("hero.trustText")}
           </p>
 
           {/* Product Hunt Badge */}
