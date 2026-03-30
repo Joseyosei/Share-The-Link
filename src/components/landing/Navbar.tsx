@@ -2,10 +2,13 @@ import { Link } from "react-router-dom";
 import { Menu, X, Sun, Moon, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Navbar = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
@@ -60,18 +63,18 @@ export const Navbar = () => {
               to="/templates"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Templates
+              {t("nav.templates")}
             </Link>
             <Link
               to="/pricing"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Pricing
+              {t("nav.pricing")}
             </Link>
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
             {isLoaded && isSignedIn ? (
               <Button
                 asChild
@@ -80,7 +83,7 @@ export const Navbar = () => {
               >
                 <Link to="/dashboard" className="flex items-center gap-2">
                   <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
+                  {t("nav.dashboard")}
                 </Link>
               </Button>
             ) : (
@@ -91,17 +94,18 @@ export const Navbar = () => {
                   asChild
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  <Link to="/login">Log in</Link>
+                  <Link to="/login">{t("nav.login")}</Link>
                 </Button>
                 <Button
                   asChild
                   size="sm"
                   className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-5 font-medium"
                 >
-                  <Link to="/signup">Join for free</Link>
+                  <Link to="/signup">{t("nav.signup")}</Link>
                 </Button>
               </>
             )}
+            <LanguageSelector />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -130,28 +134,28 @@ export const Navbar = () => {
                 className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                Features
+                {t("nav.features")}
               </Link>
               <Link
                 to="/templates"
                 className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                Templates
+                {t("nav.templates")}
               </Link>
               <Link
                 to="/pricing"
                 className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                Pricing
+                {t("nav.pricing")}
               </Link>
               <Link
                 to="/docs"
                 className="text-sm text-muted-foreground hover:text-foreground py-3 active:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                Docs
+                {t("nav.docs")}
               </Link>
               <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
                 {isLoaded && isSignedIn ? (
@@ -161,7 +165,7 @@ export const Navbar = () => {
                   >
                     <Link to="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
                       <LayoutDashboard className="w-4 h-4" />
-                      Dashboard
+                      {t("nav.dashboard")}
                     </Link>
                   </Button>
                 ) : (
@@ -172,7 +176,7 @@ export const Navbar = () => {
                       className="w-full justify-center text-muted-foreground"
                     >
                       <Link to="/login" onClick={() => setIsOpen(false)}>
-                        Log in
+                        {t("nav.login")}
                       </Link>
                     </Button>
                     <Button
@@ -180,18 +184,21 @@ export const Navbar = () => {
                       className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium"
                     >
                       <Link to="/signup" onClick={() => setIsOpen(false)}>
-                        Join for free
+                        {t("nav.signup")}
                       </Link>
                     </Button>
                   </>
                 )}
-                <button
-                  onClick={toggleTheme}
-                  className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {isDark ? "Light Mode" : "Dark Mode"}
-                </button>
+                <div className="flex items-center justify-between py-2">
+                  <LanguageSelector />
+                  <button
+                    onClick={toggleTheme}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    {isDark ? t("nav.lightMode") : t("nav.darkMode")}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
