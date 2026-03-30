@@ -8,12 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Step = "email" | "otp" | "new-password" | "done";
 
+const OTP_LENGTH = 8;
+
 const ForgotPassword = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +49,7 @@ const ForgotPassword = () => {
       }
 
       setStep("otp");
-      toast({ title: "Code sent!", description: "Check your email for a 6-digit verification code." });
+      toast({ title: "Code sent!", description: `Check your email for an ${OTP_LENGTH}-digit verification code.` });
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
@@ -65,7 +67,7 @@ const ForgotPassword = () => {
     setError("");
 
     // Auto-focus next input
-    if (value && index < 5) {
+    if (value && index < OTP_LENGTH - 1) {
       otpRefs.current[index + 1]?.focus();
     }
   };
@@ -78,18 +80,18 @@ const ForgotPassword = () => {
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
     if (pasted.length === 0) return;
 
-    const newOtp = [...otp];
-    for (let i = 0; i < 6; i++) {
+    const newOtp = Array(OTP_LENGTH).fill("");
+    for (let i = 0; i < OTP_LENGTH; i++) {
       newOtp[i] = pasted[i] || "";
     }
     setOtp(newOtp);
 
     // Focus the next empty field or the last one
     const nextEmpty = newOtp.findIndex((d) => !d);
-    otpRefs.current[nextEmpty === -1 ? 5 : nextEmpty]?.focus();
+    otpRefs.current[nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty]?.focus();
   };
 
   // Step 2: Verify OTP
@@ -98,8 +100,8 @@ const ForgotPassword = () => {
     setError("");
 
     const code = otp.join("");
-    if (code.length !== 6) {
-      setError("Please enter the full 6-digit code");
+    if (code.length !== OTP_LENGTH) {
+      setError(`Please enter the full ${OTP_LENGTH}-digit code`);
       return;
     }
 
@@ -170,7 +172,7 @@ const ForgotPassword = () => {
         redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       });
       toast({ title: "Code resent!", description: "Check your email for a new code." });
-      setOtp(["", "", "", "", "", ""]);
+      setOtp(Array(OTP_LENGTH).fill(""));
     } catch {
       setError("Failed to resend code.");
     } finally {
@@ -219,7 +221,7 @@ const ForgotPassword = () => {
             <>
               <h1 className="text-3xl font-bold text-foreground mb-2">Reset Password</h1>
               <p className="text-muted-foreground mb-6">
-                Enter your email and we'll send you a 6-digit code to verify your identity.
+                Enter your email and we'll send you a verification code to verify your identity.
               </p>
               {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
               <form onSubmit={handleSendOtp} className="space-y-4">
@@ -260,11 +262,11 @@ const ForgotPassword = () => {
                 <h1 className="text-3xl font-bold text-foreground">Enter Code</h1>
               </div>
               <p className="text-muted-foreground mb-6">
-                We sent a 6-digit code to <strong>{email}</strong>. Enter it below.
+                We sent an {OTP_LENGTH}-digit code to <strong>{email}</strong>. Enter it below.
               </p>
               {error && <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>}
               <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div className="flex justify-center gap-2 sm:gap-3">
+                <div className="flex justify-center gap-1.5 sm:gap-2">
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -276,14 +278,14 @@ const ForgotPassword = () => {
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
                       onPaste={i === 0 ? handleOtpPaste : undefined}
-                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                       autoFocus={i === 0}
                     />
                   ))}
                 </div>
                 <Button
                   type="submit"
-                  disabled={isLoading || otp.join("").length !== 6}
+                  disabled={isLoading || otp.join("").length !== OTP_LENGTH}
                   className="w-full py-6 text-lg font-semibold gradient-button text-primary-foreground hover:opacity-90"
                 >
                   {isLoading ? (
@@ -304,7 +306,7 @@ const ForgotPassword = () => {
                 </button>
               </div>
               <button
-                onClick={() => { setStep("email"); setError(""); setOtp(["", "", "", "", "", ""]); }}
+                onClick={() => { setStep("email"); setError(""); setOtp(Array(OTP_LENGTH).fill("")); }}
                 className="flex items-center gap-1 mt-3 mx-auto text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="w-3 h-3" />
