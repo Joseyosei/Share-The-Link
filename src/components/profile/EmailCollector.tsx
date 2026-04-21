@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface EmailCollectorProps {
   username: string;
+  creatorId?: string;
   textColor?: string;
   buttonColor?: string;
 }
 
-export const EmailCollector = ({ username, textColor = "text-white", buttonColor }: EmailCollectorProps) => {
+export const EmailCollector = ({ username, creatorId, textColor = "text-white", buttonColor }: EmailCollectorProps) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -20,14 +21,36 @@ export const EmailCollector = ({ username, textColor = "text-white", buttonColor
 
     setStatus("loading");
     try {
-      const { data, error } = await supabase.rpc("subscribe_to_creator", {
-        creator_username: username,
-        subscriber_email: email.trim(),
-        subscriber_name: name.trim() || null,
+      let finalCreatorId = creatorId;
+
+      if (!finalCreatorId) {
+        const { data: profileRow, error: profileError } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("username", username)
+          .single();
+        if (profileError || !profileRow) throw new Error("Creator not found");
+        finalCreatorId = profileRow.user_id;
+      }
+
+      const { error } = await (supabase.from("subscribers") as any).insert({
+        creator_id: finalCreatorId,
+        email: email.trim(),
+        name: name.trim() || null,
+        source: "profile",
+        is_active: true,
+        tags: [],
       });
 
-      if (error) throw error;
-      if (data === false) throw new Error("Creator not found");
+      if (error) {
+        if (error.code === "23505") {
+          setStatus("success");
+          setEmail("");
+          setName("");
+          return;
+        }
+        throw error;
+      }
 
       setStatus("success");
       setEmail("");

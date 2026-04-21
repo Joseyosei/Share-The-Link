@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon, Eye, MapPin } from "lucide-react";
+import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon, Eye, MapPin, ClipboardList } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
@@ -276,6 +276,7 @@ const Profile = () => {
   const [featuredLinkIds, setFeaturedLinkIds] = useState<string[]>([]);
   const [profileCreatedAt, setProfileCreatedAt] = useState<string | null>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+  const [publishedForms, setPublishedForms] = useState<{ id: string; title: string; description: string | null; category: string }[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -408,8 +409,24 @@ const Profile = () => {
           }
         } catch {} // RPC may not exist
 
-        // Track profile view using user_id from page data
+        // Fetch published forms
         const resolvedUserId = pageData?.[0]?.user_id;
+        if (resolvedUserId) {
+          try {
+            const { data: formsData } = await supabase
+              .from("forms")
+              .select("id, title, description, category")
+              .eq("user_id", resolvedUserId)
+              .eq("status", "published")
+              .eq("is_active", true)
+              .order("created_at", { ascending: false });
+            if (formsData && formsData.length > 0) {
+              setPublishedForms(formsData);
+            }
+          } catch {} // table may not exist
+        }
+
+        // Track profile view using user_id from page data
         if (resolvedUserId) {
           try {
             const visitorId = localStorage.getItem("stl_visitor_id") ||
@@ -547,9 +564,9 @@ const Profile = () => {
   }, [visibleLinks]);
 
   const hasProducts = products.length > 0;
-  // Pages: cover + link pages + (optional shop) + (optional booking) + footer
-  // Pages: cover + link pages + (shop?) + (booking?) + stay connected + footer
-  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasProducts ? 1 : 0) + (hasBookingServices ? 1 : 0) + 1 + 1;
+  const hasForms = publishedForms.length > 0;
+  // Pages: cover + link pages + (shop?) + (booking?) + (forms?) + stay connected + footer
+  const totalPages = 1 + Math.max(linkPages.length, 1) + (hasProducts ? 1 : 0) + (hasBookingServices ? 1 : 0) + (hasForms ? 1 : 0) + 1 + 1;
   const [currentPage, setCurrentPage] = useState(0);
   const [flipDirection, setFlipDirection] = useState<"next" | "prev" | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -875,8 +892,8 @@ const Profile = () => {
           {hasBookingServices && bookingServicesPreview.length > 0 && (
             <button
               onClick={() => {
-                // Navigate to booking page (before stay-connected and footer)
-                const bookingPageIndex = totalPages - 3;
+                // Navigate to booking page
+                const bookingPageIndex = totalPages - 2 - (hasForms ? 1 : 0) - 1;
                 if (bookingPageIndex !== currentPage && !isFlipping) {
                   setFlipDirection(bookingPageIndex > currentPage ? "next" : "prev");
                   setIsFlipping(true);
@@ -1024,13 +1041,54 @@ const Profile = () => {
     if (pageIndex === totalPages - 2) {
       return (
         <div className="flex flex-col items-center justify-center h-full px-6 py-8">
-          <EmailCollector username={username || ""} textColor={currentTheme.textColor} />
+          <EmailCollector username={username || ""} creatorId={creatorId || undefined} textColor={currentTheme.textColor} />
         </div>
       );
     }
 
-    // Booking page: inserted between links/shop and stay-connected
-    if (hasBookingServices && creatorId && pageIndex === totalPages - 3) {
+    // Compute special page indices (counting from end):
+    // footer = last, stayConnected = second-to-last, then forms, then booking
+    const footerIdx = totalPages - 1;
+    const stayConnectedIdx = footerIdx - 1;
+    const formsIdx = hasForms ? stayConnectedIdx - 1 : -1;
+    const bookingIdx = hasBookingServices ? (hasForms ? formsIdx - 1 : stayConnectedIdx - 1) : -1;
+
+    // Forms page
+    if (hasForms && pageIndex === formsIdx) {
+      return (
+        <div className="flex flex-col h-full px-5 py-6 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardList className="w-5 h-5" style={titleInlineStyle || undefined} />
+            <h2 className={`text-lg font-bold ${currentTheme.textColor}`} style={titleInlineStyle}>Forms</h2>
+          </div>
+          <div className="space-y-3 flex-1">
+            {publishedForms.map((form) => (
+              <a
+                key={form.id}
+                href={`/form/${form.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-4 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`font-semibold text-sm ${currentTheme.textColor} truncate`}>{form.title}</h3>
+                    {form.description && (
+                      <p className={`text-xs ${currentTheme.textColor} opacity-60 mt-1 line-clamp-2`}>{form.description}</p>
+                    )}
+                    <span className={`text-[10px] ${currentTheme.textColor} opacity-50 mt-1 inline-block`}>{form.category}</span>
+                  </div>
+                  <ArrowRight className={`w-4 h-4 ${currentTheme.textColor} opacity-40 group-hover:opacity-80 transition-opacity shrink-0 ml-2`} />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Booking page
+    if (hasBookingServices && creatorId && pageIndex === bookingIdx) {
       return (
         <div className="flex flex-col h-full px-4 py-6 overflow-y-auto">
           <BookingWidget
