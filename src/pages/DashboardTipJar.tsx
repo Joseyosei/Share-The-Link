@@ -75,19 +75,42 @@ const DashboardTipJar = () => {
         .map((a) => parseInt(a.trim()))
         .filter((a) => !isNaN(a) && a > 0);
 
-      const { error } = await supabase.from("tip_settings").upsert({
+      const payload = {
         user_id: user.id,
         is_enabled: isEnabled,
         custom_message: customMessage,
         suggested_amounts: amounts,
         currency,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      };
+
+      // Try update first (existing row)
+      const { data: existing } = await supabase
+        .from("tip_settings")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      let error;
+      if (existing) {
+        ({ error } = await supabase
+          .from("tip_settings")
+          .update(payload)
+          .eq("user_id", user.id));
+      } else {
+        ({ error } = await supabase
+          .from("tip_settings")
+          .insert(payload));
+      }
 
       if (error) throw error;
       toast({ title: "Saved!", description: "Tip jar settings updated." });
-    } catch {
-      toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Tip jar save error:", err);
+      const msg = err?.message?.includes("does not exist")
+        ? "Tip settings table not set up. Run the SQL migration in Supabase."
+        : err?.message || "Failed to save settings";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setSaving(false);
     }
