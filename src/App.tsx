@@ -55,6 +55,7 @@ import DashboardDomains from "./pages/DashboardDomains";
 import DashboardABTesting from "./pages/DashboardABTesting";
 import DashboardForms from "./pages/DashboardForms";
 import PublicForm from "./pages/PublicForm";
+import Discover from "./pages/Discover";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
@@ -115,6 +116,7 @@ const App = () => (
           <Route path="/dashboard/reviews" element={<ProtectedRoute><DashboardReviews /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
+          <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
           <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
           <Route path="/connect" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />

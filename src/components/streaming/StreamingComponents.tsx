@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor, Save, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor, Save, Mic, MicOff, Volume2, VolumeX, Settings2, Signal, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useStreaming } from "@/hooks/useStreaming";
-import { useBroadcaster, useViewer } from "@/hooks/useWebRTC";
+import { useBroadcaster, useViewer, QUALITY_PRESETS, type QualityPreset } from "@/hooks/useWebRTC";
 import { useStreamRecording } from "@/hooks/useStreamRecording";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -114,6 +114,7 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
   const recorder = useStreamRecording();
   const [loading, setLoading] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamTitleRef = useRef("");
 
@@ -210,7 +211,32 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
           )}
         </div>
       )}
-      {recorder.isUploading && (
+      {/* Connection health + quality indicator */}
+      {isLive && (
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          {recorder.isUploading && (
+            <Badge variant="secondary" className="bg-blue-600/80 text-white border-0">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Saving...
+            </Badge>
+          )}
+          <Badge
+            variant="secondary"
+            className={`border-0 text-white text-[10px] ${
+              broadcaster.connectionHealth === "good" ? "bg-green-600/80" :
+              broadcaster.connectionHealth === "degraded" ? "bg-yellow-600/80" : "bg-red-600/80"
+            }`}
+          >
+            <Signal className="w-3 h-3 mr-1" />
+            {broadcaster.connectionHealth === "good" ? "Stable" :
+             broadcaster.connectionHealth === "degraded" ? "Unstable" : "Poor"}
+          </Badge>
+          <Badge variant="secondary" className="bg-black/60 text-white border-0 text-[10px]">
+            {QUALITY_PRESETS[broadcaster.quality].label}
+          </Badge>
+        </div>
+      )}
+      {!isLive && recorder.isUploading && (
         <div className="absolute top-4 right-4 z-10">
           <Badge variant="secondary" className="bg-blue-600/80 text-white border-0">
             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -291,6 +317,36 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
             >
               {micEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
             </Button>
+          )}
+          {/* Quality selector */}
+          {broadcaster.localStream && (
+            <div className="relative">
+              <Button
+                onClick={() => setShowQualityMenu(!showQualityMenu)}
+                variant="secondary"
+                size="sm"
+                title="Stream quality"
+              >
+                <Settings2 className="w-4 h-4" />
+              </Button>
+              {showQualityMenu && (
+                <div className="absolute bottom-full mb-2 right-0 bg-black/90 backdrop-blur-xl rounded-lg border border-white/10 p-1 min-w-[120px]">
+                  {(Object.keys(QUALITY_PRESETS) as QualityPreset[]).map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => { broadcaster.changeQuality(preset); setShowQualityMenu(false); }}
+                      className={`w-full text-left px-3 py-1.5 rounded text-xs transition-colors ${
+                        broadcaster.quality === preset
+                          ? "bg-primary text-white"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      {QUALITY_PRESETS[preset].label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           {!isLive ? (
             <Button

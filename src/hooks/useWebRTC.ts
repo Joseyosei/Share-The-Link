@@ -40,6 +40,16 @@ const MAX_RECONNECT_ATTEMPTS = 3;
 const INITIAL_RECONNECT_DELAY = 1000; // 1 second
 const HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
 
+// Adaptive quality presets
+export type QualityPreset = "auto" | "1080p" | "720p" | "480p" | "360p";
+export const QUALITY_PRESETS: Record<QualityPreset, { width: number; height: number; bitrate: number; fps: number; label: string }> = {
+  auto: { width: 1280, height: 720, bitrate: 2500000, fps: 30, label: "Auto" },
+  "1080p": { width: 1920, height: 1080, bitrate: 4500000, fps: 30, label: "1080p HD" },
+  "720p": { width: 1280, height: 720, bitrate: 2500000, fps: 30, label: "720p" },
+  "480p": { width: 854, height: 480, bitrate: 1000000, fps: 30, label: "480p" },
+  "360p": { width: 640, height: 360, bitrate: 500000, fps: 24, label: "360p" },
+};
+
 interface PeerState {
   connection: RTCPeerConnection;
   viewerId: string;
@@ -63,11 +73,40 @@ export function useBroadcaster(roomName: string) {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [mediaSource, setMediaSource] = useState<"camera" | "screen" | null>(null);
   const [connectionHealth, setConnectionHealth] = useState<"good" | "degraded" | "poor">("good");
+  const [quality, setQuality] = useState<QualityPreset>("auto");
+  const [currentBitrate, setCurrentBitrate] = useState(2500000);
 
   const peersRef = useRef<Map<string, PeerState>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Adaptive bitrate: adjust encoding based on viewer count and connection quality
+  const adaptBitrate = useCallback(() => {
+    const peers = peersRef.current;
+    const basePreset = QUALITY_PRESETS[quality];
+    let targetBitrate = basePreset.bitrate;
+
+    // Reduce bitrate as viewer count grows (P2P bandwidth sharing)
+    if (peers.size > 5) targetBitrate = Math.floor(targetBitrate * 0.7);
+    if (peers.size > 10) targetBitrate = Math.floor(targetBitrate * 0.5);
+    if (peers.size > 20) targetBitrate = Math.floor(targetBitrate * 0.4);
+
+    setCurrentBitrate(targetBitrate);
+
+    // Apply bitrate constraint to all peer connections
+    peers.forEach((peer) => {
+      const senders = peer.connection.getSenders();
+      senders.forEach((sender) => {
+        if (sender.track?.kind === "video") {
+          const params = sender.getParameters();
+          if (!params.encodings) params.encodings = [{}];
+          params.encodings[0].maxBitrate = targetBitrate;
+          sender.setParameters(params).catch(() => {});
+        }
+      });
+    });
+  }, [quality]);
 
   // Keep ref in sync
   useEffect(() => {
@@ -287,9 +326,12 @@ export function useBroadcaster(roomName: string) {
     channelRef.current = channel;
     setIsBroadcasting(true);
 
-    // Start health check interval
-    healthCheckIntervalRef.current = setInterval(checkConnectionHealth, HEALTH_CHECK_INTERVAL);
-  }, [roomName, createPeerForViewer, processBufferedCandidates, checkConnectionHealth]);
+    // Start health check interval (also adapts bitrate)
+    healthCheckIntervalRef.current = setInterval(() => {
+      checkConnectionHealth();
+      adaptBitrate();
+    }, HEALTH_CHECK_INTERVAL);
+  }, [roomName, createPeerForViewer, processBufferedCandidates, checkConnectionHealth, adaptBitrate]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -382,16 +424,55 @@ export function useBroadcaster(roomName: string) {
     };
   }, []);
 
+  // Change quality preset on the fly
+  const changeQuality = useCallback(async (preset: QualityPreset) => {
+    setQuality(preset);
+    const q = QUALITY_PRESETS[preset];
+
+    // If camera is active, apply new constraints
+    if (localStreamRef.current && mediaSource === "camera") {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        try {
+          await videoTrack.applyConstraints({
+            width: { ideal: q.width },
+            height: { ideal: q.height },
+            frameRate: { ideal: q.fps },
+          });
+        } catch (err) {
+          console.warn("Could not apply quality constraints:", err);
+        }
+      }
+    }
+
+    // Update bitrate on all peers
+    setCurrentBitrate(q.bitrate);
+    peersRef.current.forEach((peer) => {
+      const senders = peer.connection.getSenders();
+      senders.forEach((sender) => {
+        if (sender.track?.kind === "video") {
+          const params = sender.getParameters();
+          if (!params.encodings) params.encodings = [{}];
+          params.encodings[0].maxBitrate = q.bitrate;
+          sender.setParameters(params).catch(() => {});
+        }
+      });
+    });
+  }, [mediaSource]);
+
   return {
     localStream,
     viewerCount,
     isBroadcasting,
     mediaSource,
     connectionHealth,
+    quality,
+    currentBitrate,
     startCamera,
     startScreenShare,
     startBroadcasting,
     stopBroadcasting,
+    changeQuality,
   };
 }
 

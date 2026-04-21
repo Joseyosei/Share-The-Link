@@ -25,7 +25,8 @@ import {
   Users,
   Globe,
   FlaskConical,
-  ClipboardList
+  ClipboardList,
+  TrendingUp
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,7 @@ const navItems = [
   { icon: Heart, labelKey: "sidebar.tipJar", href: "/dashboard/tip-jar", isNew: true },
   // Media & Live
   { icon: Radio, labelKey: "sidebar.liveStreaming", href: "/streaming", isNew: true },
+  { icon: TrendingUp, label: "Discover", href: "/discover", isNew: true },
   { icon: Play, labelKey: "sidebar.media", href: "/dashboard/media", isNew: true },
   { icon: QrCode, labelKey: "sidebar.qrCodes", href: "/dashboard/qr-code", isNew: true },
   // AI & Automation
