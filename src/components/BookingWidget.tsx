@@ -16,6 +16,14 @@ interface BookingService {
   type: string;
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  GBP: "£", USD: "$", EUR: "€", JPY: "¥", CAD: "CA$", AUD: "A$",
+  INR: "₹", ZAR: "R", NGN: "₦", KES: "KSh", BRL: "R$", MXN: "MX$",
+};
+
+const getCurrencySymbol = (code?: string) =>
+  CURRENCY_SYMBOLS[(code || "GBP").toUpperCase()] || code || "£";
+
 interface AvailabilitySlot {
   day_of_week: number;
   start_time: string;
@@ -252,7 +260,7 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
                     <div className="flex items-center gap-2 mt-1.5">
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{svc.duration} min</Badge>
                       <span className="text-xs font-bold text-foreground">
-                        {svc.price > 0 ? `$${svc.price.toFixed(2)}` : "Free"}
+                        {svc.price > 0 ? `${getCurrencySymbol(svc.currency)}${svc.price.toFixed(2)}` : "Free"}
                       </span>
                     </div>
                   </div>
@@ -393,7 +401,7 @@ export const BookingWidget = ({ creatorId, creatorName, themeTextColor = "text-f
             <div className="border-t border-border pt-2 flex justify-between">
               <span className="font-semibold text-foreground">Total</span>
               <span className="font-bold text-foreground">
-                {selectedService && selectedService.price > 0 ? `$${selectedService.price.toFixed(2)}` : "Free"}
+                {selectedService && selectedService.price > 0 ? `${getCurrencySymbol(selectedService.currency)}${selectedService.price.toFixed(2)}` : "Free"}
               </span>
             </div>
           </div>
