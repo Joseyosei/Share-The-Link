@@ -243,7 +243,7 @@ const AIAgentDashboard = () => {
   const webhookEndpoint = 'https://sharethelink.app/api/ai-agent?action=webhook-trigger';
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background liquid-glass-muted flex">
       <Sidebar />
       <MobileSidebar />
 

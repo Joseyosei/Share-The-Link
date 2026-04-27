@@ -188,7 +188,7 @@ const ForgotPassword = () => {
           <div className="text-center mb-8">
             <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
           </div>
-          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
+          <div className="liquid-glass glass-specular rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
@@ -214,7 +214,7 @@ const ForgotPassword = () => {
         <div className="text-center mb-8">
           <Link to="/"><Logo textClassName="text-primary-foreground" /></Link>
         </div>
-        <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
+        <div className="liquid-glass glass-specular rounded-2xl shadow-2xl p-8 animate-scale-in">
 
           {/* ---- STEP 1: Enter Email ---- */}
           {step === "email" && (
@@ -232,7 +232,7 @@ const ForgotPassword = () => {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(""); }}
                     placeholder="Enter your email"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                     autoFocus
                   />
                 </div>
@@ -338,7 +338,7 @@ const ForgotPassword = () => {
                       value={newPassword}
                       onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
                       placeholder="Enter new password"
-                      className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                      className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                       autoFocus
                     />
                     <button
@@ -387,7 +387,7 @@ const ForgotPassword = () => {
                       value={confirmPassword}
                       onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }}
                       placeholder="Confirm new password"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                     />
                   </div>
                   {confirmPassword && confirmPassword !== newPassword && (

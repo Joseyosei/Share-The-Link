@@ -164,7 +164,7 @@ const Signup = () => {
               <Logo textClassName="text-primary-foreground" />
             </Link>
           </div>
-          <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
+          <div className="liquid-glass glass-specular rounded-2xl shadow-2xl p-8 animate-scale-in text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Mail className="w-8 h-8 text-primary" />
             </div>
@@ -193,7 +193,7 @@ const Signup = () => {
             <Logo textClassName="text-primary-foreground" />
           </Link>
         </div>
-        <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
+        <div className="liquid-glass glass-specular rounded-2xl shadow-2xl p-8 animate-scale-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">Create your account</h1>
           {selectedTemplate && (
             <div className={`mb-4 p-3 rounded-xl ${selectedTemplate.bg} flex items-center gap-3`}>
@@ -236,7 +236,7 @@ const Signup = () => {
                     placeholder={field.placeholder}
                     value={formData[field.name as keyof typeof formData]}
                     onChange={handleChange}
-                    className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
+                    className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
                       errors[field.name] ? "border-destructive" : "border-border"
                     }`}
                   />
@@ -260,7 +260,7 @@ const Signup = () => {
                   placeholder="Password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
+                  className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
                     errors.password ? "border-destructive" : "border-border"
                   }`}
                 />

@@ -23,7 +23,7 @@ export const Pricing = () => {
   };
 
   return (
-    <section id="pricing" className="py-24 bg-muted">
+    <section id="pricing" className="py-24 bg-muted liquid-glass-muted">
       <div className="container mx-auto px-6">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -75,7 +75,7 @@ export const Pricing = () => {
                 className={`relative rounded-2xl p-7 transition-all duration-300 hover:-translate-y-1 ${
                   plan.highlighted
                     ? "bg-foreground text-background shadow-2xl lg:scale-105"
-                    : "bg-card text-card-foreground shadow-lg"
+                    : "liquid-glass glass-specular text-card-foreground shadow-lg"
                 }`}
               >
                 {/* Popular Badge */}

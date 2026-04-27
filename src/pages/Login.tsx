@@ -98,7 +98,7 @@ const Login = () => {
             <Logo textClassName="text-primary-foreground" />
           </Link>
         </div>
-        <div className="bg-card rounded-2xl shadow-2xl p-8 animate-scale-in">
+        <div className="liquid-glass glass-specular rounded-2xl shadow-2xl p-8 animate-scale-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back</h1>
           <p className="text-muted-foreground mb-6">
             Don't have an account?{" "}
@@ -120,7 +120,7 @@ const Login = () => {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
               />
             </div>
             <div className="relative">
@@ -131,7 +131,7 @@ const Login = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
               />
               <button
                 type="button"

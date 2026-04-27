@@ -274,7 +274,7 @@ const DashboardBookings = () => {
   const pastBookings = bookings.filter((b) => b.status === "completed" || b.status === "cancelled");
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background liquid-glass-muted flex">
       <Sidebar />
       <MobileSidebar />
       <main className="flex-1 p-4 md:p-8 md:ml-64">

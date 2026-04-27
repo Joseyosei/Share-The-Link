@@ -25,7 +25,8 @@ import {
   Users,
   Globe,
   FlaskConical,
-  ClipboardList
+  ClipboardList,
+  TrendingUp
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,7 @@ const navItems = [
   { icon: Heart, labelKey: "sidebar.tipJar", href: "/dashboard/tip-jar", isNew: true },
   // Media & Live
   { icon: Radio, labelKey: "sidebar.liveStreaming", href: "/streaming", isNew: true },
+  { icon: TrendingUp, label: "Discover", href: "/discover", isNew: true },
   { icon: Play, labelKey: "sidebar.media", href: "/dashboard/media", isNew: true },
   { icon: QrCode, labelKey: "sidebar.qrCodes", href: "/dashboard/qr-code", isNew: true },
   // AI & Automation
@@ -111,7 +113,7 @@ export const Sidebar = () => {
   const displayEmail = profile?.email || "user@example.com";
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground flex-col">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 liquid-glass-sidebar text-sidebar-foreground flex-col z-40">
 
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
@@ -130,10 +132,10 @@ export const Sidebar = () => {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  ? "bg-white/10 backdrop-blur-lg text-white border border-white/10 shadow-lg shadow-primary/10"
+                  : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground"
               }`}
             >
               <IconComponent className="w-5 h-5" />

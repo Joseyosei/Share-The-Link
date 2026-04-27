@@ -53,7 +53,7 @@ const features = [
 
 export const Features = () => {
   return (
-    <section id="features" className="py-24 bg-background relative">
+    <section id="features" className="py-24 bg-background relative overflow-hidden">
       <div className="container mx-auto px-6">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -74,7 +74,7 @@ export const Features = () => {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className="group p-8 rounded-2xl bg-card border border-border hover-lift hover-glow cursor-default relative overflow-hidden"
+              className="group p-8 rounded-2xl liquid-glass glass-specular hover-lift hover-glow cursor-default relative overflow-hidden"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Subtle gradient accent on hover */}

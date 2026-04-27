@@ -280,7 +280,7 @@ const DashboardSettings = () => {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-muted">
+      <div className="min-h-screen bg-muted liquid-glass-muted">
         <Sidebar />
         <MobileSidebar />
         <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">
@@ -301,7 +301,7 @@ const DashboardSettings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted liquid-glass-muted">
       <Sidebar />
       <MobileSidebar />
 
