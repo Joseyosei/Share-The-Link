@@ -55,6 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const description = formData.description || "";
     const visibility = formData.visibility || "public";
     const duration = parseInt(formData.duration || "0", 10);
+    const streamId = formData.stream_id || null;
 
     if (!file || !file.data || file.data.length === 0) {
       return res.status(400).json({ error: "No video file provided" });
@@ -132,6 +133,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (dbError) {
       console.error("Database insert error:", dbError);
       return res.status(500).json({ error: "Failed to save video record" });
+    }
+
+    // If this is a stream recording, also insert into stream_recordings table
+    if (streamId) {
+      const { error: recError } = await supabaseAdmin
+        .from("stream_recordings")
+        .insert({
+          stream_id: streamId,
+          user_id: auth.userId,
+          video_url: blob.url,
+          title: title.slice(0, 200),
+          description: description.slice(0, 2000) || null,
+          duration,
+          thumbnail_url: thumbnailUrl,
+          view_count: 0,
+        });
+
+      if (recError) {
+        console.error("Stream recording insert error:", recError);
+      }
     }
 
     return res.status(200).json({

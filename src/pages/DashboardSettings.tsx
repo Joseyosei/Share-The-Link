@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Lock, Trash2, Camera, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, User, Lock, Trash2, Camera, Github, Globe, Linkedin, CreditCard, AlertTriangle, CheckCircle, XCircle, ExternalLink, Music } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
@@ -51,6 +51,7 @@ const DashboardSettings = () => {
   });
 
   const [introVideoUrl, setIntroVideoUrl] = useState("");
+  const [spotifyTrackUrl, setSpotifyTrackUrl] = useState("");
   const [timezone, setTimezone] = useState("");
   const [location, setLocation] = useState("");
 
@@ -84,6 +85,7 @@ const DashboardSettings = () => {
           website: saved.website || "",
         }));
         setIntroVideoUrl(saved.intro_video_url || "");
+        setSpotifyTrackUrl(saved.spotify_track_url || "");
         setTimezone(saved.timezone || "");
         setLocation(saved.location || "");
       }
@@ -135,6 +137,9 @@ const DashboardSettings = () => {
       // Persist intro video URL and timezone alongside social links
       if (introVideoUrl.trim()) {
         filteredSocials.intro_video_url = introVideoUrl.trim();
+      }
+      if (spotifyTrackUrl.trim()) {
+        filteredSocials.spotify_track_url = spotifyTrackUrl.trim();
       }
       if (timezone) {
         filteredSocials.timezone = timezone;
@@ -533,6 +538,26 @@ const DashboardSettings = () => {
                   onVideoChange={setIntroVideoUrl}
                 />
               )}
+
+              {/* Spotify Music Player */}
+              <div className="pt-4 border-t border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
+                  <Music className="w-4 h-4 text-green-500" />
+                  Profile Music
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Add a Spotify track, album, or playlist URL to show a floating music player on your live profile.
+                </p>
+                <input
+                  placeholder="https://open.spotify.com/track/..."
+                  value={spotifyTrackUrl}
+                  onChange={(e) => setSpotifyTrackUrl(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+                />
+                {spotifyTrackUrl && !spotifyTrackUrl.match(/open\.spotify\.com\/(track|album|playlist)\/[a-zA-Z0-9]+/) && (
+                  <p className="text-destructive text-xs mt-1">Please enter a valid Spotify track, album, or playlist URL</p>
+                )}
+              </div>
 
               <Button
                 onClick={handleSaveProfile}

@@ -111,7 +111,7 @@ export function IntroVideoUploader({ currentVideoUrl, userId, onVideoChange }: I
         if (!response.ok) throw new Error(result.error || "Upload failed");
 
         setUploadProgress(100);
-        const videoUrl = result.video_url || result.url || "";
+        const videoUrl = result.video?.video_url || result.video_url || result.url || "";
         onVideoChange(videoUrl);
 
         toast({

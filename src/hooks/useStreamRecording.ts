@@ -129,6 +129,7 @@ export function useStreamRecording() {
         formData.append("description", description || "");
         formData.append("visibility", "public");
         formData.append("duration", String(duration));
+        formData.append("stream_id", streamId);
         
         // Add thumbnail if provided
         if (thumbnailDataUrl) {
