@@ -197,7 +197,7 @@ const DashboardMedia = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background liquid-glass-muted">
       <Sidebar />
       <MobileSidebar />
 

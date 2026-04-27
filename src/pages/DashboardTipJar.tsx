@@ -120,7 +120,7 @@ const DashboardTipJar = () => {
   const totalEarned = tips.reduce((sum, t) => sum + t.amount_cents, 0) / 100;
 
   return (
-    <div className="min-h-screen bg-muted overflow-x-hidden">
+    <div className="min-h-screen bg-muted liquid-glass-muted overflow-x-hidden">
       <Sidebar />
       <MobileSidebar />
 

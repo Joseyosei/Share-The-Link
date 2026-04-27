@@ -104,7 +104,7 @@ const DashboardABTesting = () => {
     impressions > 0 ? ((clicks / impressions) * 100).toFixed(1) + "%" : "0%";
 
   return (
-    <div className="min-h-screen bg-muted overflow-x-hidden">
+    <div className="min-h-screen bg-muted liquid-glass-muted overflow-x-hidden">
       <Sidebar />
       <MobileSidebar />
 

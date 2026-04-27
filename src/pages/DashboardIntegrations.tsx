@@ -294,7 +294,7 @@ const DashboardIntegrations = () => {
   const installedCount = INTEGRATIONS.filter((a) => installed.has(a.id)).length;
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted liquid-glass-muted">
       <Sidebar />
       <MobileSidebar />
       <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8">

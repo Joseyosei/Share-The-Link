@@ -233,7 +233,7 @@ const ConnectDashboard = () => {
   const totalValue = products.reduce((sum, p) => sum + p.price_cents, 0);
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted liquid-glass-muted">
       <Sidebar />
       <MobileSidebar />
 

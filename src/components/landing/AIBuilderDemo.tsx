@@ -382,7 +382,7 @@ export const AIBuilderDemo = () => {
 
             {/* Left: Input Area */}
             <div className="space-y-6">
-              <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
+              <div className="liquid-glass glass-specular rounded-2xl p-6 shadow-lg">
                 <label className="block text-sm font-semibold text-foreground mb-3">
                   Describe your business or brand
                 </label>

@@ -245,7 +245,7 @@ export const Footer = () => {
       {showComingSoon && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowComingSoon(false)} />
-          <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl border border-white/10">
+          <div className="relative bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/90 backdrop-blur-2xl rounded-2xl p-8 max-w-md w-full text-center shadow-2xl border border-white/10">
             <button
               onClick={() => setShowComingSoon(false)}
               className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"

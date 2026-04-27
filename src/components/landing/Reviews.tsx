@@ -38,7 +38,7 @@ export const Reviews = () => {
 
   if (loading) {
     return (
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-muted/30 liquid-glass-muted">
         <div className="container mx-auto px-4">
           <div className="flex justify-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -53,7 +53,7 @@ export const Reviews = () => {
   }
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-20 bg-muted/30 liquid-glass-muted">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
@@ -70,7 +70,7 @@ export const Reviews = () => {
           {reviews.map((review) => (
             <div
               key={review.id}
-              className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
+              className="liquid-glass glass-specular rounded-2xl p-6 hover:shadow-md transition-all duration-300"
             >
               {/* Quote Icon */}
               <Quote className="w-8 h-8 text-primary/20 mb-4" />

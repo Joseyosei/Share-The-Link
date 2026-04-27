@@ -112,7 +112,7 @@ export const MobileSidebar = () => {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 liquid-glass-sidebar border-b border-sidebar-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <Link to="/">
             <Logo textClassName="text-sidebar-foreground" />
@@ -138,7 +138,7 @@ export const MobileSidebar = () => {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-screen w-[280px] max-w-[85vw] bg-sidebar text-sidebar-foreground z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+        className={`lg:hidden fixed top-0 left-0 h-screen w-[280px] max-w-[85vw] liquid-glass-sidebar text-sidebar-foreground z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -159,10 +159,10 @@ export const MobileSidebar = () => {
                 key={item.href}
                 to={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    ? "bg-white/10 backdrop-blur-lg text-white border border-white/10 shadow-lg shadow-primary/10"
+                    : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground"
                 }`}
               >
                 <IconComponent className="w-5 h-5 flex-shrink-0" />

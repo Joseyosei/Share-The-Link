@@ -140,7 +140,7 @@ const DashboardTeam = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted overflow-x-hidden">
+    <div className="min-h-screen bg-muted liquid-glass-muted overflow-x-hidden">
       <Sidebar />
       <MobileSidebar />
 

@@ -244,7 +244,7 @@ const DashboardSupport = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted liquid-glass-muted">
       <Sidebar />
       <MobileSidebar />
 
