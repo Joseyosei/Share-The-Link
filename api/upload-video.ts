@@ -117,15 +117,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from("user_videos")
       .insert({
         user_id: auth.userId,
-        title: title.slice(0, 200), // Max title length
-        description: description.slice(0, 2000), // Max description length
+        title: title.slice(0, 200),
+        description: description.slice(0, 2000),
         video_url: blob.url,
         thumbnail_url: thumbnailUrl,
         duration,
-        file_size: file.data.length,
-        mime_type: mimeType,
         visibility,
-        status: "ready",
       })
       .select()
       .single();
@@ -148,6 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           duration,
           thumbnail_url: thumbnailUrl,
           view_count: 0,
+          visibility: "public",
         });
 
       if (recError) {

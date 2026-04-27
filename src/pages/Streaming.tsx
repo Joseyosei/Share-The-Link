@@ -334,7 +334,7 @@ const Streaming = () => {
                                   {new Date(rec.created_at).toLocaleDateString("en-US", {
                                     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
                                   })}
-                                  {rec.duration > 0 && ` -- ${formatDuration(rec.duration)}`}
+                                  {rec.duration > 0 && ` · ${formatDuration(rec.duration)}`}
                                 </p>
                               </div>
                             </div>
@@ -477,7 +477,7 @@ const StreamCard = ({ stream, recording, onWatch, onDelete, deleting }: StreamCa
                 {stream.started_at ? formatDate(stream.started_at) : formatDate(stream.created_at)}
                 {recording && recording.duration > 0 && (
                   <span className="ml-2 text-primary">
-                    -- {formatDuration(recording.duration)}
+                    · {formatDuration(recording.duration)}
                   </span>
                 )}
               </p>

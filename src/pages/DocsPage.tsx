@@ -34,7 +34,7 @@ const docs: DocSection[] = [
         id: "welcome",
         title: "Welcome to Share The Link",
         tags: ["intro", "overview", "about"],
-        content: `Share The Link is the first link-in-bio platform with built-in live streaming for entrepreneurs. Create a beautiful page for all your links, go live with one click, and grow your business — all in one platform.
+        content: `Share The Link is the first link-in-bio platform with built-in live streaming for entrepreneurs. Create a beautiful page for all your links, go live with one click, and grow your business: all in one platform.
 
 **Key Features:**
 - Unlimited links in one page
@@ -62,19 +62,19 @@ const docs: DocSection[] = [
 1. Go to sharethelink.app
 2. Click "Sign Up"
 3. Sign up with Google or Apple for instant access, OR enter your email and create a password
-4. If using email, verify your email — you're in!
+4. If using email, verify your email: you're in!
 
 You can also sign up with Google or Apple for one-click instant access.
 
 **Step 2: Build Your Page (2 min)**
-Option A — AI Builder (Recommended):
+Option A: AI Builder (Recommended):
 1. Click "Create with AI" or go to AI Builder from the sidebar
 2. Describe your business in 2-3 sentences
 3. AI generates your complete page in 30 seconds
 4. Review, pick a theme, and customize
 5. Publish!
 
-Option B — Manual Builder:
+Option B: Manual Builder:
 1. Go to Dashboard and start adding links
 2. Customize your appearance from the Appearance page
 3. Publish when ready
@@ -82,7 +82,7 @@ Option B — Manual Builder:
 **Step 3: Add Your First Link (1 min)**
 1. Click "Add Link" on the Links page
 2. Enter the URL and a title
-3. Click Save — your link is live!
+3. Click Save: your link is live!
 
 **Step 4: Share Your Page (30 sec)**
 1. Click the Share button on your dashboard
@@ -108,13 +108,13 @@ Email and Password (Standard):
 
 Social Login (Faster):
 - Google (one-click sign up and login)
-- Apple (one-click sign up and login — keeps your email private if you choose)
+- Apple (one-click sign up and login: keeps your email private if you choose)
 
 **Profile Setup:**
 
 Required fields:
 - Display name (appears on your page)
-- Username (your unique URL — e.g. sharethelink.app/yourname)
+- Username (your unique URL: e.g. sharethelink.app/yourname)
 
 Optional fields:
 - Profile photo
@@ -137,16 +137,16 @@ Optional fields:
         content: `The dashboard is your home base. Here's what you'll find:
 
 **Sidebar Navigation:**
-- Dashboard — Overview with quick stats and recent activity
-- Links — Add, edit, organize, and schedule your links
-- Live Streaming — Go live, manage past streams, view stream analytics
-- Media — Browse and manage your stream recordings
-- AI Builder — Generate or redesign your profile page with AI
-- My Shop — List products and services for your audience
-- Appearance — Customize your theme, colors, fonts, layout
-- Analytics — Track views, clicks, and visitor insights
-- Settings — Account, billing, custom domain, security
-- Help — FAQs, video tutorials, and support contact
+- Dashboard: Overview with quick stats and recent activity
+- Links: Add, edit, organize, and schedule your links
+- Live Streaming: Go live, manage past streams, view stream analytics
+- Media: Browse and manage your stream recordings
+- AI Builder: Generate or redesign your profile page with AI
+- My Shop: List products and services for your audience
+- Appearance: Customize your theme, colors, fonts, layout
+- Analytics: Track views, clicks, and visitor insights
+- Settings: Account, billing, custom domain, security
+- Help: FAQs, video tutorials, and support contact
 
 **Quick Stats (Dashboard Home):**
 - Total page views (all-time)
@@ -196,12 +196,12 @@ State a clear goal:
 
 **Theme Selection:**
 After generation, you'll see 6 theme variants:
-- Minimal Light — Clean and simple
-- Bold Gradient — High energy, colorful
-- Warm Sunset — Warm tones, inviting
-- Dark Professional — Sleek and modern
-- Elegant Rose — Soft and refined
-- Nature Fresh — Green and organic
+- Minimal Light: Clean and simple
+- Bold Gradient: High energy, colorful
+- Warm Sunset: Warm tones, inviting
+- Dark Professional: Sleek and modern
+- Elegant Rose: Soft and refined
+- Nature Fresh: Green and organic
 
 Click any theme to preview it, then click Apply to save.`,
       },
@@ -212,10 +212,10 @@ Click any theme to preview it, then click Apply to save.`,
         content: `Go to Appearance in the sidebar to customize your page.
 
 **Color Settings:**
-- Primary color — Your main brand color (buttons, links, accents)
-- Secondary color — Supporting hover states, borders, icons
-- Background — Solid color, gradient, pattern, animated effects, or custom background image
-- Text color — Auto adjusts for contrast, or pick manually
+- Primary color: Your main brand color (buttons, links, accents)
+- Secondary color: Supporting hover states, borders, icons
+- Background: Solid color, gradient, pattern, animated effects, or custom background image
+- Text color: Auto adjusts for contrast, or pick manually
 
 **Typography:**
 Choose from 20+ fonts:
@@ -227,10 +227,10 @@ Choose from 20+ fonts:
 Font sizes: Small, Medium (default), or Large.
 
 **Layout Options:**
-- Single column — One link per row (best for most use cases)
-- Two columns — More compact, great for 6-12 links
-- Grid (3 columns) — Visual links with images
-- Masonry — Pinterest-style, varied heights
+- Single column: One link per row (best for most use cases)
+- Two columns: More compact, great for 6-12 links
+- Grid (3 columns): Visual links with images
+- Masonry: Pinterest-style, varied heights
 
 All layouts automatically adapt to single column on mobile.
 
@@ -256,19 +256,19 @@ Upload your own background image for a fully personalized profile:
 
 **Available Templates:**
 
-Minimal — Clean, simple, text-focused. Great for personal brands, writers, and photographers.
+Minimal: Clean, simple, text-focused. Great for personal brands, writers, and photographers.
 
-Bold — Large buttons, high contrast. Great for course creators, event promoters, and product launches.
+Bold: Large buttons, high contrast. Great for course creators, event promoters, and product launches.
 
-Creative — Unique layouts, visual elements. Great for designers, illustrators, and fashion brands.
+Creative: Unique layouts, visual elements. Great for designers, illustrators, and fashion brands.
 
-Professional — Conservative design, trust-building. Great for consultants, lawyers, and B2B services.
+Professional: Conservative design, trust-building. Great for consultants, lawyers, and B2B services.
 
-Ecommerce — Product grids, price displays, buy buttons. Great for online stores, digital products, and merch sellers.
+Ecommerce: Product grids, price displays, buy buttons. Great for online stores, digital products, and merch sellers.
 
-Blank — Start from scratch with full control.
+Blank: Start from scratch with full control.
 
-All templates are fully customizable — you can change every color, font, layout, and section.`,
+All templates are fully customizable: you can change every color, font, layout, and section.`,
       },
     ],
   },
@@ -304,10 +304,10 @@ All templates are fully customizable — you can change every color, font, layou
 - The order is saved automatically
 
 **Link Types:**
-- URL — Any web address
-- Email — Opens the user's email client
-- Phone — Opens the phone dialer
-- Social — Auto-detected icon for major platforms
+- URL: Any web address
+- Email: Opens the user's email client
+- Phone: Opens the phone dialer
+- Social: Auto-detected icon for major platforms
 
 You can add unlimited links on all plans.`,
       },
@@ -328,7 +328,7 @@ You can add unlimited links on all plans.`,
 Each link shows its click count on the Links page. For deeper insights, go to Analytics.
 
 **Tips:**
-- Put your most important link at the top — it gets the most clicks
+- Put your most important link at the top: it gets the most clicks
 - Links with thumbnails/images get 2-3x more clicks
 - Use clear, action-oriented titles like "Book a Call" instead of "Click Here"`,
       },
@@ -344,7 +344,7 @@ Each link shows its click count on the Links page. For deeper insights, go to An
         id: "going-live",
         title: "Going Live",
         tags: ["stream", "broadcast", "camera", "video", "live"],
-        content: `Share The Link has built-in live streaming — no third-party tools needed.
+        content: `Share The Link has built-in live streaming: no third-party tools needed.
 
 **How to Go Live:**
 1. Go to Live Streaming from the sidebar
@@ -601,7 +601,7 @@ A: Go to Help from the sidebar, or email support@sharethelink.com. You can also 
 - Close other bandwidth-heavy applications
 - Use a wired connection if possible
 - Lower your camera resolution in stream settings
-- Check CPU usage — close unnecessary tabs
+- Check CPU usage: close unnecessary tabs
 
 **Payment/Tip Issues:**
 - Verify your Stripe account is fully set up

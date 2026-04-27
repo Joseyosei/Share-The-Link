@@ -81,9 +81,19 @@ const animationClassMap: Record<string, string> = {
   "slide-in": "stl-link-slide-in",
 };
 
+// ── Favicon helper ──────────────────────────────────────────────────
+const getFaviconUrl = (url: string) => {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  } catch {
+    return null;
+  }
+};
+
 // ── Link Button component ───────────────────────────────────────────
 interface LinkButtonProps {
-  link: { id: string; title: string; url: string; link_type: string; animation?: string };
+  link: { id: string; title: string; url: string; link_type: string; animation?: string; thumbnail_url?: string | null };
   onClick: (id: string, url: string) => void;
   btnClass: string;
   btnInlineStyle: React.CSSProperties;
@@ -97,6 +107,8 @@ const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btn
   const showMedia = hasMediaPreview(link.url);
   const effectiveAnim = link.animation && link.animation !== "none" ? link.animation : globalAnimation;
   const animClass = animationClassMap[effectiveAnim] || "";
+  const faviconUrl = getFaviconUrl(link.url);
+  const hasThumbnail = !!link.thumbnail_url;
 
   return (
     <button
@@ -105,13 +117,37 @@ const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btn
       className={`w-full text-left p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${btnClass} ${animClass}`}
       style={{ ...btnInlineStyle, ...fontStyle }}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <span className={`font-semibold block ${btnTextColor}`} style={btnTextInlineStyle}>{link.title}</span>
+      {hasThumbnail && (
+        <div className="w-full aspect-[2/1] rounded-lg overflow-hidden mb-3">
+          <img
+            src={link.thumbnail_url!}
+            alt={link.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        {faviconUrl && !hasThumbnail && (
+          <img
+            src={faviconUrl}
+            alt=""
+            className="w-8 h-8 rounded-lg flex-shrink-0 bg-white/10"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <span className={`font-semibold block truncate ${btnTextColor}`} style={btnTextInlineStyle}>{link.title}</span>
           {link.link_type === "product" && <span className="text-xs text-accent font-medium">Product</span>}
           {link.link_type === "video" && <span className="text-xs text-destructive font-medium">Video</span>}
+          {!link.link_type && (
+            <span className={`text-xs opacity-50 truncate block ${btnTextColor}`} style={btnTextInlineStyle}>
+              {(() => { try { return new URL(link.url).hostname; } catch { return ""; } })()}
+            </span>
+          )}
         </div>
-        <ExternalLink className={`w-5 h-5 opacity-70 ${btnTextColor}`} style={btnTextInlineStyle} />
+        <ExternalLink className={`w-5 h-5 opacity-70 flex-shrink-0 ${btnTextColor}`} style={btnTextInlineStyle} />
       </div>
       {showMedia && <MediaPreview url={link.url} />}
     </button>

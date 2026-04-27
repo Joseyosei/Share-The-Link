@@ -1,4 +1,5 @@
 import { Link2, TrendingUp, Shield, Zap, Wand2, Radio, Share2, Timer } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 const features = [
   {
@@ -10,7 +11,7 @@ const features = [
   {
     icon: Share2,
     title: "One-Click Distribution",
-    description: "Share to Instagram, TikTok, X, LinkedIn, Facebook, WhatsApp, and Telegram -- instantly.",
+    description: "Share to Instagram, TikTok, X, LinkedIn, Facebook, WhatsApp, and Telegram instantly.",
     gradient: "from-pink-500 to-orange-500",
   },
   {
@@ -28,7 +29,7 @@ const features = [
   {
     icon: Link2,
     title: "One Link, Everything",
-    description: "Products, content, social profiles -- all in one beautiful, customizable page.",
+    description: "Products, content, social profiles, all in one beautiful, customizable page.",
     gradient: "from-purple-500 to-blue-500",
   },
   {
@@ -52,11 +53,30 @@ const features = [
 ];
 
 export const Features = () => {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale").forEach((child) => child.classList.add("revealed"));
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section id="features" className="py-24 bg-background relative overflow-hidden">
+    <section id="features" className="py-24 bg-background relative overflow-hidden" ref={sectionRef}>
       <div className="container mx-auto px-6">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             Why Share The Link
           </span>
@@ -74,7 +94,7 @@ export const Features = () => {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className="group p-8 rounded-2xl liquid-glass glass-specular hover-lift hover-glow cursor-default relative overflow-hidden"
+              className={`group p-8 rounded-2xl liquid-glass glass-specular hover-lift hover-glow cursor-default relative overflow-hidden scroll-reveal-scale scroll-delay-${Math.min(index + 1, 5)}`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Subtle gradient accent on hover */}

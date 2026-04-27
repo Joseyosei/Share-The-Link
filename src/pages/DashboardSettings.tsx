@@ -539,23 +539,23 @@ const DashboardSettings = () => {
                 />
               )}
 
-              {/* Spotify Music Player */}
+              {/* Profile Music Player */}
               <div className="pt-4 border-t border-border">
                 <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
                   <Music className="w-4 h-4 text-green-500" />
                   Profile Music
                 </h3>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Add a Spotify track, album, or playlist URL to show a floating music player on your live profile.
+                  Add a Spotify or YouTube URL to show a floating music player on your live profile.
                 </p>
                 <input
-                  placeholder="https://open.spotify.com/track/..."
+                  placeholder="https://open.spotify.com/track/... or https://youtube.com/watch?v=..."
                   value={spotifyTrackUrl}
                   onChange={(e) => setSpotifyTrackUrl(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
                 />
-                {spotifyTrackUrl && !spotifyTrackUrl.match(/open\.spotify\.com\/(track|album|playlist)\/[a-zA-Z0-9]+/) && (
-                  <p className="text-destructive text-xs mt-1">Please enter a valid Spotify track, album, or playlist URL</p>
+                {spotifyTrackUrl && !spotifyTrackUrl.match(/open\.spotify\.com\/(track|album|playlist)\/[a-zA-Z0-9]+/) && !spotifyTrackUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|playlist\?list=)|youtu\.be\/)/) && (
+                  <p className="text-destructive text-xs mt-1">Please enter a valid Spotify or YouTube URL</p>
                 )}
               </div>
 

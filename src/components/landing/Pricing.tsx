@@ -1,7 +1,7 @@
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PRICING_PLANS, formatPrice } from "@/lib/stripe-products";
 import { useSubscription } from "@/hooks/useSubscription";
 
@@ -9,6 +9,24 @@ export const Pricing = () => {
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const navigate = useNavigate();
   const { startCheckout } = useSubscription();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale").forEach((child) => child.classList.add("revealed"));
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handlePlanClick = async (planId: string) => {
     if (planId === "free") {
@@ -23,10 +41,10 @@ export const Pricing = () => {
   };
 
   return (
-    <section id="pricing" className="py-24 bg-muted liquid-glass-muted">
+    <section id="pricing" className="py-24 bg-muted liquid-glass-muted" ref={sectionRef}>
       <div className="container mx-auto px-6">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             Pricing
           </span>
