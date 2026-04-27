@@ -15,6 +15,7 @@ import { CountdownTimer } from "@/components/profile/CountdownTimer";
 import { themes } from "@/pages/DashboardAppearance";
 import { BookingWidget } from "@/components/BookingWidget";
 import { ProfileVideoAsk } from "@/components/ProfileVideoAsk";
+import { ProfileMusicPlayer } from "@/components/profile/ProfileMusicPlayer";
 import { LocalTimeDisplay } from "@/components/profile/LocalTimeDisplay";
 import { VerifiedBadge } from "@/components/profile/VerifiedBadge";
 import { FeaturedCarousel } from "@/components/profile/FeaturedCarousel";
@@ -259,6 +260,7 @@ const Profile = () => {
   const [bookingServicesPreview, setBookingServicesPreview] = useState<BookingServicePreview[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [introVideoUrl, setIntroVideoUrl] = useState<string | null>(null);
+  const [spotifyTrackUrl, setSpotifyTrackUrl] = useState<string | null>(null);
   const [viewerDarkMode, setViewerDarkMode] = useState<boolean | null>(null); // null = use theme default
   const [tipSettings, setTipSettings] = useState<{ is_enabled: boolean; suggested_amounts: number[]; custom_message: string; currency: string } | null>(null);
   const [creatorTimezone, setCreatorTimezone] = useState<string | null>(null);
@@ -350,6 +352,7 @@ const Profile = () => {
           const sl = row.social_links as Record<string, string> | null;
           if (sl && typeof sl === "object") {
             if (sl.intro_video_url) setIntroVideoUrl(sl.intro_video_url);
+            if (sl.spotify_track_url) setSpotifyTrackUrl(sl.spotify_track_url);
             if (sl.timezone) setCreatorTimezone(sl.timezone);
             if (sl.location) setCreatorLocation(sl.location);
           }
@@ -1315,6 +1318,11 @@ const Profile = () => {
           avatarUrl={profile?.avatar_url}
           name={profile?.full_name || username}
         />
+      )}
+
+      {/* Spotify music player */}
+      {spotifyTrackUrl && (
+        <ProfileMusicPlayer spotifyUrl={spotifyTrackUrl} />
       )}
 
       {/* Flipbook CSS animations */}
