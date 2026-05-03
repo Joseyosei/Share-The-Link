@@ -41,7 +41,7 @@ const changelog = [
     version: "3.2.0",
     date: "February 16, 2026",
     changes: [
-      { type: "feature", title: "AI Builder on Homepage", description: "Try the AI Page Builder directly on the landing page -- describe your business and see a live phone preview instantly, no signup required." },
+      { type: "feature", title: "AI Builder on Homepage", description: "Try the AI Page Builder directly on the landing page. Describe your business and see a live phone preview instantly, no signup required." },
       { type: "feature", title: "AI Builder theme selection", description: "Choose from 6 curated theme variants (Minimal Light, Bold Gradient, Warm Sunset, Dark Professional, Elegant Rose, Nature Fresh) after AI generates your profile." },
       { type: "feature", title: "AI web retrieval", description: "Paste your website URL and let the AI pull real info about your business to generate a more accurate profile." },
       { type: "fix", title: "Stream recordings now save automatically", description: "Ending a live stream now creates a recording entry so your videos appear in Media and Past Streams." },
@@ -74,7 +74,7 @@ const changelog = [
     version: "2.5.0",
     date: "February 1, 2026",
     changes: [
-      { type: "feature", title: "Help page", description: "Comprehensive help center with FAQs, video tutorials, and contact support -- accessible from the sidebar." },
+      { type: "feature", title: "Help page", description: "Comprehensive help center with FAQs, video tutorials, and contact support, accessible from the sidebar." },
       { type: "improvement", title: "Upgraded profile preview", description: "Dashboard live preview now shows avatar, social media icons, and a share button matching the Linktree aesthetic." },
       { type: "fix", title: "Dark mode button text visibility", description: "Fixed invisible button text on gradient sections across all landing pages in dark mode." },
     ],

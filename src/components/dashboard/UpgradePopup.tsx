@@ -47,7 +47,7 @@ export const UpgradePopup = () => {
         <div className="flex items-center gap-2 text-xs sm:text-sm font-medium">
           <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
           <span>Upgrade your plan</span>
-          <span className="hidden sm:inline text-white/70">— 7-day free trial</span>
+          <span className="hidden sm:inline text-white/70">· 7-day free trial</span>
         </div>
 
         {/* Plan buttons */}

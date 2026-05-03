@@ -10,13 +10,39 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Radio, Wand2, Share2, Play, Eye, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { useEffect, useRef } from "react";
+
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.querySelectorAll(".scroll-reveal, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-scale").forEach((child) => {
+              child.classList.add("revealed");
+            });
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -50px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
 
 const HowItWorks = () => {
   const { t } = useTranslation();
+  const sectionRef = useScrollReveal();
   return (
-    <section className="py-24 bg-muted/50">
+    <section className="py-24 bg-muted/50" ref={sectionRef}>
       <div className="container mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             {t("howItWorks.badge")}
           </span>
@@ -45,8 +71,8 @@ const HowItWorks = () => {
               title: t("howItWorks.step3Title"),
               desc: t("howItWorks.step3Desc"),
             },
-          ].map((item) => (
-            <div key={item.step} className="relative text-center group">
+          ].map((item, i) => (
+            <div key={item.step} className={`relative text-center group scroll-reveal scroll-delay-${i + 1}`}>
               <div className="w-16 h-16 rounded-2xl gradient-button flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                 <item.icon className="w-8 h-8 text-white" />
               </div>
@@ -65,6 +91,7 @@ const HowItWorks = () => {
 
 const MediaShowcase = () => {
   const { t } = useTranslation();
+  const sectionRef = useScrollReveal();
   const SAMPLE_MEDIA = [
     { title: "How I Grew to 100K Followers", creator: "Alex Rivera", views: "12.4K", type: "Recording", image: "/images/media-thumb-1.jpg" },
     { title: "Sunday Service Live", creator: "Grace Church", views: "3.2K", type: "Live Stream", image: "/images/media-thumb-2.jpg" },
@@ -75,9 +102,9 @@ const MediaShowcase = () => {
   ];
 
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-background" ref={sectionRef}>
       <div className="container mx-auto px-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 scroll-reveal">
           <div>
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
               <Play className="w-4 h-4" />
@@ -103,11 +130,11 @@ const MediaShowcase = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {SAMPLE_MEDIA.map((item) => (
+          {SAMPLE_MEDIA.map((item, i) => (
             <Link
               key={item.title}
               to="/media"
-              className="group block rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300"
+              className={`group block rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 scroll-reveal-scale scroll-delay-${Math.min(i + 1, 5)}`}
             >
               <div className="relative aspect-video bg-muted flex items-center justify-center overflow-hidden">
                 <img
@@ -152,13 +179,14 @@ const MediaShowcase = () => {
 
 const CTASection = () => {
   const { t } = useTranslation();
+  const sectionRef = useScrollReveal();
   return (
-    <section className="py-24 gradient-hero relative">
+    <section className="py-24 gradient-hero relative" ref={sectionRef}>
       <div className="container mx-auto px-6 text-center relative z-10">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 text-balance">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 text-balance scroll-reveal">
           {t("cta.title")}
         </h2>
-        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed scroll-reveal scroll-delay-1">
           {t("cta.description")}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

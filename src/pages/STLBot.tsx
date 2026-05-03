@@ -221,7 +221,7 @@ const STLBot = () => {
                   Hi! I'm STL Bot
                 </h2>
                 <p className="text-muted-foreground max-w-md mx-auto mb-8">
-                  I can help you manage your Share The Link profile — add links, update your bio,
+                  I can help you manage your Share The Link profile: add links, update your bio,
                   change themes, check analytics, distribute links, and more. Just ask!
                 </p>
 

@@ -153,7 +153,7 @@ const guideSections: GuideSection[] = [
 const faqItems: FAQItem[] = [
   {
     question: "How do I share my profile link?",
-    answer: "Your profile link is sharethelink.app/[username]. You can find it at the top of your Dashboard. Copy it and share it anywhere -- social media bios, email signatures, business cards, etc.",
+    answer: "Your profile link is sharethelink.app/[username]. You can find it at the top of your Dashboard. Copy it and share it anywhere: social media bios, email signatures, business cards, etc.",
   },
   {
     question: "How does live streaming work?",

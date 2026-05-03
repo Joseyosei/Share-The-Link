@@ -175,7 +175,7 @@ export function IntroVideoUploader({ currentVideoUrl, userId, onVideoChange }: I
         Intro Video
       </h3>
       <p className="text-xs text-muted-foreground mb-3">
-        Add a short video intro (max 60s) that appears as a floating bubble on your profile — like VideoAsk.
+        Add a short video intro (max 60s) that appears as a floating bubble on your profile, like VideoAsk.
       </p>
 
       {error && (

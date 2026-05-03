@@ -28,7 +28,7 @@ const integrations: Integration[] = [
     name: "Stripe",
     description: "Accept payments and sell digital products seamlessly.",
     longDescription:
-      "Connect your Stripe account to accept payments directly from your profile. Sell digital products, accept tips from your audience, and manage subscriptions -- all with automatic fee calculation and real-time payment notifications.",
+      "Connect your Stripe account to accept payments directly from your profile. Sell digital products, accept tips from your audience, and manage subscriptions, all with automatic fee calculation and real-time payment notifications.",
     category: "Payments",
     icon: CreditCard,
     iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
@@ -68,7 +68,7 @@ const integrations: Integration[] = [
     name: "Google Analytics",
     description: "Track detailed visitor analytics with your GA account.",
     longDescription:
-      "Add your Google Analytics tracking ID to get detailed insights into who visits your profile. Track page views, click-through rates, referral sources, and user demographics -- all in your existing GA dashboard.",
+      "Add your Google Analytics tracking ID to get detailed insights into who visits your profile. Track page views, click-through rates, referral sources, and user demographics, all in your existing GA dashboard.",
     category: "Analytics",
     icon: BarChart3,
     iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -139,7 +139,7 @@ const integrations: Integration[] = [
     name: "TikTok",
     description: "Display your latest TikTok content.",
     longDescription:
-      "Connect your TikTok account to showcase your latest videos on your profile. Viewers can watch your content directly and follow you on TikTok -- perfect for cross-platform growth.",
+      "Connect your TikTok account to showcase your latest videos on your profile. Viewers can watch your content directly and follow you on TikTok. Perfect for cross-platform growth.",
     category: "Social",
     icon: Film,
     iconBg: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
