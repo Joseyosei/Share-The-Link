@@ -8,6 +8,7 @@ import { Reviews } from "@/components/landing/Reviews";
 import { Footer } from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
 import { ArrowRight, Radio, Wand2, Share2, Play, Eye, TrendingUp, Globe } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -74,7 +75,25 @@ const SOCIAL_ICON_MAP: Record<string, React.ReactNode> = {
 const ProfileShowcase = () => {
   const sectionRef = useScrollReveal();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const usernames = SHOWCASE_PROFILES.map((p) => p.username);
+    supabase
+      .from("profiles")
+      .select("username, avatar_url")
+      .in("username", usernames)
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach((row: { username: string; avatar_url: string | null }) => {
+            if (row.avatar_url) map[row.username] = row.avatar_url;
+          });
+          setAvatars(map);
+        }
+      });
+  }, []);
 
   const startAutoPlay = useCallback(() => {
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
@@ -97,6 +116,7 @@ const ProfileShowcase = () => {
   const next = () => goTo((activeIndex + 1) % SHOWCASE_PROFILES.length);
 
   const profile = SHOWCASE_PROFILES[activeIndex];
+  const avatarUrl = avatars[profile.username] || profile.avatar;
 
   return (
     <section className="py-24 bg-muted/30" ref={sectionRef}>
@@ -121,16 +141,13 @@ const ProfileShowcase = () => {
                 className="relative w-[300px] sm:w-[320px] rounded-[2.5rem] overflow-hidden shadow-2xl border-[6px] border-gray-800 bg-[#0f1219]"
                 style={{ boxShadow: "0 25px 80px rgba(0,0,0,0.35)", aspectRatio: "9/18" }}
               >
-                {/* Phone notch */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-gray-800 rounded-b-xl z-10" />
 
-                {/* Profile content inside phone */}
                 <div
                   className="w-full h-full flex flex-col items-center pt-12 px-5 pb-6 overflow-hidden transition-opacity duration-500"
                   key={profile.username}
                   style={{ background: "linear-gradient(180deg, #171c2a 0%, #0f1219 100%)" }}
                 >
-                  {/* Glass card */}
                   <div className="w-full rounded-2xl p-5 flex flex-col items-center text-center"
                     style={{
                       background: "rgba(255,255,255,0.04)",
@@ -138,21 +155,19 @@ const ProfileShowcase = () => {
                       backdropFilter: "blur(20px)",
                     }}
                   >
-                    {/* Avatar */}
-                    <div className="w-20 h-20 rounded-full bg-white/10 border-[3px] border-white/20 flex items-center justify-center mb-3 overflow-hidden relative">
-                      {profile.avatar ? (
-                        <img src={profile.avatar} alt={profile.name} className="w-12 h-12" />
+                    {/* Avatar from Supabase */}
+                    <div className="w-20 h-20 rounded-full bg-white border-[3px] border-white/20 flex items-center justify-center mb-3 overflow-hidden relative">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-2xl font-bold text-white/70">{profile.name.charAt(0)}</span>
+                        <span className="text-2xl font-bold text-gray-400">{profile.name.charAt(0)}</span>
                       )}
                       <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-green-500 border-2 border-[#171c2a]" />
                     </div>
 
-                    {/* Name & username */}
                     <h4 className="text-white font-bold text-lg tracking-wide">{profile.name.toUpperCase()}</h4>
                     <p className="text-white/50 text-sm mb-2">@{profile.username}</p>
 
-                    {/* Badges */}
                     <div className="flex items-center gap-2 mb-3">
                       {profile.badges.map((badge) => (
                         <span key={badge} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/20">
@@ -163,16 +178,13 @@ const ProfileShowcase = () => {
                       <span className="text-white/30 text-xs">{profile.views} views</span>
                     </div>
 
-                    {/* Location */}
                     <div className="flex items-center gap-1 text-white/40 text-xs mb-3">
                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                       {profile.location}
                     </div>
 
-                    {/* Bio */}
                     <p className="text-white/60 text-sm leading-relaxed mb-4">{profile.bio}</p>
 
-                    {/* Social icons */}
                     <div className="flex items-center gap-2">
                       {profile.socials.map((s) => (
                         <div key={s} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70">
@@ -182,7 +194,6 @@ const ProfileShowcase = () => {
                     </div>
                   </div>
 
-                  {/* CTA button */}
                   <a
                     href={profile.link}
                     target="_blank"
@@ -198,9 +209,14 @@ const ProfileShowcase = () => {
 
             {/* Profile info & carousel controls */}
             <div className="text-center md:text-left space-y-6">
-              <div>
-                <h3 className="text-3xl font-bold text-foreground mb-2">{profile.name}</h3>
-                <p className="text-muted-foreground text-base">@{profile.username}</p>
+              <div className="flex items-center gap-4 justify-center md:justify-start">
+                {avatarUrl && (
+                  <img src={avatarUrl} alt={profile.name} className="w-14 h-14 rounded-full object-cover border-2 border-border" />
+                )}
+                <div>
+                  <h3 className="text-3xl font-bold text-foreground">{profile.name}</h3>
+                  <p className="text-muted-foreground text-base">@{profile.username}</p>
+                </div>
               </div>
               <p className="text-muted-foreground leading-relaxed text-lg">
                 {profile.description}
@@ -215,7 +231,6 @@ const ProfileShowcase = () => {
                 <ArrowRight className="w-4 h-4" />
               </a>
 
-              {/* Carousel controls */}
               <div className="flex items-center gap-4 justify-center md:justify-start pt-4">
                 <button
                   onClick={prev}
