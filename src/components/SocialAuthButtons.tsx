@@ -1,6 +1,31 @@
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const DEADLINE = new Date("2026-06-01T00:00:00Z");
+
+function useCountdown() {
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const diff = DEADLINE.getTime() - Date.now();
+    return diff > 0 ? diff : 0;
+  });
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      const diff = DEADLINE.getTime() - Date.now();
+      setTimeLeft(diff > 0 ? diff : 0);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((timeLeft / (1000 * 60)) % 60);
+  const seconds = Math.floor((timeLeft / 1000) % 60);
+
+  return { days, hours, minutes, seconds, expired: timeLeft <= 0 };
+}
 
 interface SocialAuthButtonsProps {
   type: "signup" | "login";
@@ -9,6 +34,7 @@ interface SocialAuthButtonsProps {
 export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const countdown = useCountdown();
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoadingProvider(provider);
@@ -32,6 +58,34 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
 
   return (
     <>
+      {/* Countdown timer */}
+      {!countdown.expired && (
+        <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20">
+          <div className="flex items-center gap-2 justify-center mb-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-xs font-semibold text-foreground">
+              {type === "signup" ? "Early access closes" : "Limited time offer"} · June 1, 2026
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            {[
+              { value: countdown.days, label: "d" },
+              { value: countdown.hours, label: "h" },
+              { value: countdown.minutes, label: "m" },
+              { value: countdown.seconds, label: "s" },
+            ].map((unit, i) => (
+              <div key={unit.label} className="flex items-center gap-1">
+                <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-foreground/10 text-foreground font-bold text-sm tabular-nums">
+                  {String(unit.value).padStart(2, "0")}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">{unit.label}</span>
+                {i < 3 && <span className="text-muted-foreground/50 mx-0.5">:</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-3 p-3 bg-destructive/10 text-destructive rounded-xl text-sm text-center">
           {error}

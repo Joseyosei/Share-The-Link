@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Radio, Wand2, Share2, Play, Eye, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null);
@@ -35,6 +35,124 @@ function useScrollReveal() {
   }, []);
   return ref;
 }
+
+const SHOWCASE_PROFILES = [
+  {
+    name: "Admin",
+    username: "admin",
+    description: "Share The Link official admin profile. Connecting people with one link.",
+    link: "https://sharethelink.app/admin",
+  },
+  {
+    name: "Seen HQ",
+    username: "seenhq",
+    description: "The UK's leading short-form video promotion platform for local businesses.",
+    link: "https://sharethelink.app/seenhq",
+  },
+];
+
+const ProfileShowcase = () => {
+  const { t } = useTranslation();
+  const sectionRef = useScrollReveal();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startAutoPlay = useCallback(() => {
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    autoPlayRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % SHOWCASE_PROFILES.length);
+    }, 6000);
+  }, []);
+
+  useEffect(() => {
+    startAutoPlay();
+    return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current); };
+  }, [startAutoPlay]);
+
+  const goTo = (index: number) => {
+    setActiveIndex(index);
+    startAutoPlay();
+  };
+
+  const profile = SHOWCASE_PROFILES[activeIndex];
+
+  return (
+    <section className="py-24 bg-muted/30" ref={sectionRef}>
+      <div className="container mx-auto px-6">
+        <div className="text-center max-w-3xl mx-auto mb-12 scroll-reveal">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+            Live Profiles
+          </span>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
+            See what creators are building
+          </h2>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Real profiles powered by Share The Link. Yours could be next.
+          </p>
+        </div>
+
+        <div className="max-w-5xl mx-auto scroll-reveal-scale scroll-delay-2">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Phone mockup with iframe */}
+            <div className="flex justify-center">
+              <div
+                className="relative w-[320px] h-[640px] rounded-[3rem] overflow-hidden shadow-2xl border-[8px] border-gray-800 bg-gray-900"
+                style={{ boxShadow: "0 25px 80px rgba(0,0,0,0.3)" }}
+              >
+                {/* Phone notch */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-gray-800 rounded-b-2xl z-10" />
+                <iframe
+                  key={profile.username}
+                  src={profile.link}
+                  className="w-full h-full border-0"
+                  title={`${profile.name} profile`}
+                  loading="lazy"
+                  style={{ borderRadius: "2rem" }}
+                />
+              </div>
+            </div>
+
+            {/* Profile info */}
+            <div className="text-center md:text-left space-y-6">
+              <div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">{profile.name}</h3>
+                <p className="text-muted-foreground text-sm">@{profile.username}</p>
+              </div>
+              <p className="text-muted-foreground leading-relaxed text-lg">
+                {profile.description}
+              </p>
+              <a
+                href={profile.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-button text-white font-semibold hover:opacity-90 transition-opacity"
+              >
+                Visit Profile
+                <ArrowRight className="w-4 h-4" />
+              </a>
+
+              {/* Carousel dots */}
+              <div className="flex items-center gap-3 justify-center md:justify-start pt-4">
+                {SHOWCASE_PROFILES.map((p, i) => (
+                  <button
+                    key={p.username}
+                    onClick={() => goTo(i)}
+                    className={`transition-all duration-300 rounded-full ${
+                      i === activeIndex
+                        ? "w-8 h-3 bg-primary"
+                        : "w-3 h-3 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    }`}
+                    aria-label={`View ${p.name} profile`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 const HowItWorks = () => {
   const { t } = useTranslation();
@@ -222,6 +340,7 @@ const Index = () => {
       <Navbar />
       <Hero />
       <ProductDemo />
+      <ProfileShowcase />
       <Features />
       <HowItWorks />
       <MediaShowcase />
