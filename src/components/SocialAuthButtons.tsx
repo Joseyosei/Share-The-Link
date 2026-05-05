@@ -58,34 +58,6 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
 
   return (
     <>
-      {/* Countdown timer */}
-      {!countdown.expired && (
-        <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20">
-          <div className="flex items-center gap-2 justify-center mb-2">
-            <Clock className="w-4 h-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">
-              {type === "signup" ? "Early access closes" : "Limited time offer"} · June 1, 2026
-            </span>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            {[
-              { value: countdown.days, label: "d" },
-              { value: countdown.hours, label: "h" },
-              { value: countdown.minutes, label: "m" },
-              { value: countdown.seconds, label: "s" },
-            ].map((unit, i) => (
-              <div key={unit.label} className="flex items-center gap-1">
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-foreground/10 text-foreground font-bold text-sm tabular-nums">
-                  {String(unit.value).padStart(2, "0")}
-                </span>
-                <span className="text-xs text-muted-foreground font-medium">{unit.label}</span>
-                {i < 3 && <span className="text-muted-foreground/50 mx-0.5">:</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {error && (
         <div className="mb-3 p-3 bg-destructive/10 text-destructive rounded-xl text-sm text-center">
           {error}
@@ -129,6 +101,19 @@ export const SocialAuthButtons = ({ type }: SocialAuthButtonsProps) => {
           )}
           {label} with Apple
         </button>
+
+        {/* Countdown timer - inline below buttons */}
+        {!countdown.expired && (
+          <div className="flex items-center justify-center gap-2 pt-1 pb-1">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {type === "signup" ? "Early access closes in" : "Offer ends in"}
+            </span>
+            <span className="text-xs font-bold text-foreground tabular-nums">
+              {countdown.days}d {String(countdown.hours).padStart(2, "0")}h {String(countdown.minutes).padStart(2, "0")}m {String(countdown.seconds).padStart(2, "0")}s
+            </span>
+          </div>
+        )}
       </div>
 
       {/* OR Divider */}
