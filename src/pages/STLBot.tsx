@@ -3,7 +3,7 @@ import { Bot, Send, Loader2, Sparkles, Trash2, Link as LinkIcon, Palette, BarCha
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { processMessage } from "@/lib/stl-bot-engine";
 
 interface Message {
   id: string;
@@ -80,29 +80,7 @@ const STLBot = () => {
     setIsLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const apiMessages = newMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      const response = await fetch("/api/ai-agent?action=chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ messages: apiMessages }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Request failed (${response.status})`);
-      }
-
-      const data = await response.json();
+      const data = await processMessage(content.trim());
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
