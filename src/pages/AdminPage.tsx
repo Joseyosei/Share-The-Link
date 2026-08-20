@@ -1,12 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink, Camera, Loader2, Search, HeadphonesIcon, Send, CheckCheck, MessageSquare, Settings2, Smartphone } from "lucide-react";
+import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink, Camera, Loader2, Search, HeadphonesIcon, Send, CheckCheck, MessageSquare, Settings2, Smartphone, Ban, AlertTriangle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TeamMember {
   id: string;
@@ -74,6 +85,25 @@ interface Stats {
   totalRecordings: number;
 }
 
+interface StreamInfo {
+  id: string;
+  title: string;
+  user_id: string;
+  status: string;
+  viewer_count: number;
+  created_at: string;
+  user_name?: string;
+}
+
+interface RecordingInfo {
+  id: string;
+  title: string;
+  user_id: string;
+  duration: number | null;
+  created_at: string;
+  user_name?: string;
+}
+
 const AdminPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -117,6 +147,21 @@ const AdminPage = () => {
     streamCount?: number;
   }>>([]);
   const [userSearch, setUserSearch] = useState("");
+
+  // Streams and Recordings for overview
+  const [allStreams, setAllStreams] = useState<StreamInfo[]>([]);
+  const [allRecordings, setAllRecordings] = useState<RecordingInfo[]>([]);
+  const [streamSearch, setStreamSearch] = useState("");
+  const [recordingSearch, setRecordingSearch] = useState("");
+
+  // User removal dialog
+  const [removeUserDialog, setRemoveUserDialog] = useState<{ open: boolean; userId: string; userName: string }>({ open: false, userId: "", userName: "" });
+  const [removeReason, setRemoveReason] = useState("tos_violation");
+  const [removingUser, setRemovingUser] = useState(false);
+
+  // Stream/Recording delete dialogs
+  const [deleteStreamDialog, setDeleteStreamDialog] = useState<{ open: boolean; id: string; title: string }>({ open: false, id: "", title: "" });
+  const [deleteRecordingDialog, setDeleteRecordingDialog] = useState<{ open: boolean; id: string; title: string }>({ open: false, id: "", title: "" });
 
   // App countdown settings
   const [appLaunchDate, setAppLaunchDate] = useState("2026-09-01");
@@ -234,6 +279,36 @@ const AdminPage = () => {
         })));
       }
     } catch { /* support tables may not exist yet */ }
+
+    // Fetch all streams with user info
+    try {
+      const { data: streamsFullData } = await supabase
+        .from("streams")
+        .select("id, title, user_id, status, viewer_count, created_at")
+        .order("created_at", { ascending: false });
+      if (streamsFullData) {
+        const streamUserIds = [...new Set(streamsFullData.map((s: any) => s.user_id))];
+        const { data: streamProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", streamUserIds);
+        const spMap: Record<string, string> = {};
+        streamProfiles?.forEach((p: any) => { spMap[p.user_id] = p.full_name || "Unknown"; });
+        setAllStreams(streamsFullData.map((s: any) => ({ ...s, user_name: spMap[s.user_id] || "Unknown" })));
+      }
+    } catch { /* streams table may not exist */ }
+
+    // Fetch all recordings with user info
+    try {
+      const { data: recordingsFullData } = await (supabase
+        .from("stream_recordings" as never)
+        .select("id, title, user_id, duration, created_at")
+        .order("created_at", { ascending: false }) as any);
+      if (recordingsFullData) {
+        const recUserIds = [...new Set(recordingsFullData.map((r: any) => r.user_id))];
+        const { data: recProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", recUserIds);
+        const rpMap: Record<string, string> = {};
+        recProfiles?.forEach((p: any) => { rpMap[p.user_id] = p.full_name || "Unknown"; });
+        setAllRecordings(recordingsFullData.map((r: any) => ({ ...r, user_name: rpMap[r.user_id] || "Unknown" })));
+      }
+    } catch { /* recordings table may not exist */ }
 
     // Fetch stats
     const [usersRes, linksRes, streamsRes, recordingsRes] = await Promise.all([
@@ -439,6 +514,70 @@ const AdminPage = () => {
     toast({ title: `Ticket ${status}` });
   };
 
+  const handleRemoveUser = async () => {
+    if (!removeUserDialog.userId) return;
+    setRemovingUser(true);
+    try {
+      const userId = removeUserDialog.userId;
+      await supabase.from("links").delete().eq("user_id", userId);
+      await supabase.from("streams").delete().eq("user_id", userId);
+      await (supabase.from("stream_recordings" as never).delete().eq("user_id", userId) as any);
+      await (supabase.from("support_tickets" as never).delete().eq("user_id", userId) as any);
+      await supabase.from("profiles").delete().eq("user_id", userId);
+      toast({ title: "User removed", description: `${removeUserDialog.userName} and all their data have been deleted. Reason: ${removeReason.replace(/_/g, " ")}` });
+      setRemoveUserDialog({ open: false, userId: "", userName: "" });
+      setRemoveReason("tos_violation");
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Failed to remove user", description: err?.message || "Please try again", variant: "destructive" });
+    } finally {
+      setRemovingUser(false);
+    }
+  };
+
+  const handleDeleteStream = async () => {
+    if (!deleteStreamDialog.id) return;
+    try {
+      await supabase.from("streams").delete().eq("id", deleteStreamDialog.id);
+      toast({ title: "Stream deleted", description: `"${deleteStreamDialog.title}" has been removed.` });
+      setDeleteStreamDialog({ open: false, id: "", title: "" });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Failed to delete stream", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteRecording = async () => {
+    if (!deleteRecordingDialog.id) return;
+    try {
+      await (supabase.from("stream_recordings" as never).delete().eq("id", deleteRecordingDialog.id) as any);
+      toast({ title: "Recording deleted", description: `"${deleteRecordingDialog.title}" has been removed.` });
+      setDeleteRecordingDialog({ open: false, id: "", title: "" });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Failed to delete recording", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return "--";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
+  const streamStatusColor = (status: string) => {
+    switch (status) {
+      case "live": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      case "ended": return "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400";
+      case "scheduled": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
   const statusColor = (status: string) => {
     switch (status) {
       case "open": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
@@ -560,6 +699,7 @@ const AdminPage = () => {
                       <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Links</th>
                       <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Streams</th>
                       <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Joined</th>
+                      <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -625,12 +765,185 @@ const AdminPage = () => {
                               {new Date(user.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                             </span>
                           </td>
+                          <td className="py-4 px-6 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setRemoveUserDialog({ open: true, userId: user.user_id, userName: user.full_name || user.username || "this user" })}
+                            >
+                              <Ban className="w-3.5 h-3.5 mr-1" />
+                              Remove
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     {allUsers.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                        <td colSpan={6} className="py-12 text-center text-muted-foreground">
                           No users found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* All Streams Table */}
+            <div className="bg-background rounded-xl border border-border overflow-hidden">
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">All Streams</h3>
+                  <p className="text-sm text-muted-foreground">{allStreams.length} streams on the platform</p>
+                </div>
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search streams..."
+                    value={streamSearch}
+                    onChange={(e) => setStreamSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Title</th>
+                      <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">User</th>
+                      <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Status</th>
+                      <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Viewers</th>
+                      <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Date</th>
+                      <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allStreams
+                      .filter((s) => {
+                        if (!streamSearch) return true;
+                        const q = streamSearch.toLowerCase();
+                        return (
+                          (s.title?.toLowerCase() || "").includes(q) ||
+                          (s.user_name?.toLowerCase() || "").includes(q)
+                        );
+                      })
+                      .map((stream) => (
+                        <tr key={stream.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="py-4 px-6">
+                            <p className="font-semibold text-foreground text-sm truncate max-w-xs">{stream.title || "Untitled Stream"}</p>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-sm text-muted-foreground">{stream.user_name}</span>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <Badge variant="secondary" className={`text-[10px] ${streamStatusColor(stream.status)}`}>
+                              {stream.status}
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <span className="text-sm font-medium text-foreground">{stream.viewer_count || 0}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(stream.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteStreamDialog({ open: true, id: stream.id, title: stream.title || "Untitled Stream" })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    {allStreams.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                          No streams found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* All Recordings Table */}
+            <div className="bg-background rounded-xl border border-border overflow-hidden">
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">All Recordings</h3>
+                  <p className="text-sm text-muted-foreground">{allRecordings.length} recordings on the platform</p>
+                </div>
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search recordings..."
+                    value={recordingSearch}
+                    onChange={(e) => setRecordingSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Title</th>
+                      <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">User</th>
+                      <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Duration</th>
+                      <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Date</th>
+                      <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-6">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allRecordings
+                      .filter((r) => {
+                        if (!recordingSearch) return true;
+                        const q = recordingSearch.toLowerCase();
+                        return (
+                          (r.title?.toLowerCase() || "").includes(q) ||
+                          (r.user_name?.toLowerCase() || "").includes(q)
+                        );
+                      })
+                      .map((recording) => (
+                        <tr key={recording.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="py-4 px-6">
+                            <p className="font-semibold text-foreground text-sm truncate max-w-xs">{recording.title || "Untitled Recording"}</p>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-sm text-muted-foreground">{recording.user_name}</span>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <span className="text-sm font-medium text-foreground">{formatDuration(recording.duration)}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(recording.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteRecordingDialog({ open: true, id: recording.id, title: recording.title || "Untitled Recording" })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    {allRecordings.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                          No recordings found.
                         </td>
                       </tr>
                     )}
@@ -1151,6 +1464,99 @@ const AdminPage = () => {
           </div>
         )}
       </div>
+
+      {/* Remove User AlertDialog */}
+      <AlertDialog open={removeUserDialog.open} onOpenChange={(open) => { if (!open) setRemoveUserDialog({ open: false, userId: "", userName: "" }); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Remove User
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{removeUserDialog.userName}</strong> and all their data including links, streams, recordings, and support tickets. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <label className="text-sm font-medium mb-1.5 block">Reason for removal</label>
+            <select
+              value={removeReason}
+              onChange={(e) => setRemoveReason(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="tos_violation">Terms of Service Violation</option>
+              <option value="privacy_violation">Privacy Policy Violation</option>
+              <option value="spam">Spam / Abuse</option>
+              <option value="harassment">Harassment</option>
+              <option value="copyright">Copyright Infringement</option>
+              <option value="fraud">Fraudulent Activity</option>
+              <option value="user_request">User Requested Deletion</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveUser}
+              disabled={removingUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removingUser ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Ban className="w-4 h-4 mr-2" />}
+              Remove User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Stream AlertDialog */}
+      <AlertDialog open={deleteStreamDialog.open} onOpenChange={(open) => { if (!open) setDeleteStreamDialog({ open: false, id: "", title: "" }); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Delete Stream
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the stream <strong>"{deleteStreamDialog.title}"</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteStream}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Stream
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Recording AlertDialog */}
+      <AlertDialog open={deleteRecordingDialog.open} onOpenChange={(open) => { if (!open) setDeleteRecordingDialog({ open: false, id: "", title: "" }); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Delete Recording
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the recording <strong>"{deleteRecordingDialog.title}"</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteRecording}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Recording
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
