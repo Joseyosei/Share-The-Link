@@ -57,6 +57,7 @@ import DashboardForms from "./pages/DashboardForms";
 import PublicForm from "./pages/PublicForm";
 import Discover from "./pages/Discover";
 import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
+import { CookieConsent } from "./components/CookieConsent";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
@@ -70,6 +71,7 @@ const App = () => (
       <AuthProvider>
       <BrowserRouter>
         <LiveMiniPlayer />
+        <CookieConsent />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
