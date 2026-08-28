@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
+import { authFetch } from "@/lib/auth-fetch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -518,12 +519,12 @@ const AdminPage = () => {
     if (!removeUserDialog.userId) return;
     setRemovingUser(true);
     try {
-      const userId = removeUserDialog.userId;
-      await supabase.from("links").delete().eq("user_id", userId);
-      await supabase.from("streams").delete().eq("user_id", userId);
-      await (supabase.from("stream_recordings" as never).delete().eq("user_id", userId) as any);
-      await (supabase.from("support_tickets" as never).delete().eq("user_id", userId) as any);
-      await supabase.from("profiles").delete().eq("user_id", userId);
+      const res = await authFetch("/api/admin-remove-user", {
+        method: "POST",
+        body: JSON.stringify({ targetUserId: removeUserDialog.userId, reason: removeReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove user");
       toast({ title: "User removed", description: `${removeUserDialog.userName} and all their data have been deleted. Reason: ${removeReason.replace(/_/g, " ")}` });
       setRemoveUserDialog({ open: false, userId: "", userName: "" });
       setRemoveReason("tos_violation");
@@ -538,7 +539,12 @@ const AdminPage = () => {
   const handleDeleteStream = async () => {
     if (!deleteStreamDialog.id) return;
     try {
-      await supabase.from("streams").delete().eq("id", deleteStreamDialog.id);
+      const res = await authFetch("/api/admin-delete-stream", {
+        method: "POST",
+        body: JSON.stringify({ streamId: deleteStreamDialog.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete stream");
       toast({ title: "Stream deleted", description: `"${deleteStreamDialog.title}" has been removed.` });
       setDeleteStreamDialog({ open: false, id: "", title: "" });
       fetchData();
@@ -550,7 +556,12 @@ const AdminPage = () => {
   const handleDeleteRecording = async () => {
     if (!deleteRecordingDialog.id) return;
     try {
-      await (supabase.from("stream_recordings" as never).delete().eq("id", deleteRecordingDialog.id) as any);
+      const res = await authFetch("/api/admin-delete-recording", {
+        method: "POST",
+        body: JSON.stringify({ recordingId: deleteRecordingDialog.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete recording");
       toast({ title: "Recording deleted", description: `"${deleteRecordingDialog.title}" has been removed.` });
       setDeleteRecordingDialog({ open: false, id: "", title: "" });
       fetchData();
