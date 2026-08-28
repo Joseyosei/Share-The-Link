@@ -519,7 +519,7 @@ const AdminPage = () => {
     if (!removeUserDialog.userId) return;
     setRemovingUser(true);
     try {
-      const res = await authFetch("/api/admin-actions?action=remove-user", {
+      const res = await authFetch("/api/delete-account?action=remove-user", {
         method: "POST",
         body: JSON.stringify({ targetUserId: removeUserDialog.userId, reason: removeReason }),
       });
@@ -539,7 +539,7 @@ const AdminPage = () => {
   const handleDeleteStream = async () => {
     if (!deleteStreamDialog.id) return;
     try {
-      const res = await authFetch("/api/admin-actions?action=delete-stream", {
+      const res = await authFetch("/api/delete-account?action=delete-stream", {
         method: "POST",
         body: JSON.stringify({ streamId: deleteStreamDialog.id }),
       });
@@ -556,7 +556,7 @@ const AdminPage = () => {
   const handleDeleteRecording = async () => {
     if (!deleteRecordingDialog.id) return;
     try {
-      const res = await authFetch("/api/admin-actions?action=delete-recording", {
+      const res = await authFetch("/api/delete-account?action=delete-recording", {
         method: "POST",
         body: JSON.stringify({ recordingId: deleteRecordingDialog.id }),
       });
