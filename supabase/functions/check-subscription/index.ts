@@ -170,8 +170,8 @@ serve(async (req) => {
     // STEP 5: Extract subscription details
     // ============================================
     const subscription = subscriptions[0];
-    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-    const subscriptionStart = new Date(subscription.current_period_start * 1000).toISOString();
+    const subscriptionEnd = new Date((subscription.items.data[0]?.current_period_end ?? subscription.current_period_end) * 1000).toISOString();
+    const subscriptionStart = new Date((subscription.items.data[0]?.current_period_start ?? subscription.current_period_start) * 1000).toISOString();
 
     // Get the product ID to determine tier
     // For V2 accounts, use customer_account instead of customer

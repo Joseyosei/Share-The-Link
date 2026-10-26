@@ -59,11 +59,13 @@ async function findSupabaseUserId(customer: any, metadata?: Record<string, strin
 async function upsertSubscription(userId: string, subscription: any, tier: string) {
   const priceId = subscription.items?.data?.[0]?.price?.id;
   const planName = tier.charAt(0).toUpperCase() + tier.slice(1);
-  const periodStart = subscription.current_period_start
-    ? new Date(subscription.current_period_start * 1000).toISOString()
+  const rawPeriodStart = subscription.items?.data?.[0]?.current_period_start ?? subscription.current_period_start;
+  const rawPeriodEnd = subscription.items?.data?.[0]?.current_period_end ?? subscription.current_period_end;
+  const periodStart = rawPeriodStart
+    ? new Date(rawPeriodStart * 1000).toISOString()
     : new Date().toISOString();
-  const periodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000).toISOString()
+  const periodEnd = rawPeriodEnd
+    ? new Date(rawPeriodEnd * 1000).toISOString()
     : new Date().toISOString();
 
   const { error } = await supabaseAdmin.from("user_subscriptions").upsert({
