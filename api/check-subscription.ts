@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         success: true,
         message: action === "reactivate" ? "Subscription reactivated" : "Subscription will cancel at end of billing period",
         cancelAtPeriodEnd: updated.cancel_at_period_end,
-        currentPeriodEnd: updated.current_period_end ? new Date(updated.current_period_end * 1000).toISOString() : null,
+        currentPeriodEnd: (updated.items?.data?.[0]?.current_period_end ?? updated.current_period_end) ? new Date((updated.items?.data?.[0]?.current_period_end ?? updated.current_period_end) * 1000).toISOString() : null,
       });
     } catch (error: any) {
       return res.status(500).json({ error: error.message || "Failed to update subscription" });
@@ -134,6 +134,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const sub: any = subs.data[0];
         const priceId = sub.items.data[0]?.price.id;
         const tier = PRICE_TO_TIER[priceId] || sub.metadata?.tier || "pro";
+        const periodStartSec = sub.items.data[0]?.current_period_start ?? sub.current_period_start;
+        const periodEndSec = sub.items.data[0]?.current_period_end ?? sub.current_period_end;
 
         await supabaseAdmin.from("user_subscriptions").upsert({
             user_id: userId,
@@ -141,8 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             stripe_price_id: priceId,
             plan_name: tier.charAt(0).toUpperCase() + tier.slice(1),
             status: sub.status,
-            current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
-            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+            current_period_start: periodStartSec ? new Date(periodStartSec * 1000).toISOString() : null,
+            current_period_end: periodEndSec ? new Date(periodEndSec * 1000).toISOString() : null,
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
@@ -152,8 +154,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           planName: tier.charAt(0).toUpperCase() + tier.slice(1),
           subscriptionId: sub.id,
           status: sub.status,
-          currentPeriodStart: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
-          currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+          currentPeriodStart: periodStartSec ? new Date(periodStartSec * 1000).toISOString() : null,
+          currentPeriodEnd: periodEndSec ? new Date(periodEndSec * 1000).toISOString() : null,
           cancelAtPeriodEnd: sub.cancel_at_period_end,
         });
       }
