@@ -16,12 +16,32 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-// Fallback ICE config (STUN only) used until the API responds
-const FALLBACK_ICE_CONFIG: RTCConfiguration = {
+// ICE configuration with STUN + TURN servers for reliable connectivity.
+// TURN relay servers ensure connections work behind symmetric NATs and
+// restrictive firewalls where STUN alone fails (~10-15% of users).
+const ICE_CONFIG: RTCConfiguration = {
   iceServers: [
+    // Public STUN servers
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun.cloudflare.com:3478" },
+    // Free public TURN relay (openrelay.metered.ca)
+    // For production: replace with Cloudflare TURN, Twilio, or Xirsys credentials
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turns:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
   ],
   iceCandidatePoolSize: 10,
   iceTransportPolicy: "all",
@@ -29,31 +49,8 @@ const FALLBACK_ICE_CONFIG: RTCConfiguration = {
   rtcpMuxPolicy: "require",
 };
 
-// Fetches ICE config (with TURN) from the API, caches for 5 min
-let cachedIceConfig: RTCConfiguration | null = null;
-let cacheExpiry = 0;
-
-async function getIceConfig(): Promise<RTCConfiguration> {
-  if (cachedIceConfig && Date.now() < cacheExpiry) return cachedIceConfig;
-
-  try {
-    const res = await fetch("/api/ice-servers");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    cachedIceConfig = {
-      iceServers: data.iceServers,
-      iceCandidatePoolSize: 10,
-      iceTransportPolicy: "all",
-      bundlePolicy: "max-bundle",
-      rtcpMuxPolicy: "require",
-    };
-    cacheExpiry = Date.now() + 5 * 60 * 1000;
-    return cachedIceConfig;
-  } catch (err) {
-    console.warn("Failed to fetch ICE servers, using STUN-only fallback:", err);
-    return FALLBACK_ICE_CONFIG;
-  }
+function getIceConfig(): RTCConfiguration {
+  return ICE_CONFIG;
 }
 
 // Retry configuration
@@ -182,8 +179,7 @@ export function useBroadcaster(roomName: string) {
         existing.connection.close();
       }
 
-      const iceConfig = await getIceConfig();
-      const pc = new RTCPeerConnection(iceConfig);
+      const pc = new RTCPeerConnection(getIceConfig());
 
       const peerState: PeerState = {
         connection: pc,
@@ -527,14 +523,13 @@ export function useViewer(roomName: string) {
     peerState.iceCandidateBuffer = [];
   }, []);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(() => {
     if (!roomName) return;
 
     setIsConnecting(true);
     const viewerId = viewerIdRef.current;
 
-    const iceConfig = await getIceConfig();
-    const pc = new RTCPeerConnection(iceConfig);
+    const pc = new RTCPeerConnection(getIceConfig());
 
     const peerState: ViewerPeerState = {
       connection: pc,
