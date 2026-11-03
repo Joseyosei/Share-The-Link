@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
-import { ProductDemo } from "@/components/landing/ProductDemo";
 import { Features } from "@/components/landing/Features";
 import { AIBuilderDemo } from "@/components/landing/AIBuilderDemo";
 import { Pricing } from "@/components/landing/Pricing";
@@ -320,12 +319,12 @@ const HowItWorks = () => {
               {i < arr.length - 1 && (
                 <div className={`step-connector hidden md:block scroll-delay-${i + 2}`} />
               )}
+              <span className="block text-5xl font-extrabold gradient-text-animate mb-3 select-none">
+                {item.step}
+              </span>
               <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 icon-spin-in scroll-delay-${i + 1}`}>
                 <item.icon className="w-8 h-8 text-white" />
               </div>
-              <span className="text-6xl font-extrabold text-muted-foreground/10 absolute -top-6 left-1/2 -translate-x-1/2 select-none gradient-text-animate">
-                {item.step}
-              </span>
               <h3 className="text-xl font-bold text-foreground mb-3">{item.title}</h3>
               <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
             </div>
@@ -427,83 +426,6 @@ const MediaShowcase = () => {
   );
 };
 
-function useCountUp(target: number, duration = 2000, startOnReveal = true) {
-  const [count, setCount] = useState(0);
-  const [started, setStarted] = useState(!startOnReveal);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!startOnReveal) return;
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setStarted(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [startOnReveal]);
-
-  useEffect(() => {
-    if (!started) return;
-    const startTime = performance.now();
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [started, target, duration]);
-
-  return { count, ref };
-}
-
-const STATS = [
-  { value: 10000, suffix: "+", label: "Creators Worldwide" },
-  { value: 7, suffix: "", label: "Platforms Supported" },
-  { value: 30, suffix: "s", label: "To Build a Page" },
-  { value: 99, suffix: "%", label: "Uptime Guarantee" },
-];
-
-const StatItem = ({ value, suffix, label, delay }: { value: number; suffix: string; label: string; delay: number }) => {
-  const { count, ref } = useCountUp(value);
-  return (
-    <div className={`text-center scroll-reveal-blur scroll-delay-${delay}`}>
-      <span ref={ref} className="block text-4xl md:text-5xl font-extrabold text-white counter-number">
-        {count.toLocaleString()}{suffix}
-      </span>
-      <span className="block mt-2 text-sm text-white/70 font-medium">{label}</span>
-    </div>
-  );
-};
-
-const StatsSection = () => {
-  const sectionRef = useScrollReveal();
-  return (
-    <section className="py-16 relative overflow-hidden" ref={sectionRef}>
-      <div className="absolute inset-0 gradient-hero opacity-95" />
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="floating-orb floating-orb-1" style={{ top: '10%', left: '5%', opacity: 0.1 }} />
-        <div className="floating-orb floating-orb-3" style={{ bottom: '10%', right: '5%', opacity: 0.1 }} />
-      </div>
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((stat, i) => (
-            <StatItem key={stat.label} value={stat.value} suffix={stat.suffix} label={stat.label} delay={i + 1} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
 const CTASection = () => {
   const { t } = useTranslation();
   const sectionRef = useScrollReveal();
@@ -554,9 +476,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Navbar />
       <Hero />
-      <StatsSection />
       <ProfileShowcase />
-      <ProductDemo />
       <Features />
       <HowItWorks />
       <PlatformVideos />
