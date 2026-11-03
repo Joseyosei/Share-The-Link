@@ -23,7 +23,7 @@ function useScrollReveal() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.querySelectorAll(".scroll-reveal, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-scale").forEach((child) => {
+            entry.target.querySelectorAll(".scroll-reveal, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-scale, .scroll-reveal-blur, .icon-spin-in, .step-connector").forEach((child) => {
               child.classList.add("revealed");
             });
             observer.unobserve(entry.target);
@@ -120,14 +120,17 @@ const ProfileShowcase = () => {
   const avatarUrl = avatars[profile.username] || profile.avatar;
 
   return (
-    <section className="py-24 bg-muted/30" ref={sectionRef}>
-      <div className="container mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-12 scroll-reveal">
+    <section className="py-24 bg-muted/30 relative overflow-hidden" ref={sectionRef}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-2" style={{ top: '30%', left: '-5%', opacity: 0.06 }} />
+      </div>
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-12 scroll-reveal-blur">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             Live Profiles
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
-            See what creators are building
+            See what creators are <span className="gradient-text-animate">building</span>
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
             Real profiles powered by Share The Link. Yours could be next.
@@ -274,9 +277,12 @@ const HowItWorks = () => {
   const { t } = useTranslation();
   const sectionRef = useScrollReveal();
   return (
-    <section className="py-24 bg-muted/50" ref={sectionRef}>
-      <div className="container mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal">
+    <section className="py-24 bg-muted/50 relative overflow-hidden" ref={sectionRef}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-1" style={{ top: '20%', right: '0%', opacity: 0.05 }} />
+      </div>
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal-blur">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             {t("howItWorks.badge")}
           </span>
@@ -292,25 +298,32 @@ const HowItWorks = () => {
               step: "01",
               title: t("howItWorks.step1Title"),
               desc: t("howItWorks.step1Desc"),
+              gradient: "from-purple-500 to-pink-500",
             },
             {
               icon: Share2,
               step: "02",
               title: t("howItWorks.step2Title"),
               desc: t("howItWorks.step2Desc"),
+              gradient: "from-pink-500 to-orange-500",
             },
             {
               icon: Radio,
               step: "03",
               title: t("howItWorks.step3Title"),
               desc: t("howItWorks.step3Desc"),
+              gradient: "from-orange-500 to-red-500",
             },
-          ].map((item, i) => (
-            <div key={item.step} className={`relative text-center group scroll-reveal scroll-delay-${i + 1}`}>
-              <div className="w-16 h-16 rounded-2xl gradient-button flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+          ].map((item, i, arr) => (
+            <div key={item.step} className={`relative text-center group scroll-reveal-blur scroll-delay-${i + 1}`}>
+              {/* Connecting line between steps */}
+              {i < arr.length - 1 && (
+                <div className={`step-connector hidden md:block scroll-delay-${i + 2}`} />
+              )}
+              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 icon-spin-in scroll-delay-${i + 1}`}>
                 <item.icon className="w-8 h-8 text-white" />
               </div>
-              <span className="text-5xl font-extrabold text-muted-foreground/10 absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="text-6xl font-extrabold text-muted-foreground/10 absolute -top-6 left-1/2 -translate-x-1/2 select-none gradient-text-animate">
                 {item.step}
               </span>
               <h3 className="text-xl font-bold text-foreground mb-3">{item.title}</h3>
@@ -336,9 +349,12 @@ const MediaShowcase = () => {
   ];
 
   return (
-    <section className="py-24 bg-background" ref={sectionRef}>
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 scroll-reveal">
+    <section className="py-24 bg-background relative overflow-hidden" ref={sectionRef}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-3" style={{ top: '10%', right: '10%', opacity: 0.05 }} />
+      </div>
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 scroll-reveal-blur">
           <div>
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
               <Play className="w-4 h-4" />
@@ -368,7 +384,7 @@ const MediaShowcase = () => {
             <Link
               key={item.title}
               to="/media"
-              className={`group block rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 scroll-reveal-scale scroll-delay-${Math.min(i + 1, 5)}`}
+              className={`group block rounded-2xl border border-border bg-card overflow-hidden glow-card scroll-reveal-blur scroll-delay-${Math.min(i + 1, 6)}`}
             >
               <div className="relative aspect-video bg-muted flex items-center justify-center overflow-hidden">
                 <img
@@ -411,23 +427,106 @@ const MediaShowcase = () => {
   );
 };
 
+function useCountUp(target: number, duration = 2000, startOnReveal = true) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(!startOnReveal);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!startOnReveal) return;
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [startOnReveal]);
+
+  useEffect(() => {
+    if (!started) return;
+    const startTime = performance.now();
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [started, target, duration]);
+
+  return { count, ref };
+}
+
+const STATS = [
+  { value: 10000, suffix: "+", label: "Creators Worldwide" },
+  { value: 7, suffix: "", label: "Platforms Supported" },
+  { value: 30, suffix: "s", label: "To Build a Page" },
+  { value: 99, suffix: "%", label: "Uptime Guarantee" },
+];
+
+const StatItem = ({ value, suffix, label, delay }: { value: number; suffix: string; label: string; delay: number }) => {
+  const { count, ref } = useCountUp(value);
+  return (
+    <div className={`text-center scroll-reveal-blur scroll-delay-${delay}`}>
+      <span ref={ref} className="block text-4xl md:text-5xl font-extrabold text-white counter-number">
+        {count.toLocaleString()}{suffix}
+      </span>
+      <span className="block mt-2 text-sm text-white/70 font-medium">{label}</span>
+    </div>
+  );
+};
+
+const StatsSection = () => {
+  const sectionRef = useScrollReveal();
+  return (
+    <section className="py-16 relative overflow-hidden" ref={sectionRef}>
+      <div className="absolute inset-0 gradient-hero opacity-95" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-1" style={{ top: '10%', left: '5%', opacity: 0.1 }} />
+        <div className="floating-orb floating-orb-3" style={{ bottom: '10%', right: '5%', opacity: 0.1 }} />
+      </div>
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {STATS.map((stat, i) => (
+            <StatItem key={stat.label} value={stat.value} suffix={stat.suffix} label={stat.label} delay={i + 1} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const CTASection = () => {
   const { t } = useTranslation();
   const sectionRef = useScrollReveal();
   return (
-    <section className="py-24 gradient-hero relative" ref={sectionRef}>
+    <section className="py-24 gradient-hero relative overflow-hidden" ref={sectionRef}>
+      {/* Animated floating orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-1" style={{ top: '-10%', left: '20%', opacity: 0.15 }} />
+        <div className="floating-orb floating-orb-2" style={{ bottom: '-5%', right: '15%', opacity: 0.12 }} />
+        <div className="floating-orb floating-orb-3" style={{ top: '40%', left: '-5%', opacity: 0.1 }} />
+      </div>
       <div className="container mx-auto px-6 text-center relative z-10">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 text-balance scroll-reveal">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 text-balance scroll-reveal-blur">
           {t("cta.title")}
         </h2>
-        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed scroll-reveal scroll-delay-1">
+        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed scroll-reveal-blur scroll-delay-1">
           {t("cta.description")}
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center scroll-reveal-blur scroll-delay-2">
           <Button
             asChild
             size="lg"
-            className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-10 py-7 text-lg hover-lift"
+            className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-10 py-7 text-lg hover-lift cta-pulse rounded-xl"
           >
             <Link to="/signup">
               {t("cta.startFree")}
@@ -437,12 +536,12 @@ const CTASection = () => {
           <Button
             asChild
             size="lg"
-            className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-10 py-7 text-lg rounded-lg transition-all duration-300"
+            className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold px-10 py-7 text-lg rounded-xl transition-all duration-300"
           >
             <Link to="/pricing">{t("cta.viewPricing")}</Link>
           </Button>
         </div>
-        <p className="text-sm text-white/50 mt-6">
+        <p className="text-sm text-white/50 mt-6 scroll-reveal-blur scroll-delay-3">
           {t("cta.noCreditCard")}
         </p>
       </div>
@@ -455,6 +554,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Navbar />
       <Hero />
+      <StatsSection />
       <ProfileShowcase />
       <ProductDemo />
       <Features />

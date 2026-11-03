@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Star, Quote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -52,13 +52,35 @@ export const Reviews = () => {
     return null; // Don't show section if no approved reviews
   }
 
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.querySelectorAll(".scroll-reveal-blur").forEach((child) => child.classList.add("revealed"));
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="py-20 bg-muted/30 liquid-glass-muted">
-      <div className="container mx-auto px-4">
+    <section className="py-20 bg-muted/30 liquid-glass-muted relative overflow-hidden" ref={sectionRef}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-1" style={{ bottom: '10%', right: '5%', opacity: 0.04 }} />
+      </div>
+      <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 scroll-reveal-blur">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Loved by Creators Worldwide
+            Loved by Creators <span className="gradient-text-animate">Worldwide</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             See what our community has to say about Share The Link
@@ -67,10 +89,10 @@ export const Reviews = () => {
 
         {/* Reviews Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {reviews.map((review) => (
+          {reviews.map((review, i) => (
             <div
               key={review.id}
-              className="liquid-glass glass-specular rounded-2xl p-6 hover:shadow-md transition-all duration-300"
+              className={`liquid-glass glass-specular glow-card rounded-2xl p-6 scroll-reveal-blur scroll-delay-${Math.min(i + 1, 6)}`}
             >
               {/* Quote Icon */}
               <Quote className="w-8 h-8 text-primary/20 mb-4" />

@@ -704,6 +704,208 @@
     100% { left: 100%; }
   }
 
+  /* ── Animated Gradient Text ─────────────────────────────── */
+  .gradient-text-animate {
+    background: linear-gradient(
+      90deg,
+      hsl(262, 83%, 66%),
+      hsl(330, 81%, 60%),
+      hsl(24, 95%, 63%),
+      hsl(262, 83%, 66%)
+    );
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientTextShift 6s ease-in-out infinite;
+  }
+  @keyframes gradientTextShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* ── Floating Background Orbs ─────────────────────────── */
+  .floating-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.15;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .floating-orb-1 {
+    width: 400px; height: 400px;
+    background: hsl(262, 83%, 66%);
+    animation: orbFloat1 20s ease-in-out infinite;
+  }
+  .floating-orb-2 {
+    width: 300px; height: 300px;
+    background: hsl(330, 81%, 60%);
+    animation: orbFloat2 25s ease-in-out infinite;
+  }
+  .floating-orb-3 {
+    width: 250px; height: 250px;
+    background: hsl(24, 95%, 63%);
+    animation: orbFloat3 18s ease-in-out infinite;
+  }
+  @keyframes orbFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(80px, -60px) scale(1.1); }
+    50% { transform: translate(-40px, 40px) scale(0.95); }
+    75% { transform: translate(60px, 80px) scale(1.05); }
+  }
+  @keyframes orbFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-70px, 50px) scale(1.08); }
+    66% { transform: translate(50px, -70px) scale(0.92); }
+  }
+  @keyframes orbFloat3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    20% { transform: translate(50px, 30px) scale(1.1); }
+    40% { transform: translate(-30px, -50px) scale(0.9); }
+    60% { transform: translate(-60px, 20px) scale(1.05); }
+    80% { transform: translate(40px, -40px) scale(0.95); }
+  }
+
+  /* ── Glowing Card Border on Hover ──────────────────────── */
+  .glow-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  }
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--glow-angle, 0deg),
+      transparent 40%,
+      hsl(262, 83%, 66%) 50%,
+      hsl(330, 81%, 60%) 55%,
+      transparent 65%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: -1;
+    animation: glowRotate 4s linear infinite;
+  }
+  .glow-card::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: inherit;
+    background: inherit;
+    z-index: -1;
+  }
+  .glow-card:hover::before {
+    opacity: 1;
+  }
+  .glow-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px -15px rgba(139, 92, 246, 0.25);
+  }
+  @property --glow-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+  @keyframes glowRotate {
+    to { --glow-angle: 360deg; }
+  }
+
+  /* ── Icon Entrance Spin ────────────────────────────────── */
+  .icon-spin-in {
+    opacity: 0;
+    transform: scale(0.5) rotate(-180deg);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .icon-spin-in.revealed {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  /* ── Counter Number Animation ──────────────────────────── */
+  .counter-number {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Animated Connecting Line (HowItWorks) ─────────────── */
+  .step-connector {
+    position: absolute;
+    top: 2rem;
+    left: calc(50% + 2rem);
+    right: calc(-50% + 2rem);
+    height: 2px;
+    background: linear-gradient(90deg, hsl(262, 83%, 66%) 0%, hsl(330, 81%, 60%) 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .step-connector.revealed {
+    transform: scaleX(1);
+  }
+
+  /* ── Magnetic Tilt Card ────────────────────────────────── */
+  .tilt-card {
+    transition: transform 0.3s ease;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  /* ── Pulsing CTA Button ────────────────────────────────── */
+  .cta-pulse {
+    position: relative;
+  }
+  .cta-pulse::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: inherit;
+    opacity: 0;
+    z-index: -1;
+    animation: ctaPulse 2s ease-in-out infinite;
+  }
+  @keyframes ctaPulse {
+    0%, 100% { opacity: 0; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(1.05); }
+  }
+
+  /* ── Marquee / Infinite Scroll ─────────────────────────── */
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    width: max-content;
+    animation: marqueeScroll 30s linear infinite;
+  }
+  @keyframes marqueeScroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ── Reveal blur-in ────────────────────────────────────── */
+  .scroll-reveal-blur {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(20px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .scroll-reveal-blur.revealed {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+
+  /* ── Stagger up to 8 ───────────────────────────────────── */
+  .scroll-delay-6 { transition-delay: 0.6s; }
+  .scroll-delay-7 { transition-delay: 0.7s; }
+  .scroll-delay-8 { transition-delay: 0.8s; }
+
   /* ── Section Divider gradient line ──────────────────────── */
   .stl-divider-gradient {
     height: 2px;

@@ -61,7 +61,7 @@ export const Features = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale").forEach((child) => child.classList.add("revealed"));
+            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale, .scroll-reveal-blur, .icon-spin-in").forEach((child) => child.classList.add("revealed"));
             observer.unobserve(entry.target);
           }
         });
@@ -74,14 +74,20 @@ export const Features = () => {
 
   return (
     <section id="features" className="py-24 bg-background relative overflow-hidden" ref={sectionRef}>
-      <div className="container mx-auto px-6">
+      {/* Floating background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-2" style={{ top: '5%', right: '5%', opacity: 0.08 }} />
+        <div className="floating-orb floating-orb-3" style={{ bottom: '10%', left: '10%', opacity: 0.06 }} />
+      </div>
+
+      <div className="container mx-auto px-6 relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal">
+        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal-blur">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             Why Share The Link
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
-            Everything you need to grow
+            Everything you need to <span className="gradient-text-animate">grow</span>
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
             AI-powered campaign pages, one-click distribution to 7 platforms,
@@ -94,13 +100,12 @@ export const Features = () => {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className={`group p-8 rounded-2xl liquid-glass glass-specular hover-lift hover-glow cursor-default relative overflow-hidden scroll-reveal-scale scroll-delay-${Math.min(index + 1, 5)}`}
-              style={{ animationDelay: `${index * 0.1}s` }}
+              className={`group p-8 rounded-2xl liquid-glass glass-specular glow-card cursor-default relative overflow-hidden scroll-reveal-blur scroll-delay-${Math.min(index + 1, 8)}`}
             >
               {/* Subtle gradient accent on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
+              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-[0.06] transition-opacity duration-500`} />
 
-              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
+              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-lg transition-all duration-300 icon-spin-in scroll-delay-${Math.min(index + 1, 8)}`}>
                 <feature.icon className="w-7 h-7 text-white" />
               </div>
               <h3 className="text-lg font-bold text-foreground mb-3">

@@ -17,7 +17,7 @@ export const Pricing = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale").forEach((child) => child.classList.add("revealed"));
+            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale, .scroll-reveal-blur").forEach((child) => child.classList.add("revealed"));
             observer.unobserve(entry.target);
           }
         });
@@ -41,15 +41,19 @@ export const Pricing = () => {
   };
 
   return (
-    <section id="pricing" className="py-24 bg-muted liquid-glass-muted" ref={sectionRef}>
-      <div className="container mx-auto px-6">
+    <section id="pricing" className="py-24 bg-muted liquid-glass-muted relative overflow-hidden" ref={sectionRef}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-orb floating-orb-2" style={{ top: '5%', left: '10%', opacity: 0.05 }} />
+        <div className="floating-orb floating-orb-3" style={{ bottom: '5%', right: '10%', opacity: 0.04 }} />
+      </div>
+      <div className="container mx-auto px-6 relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal">
+        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal-blur">
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             Pricing
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
-            Simple, transparent pricing
+            Simple, <span className="gradient-text-animate">transparent</span> pricing
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
             Choose the plan that fits your needs. Upgrade or downgrade anytime.
@@ -90,10 +94,10 @@ export const Pricing = () => {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl p-7 transition-all duration-300 hover:-translate-y-1 ${
+                className={`relative rounded-2xl p-7 transition-all duration-300 scroll-reveal-blur scroll-delay-${Math.min(PRICING_PLANS.indexOf(plan) + 1, 4)} ${
                   plan.highlighted
                     ? "bg-foreground text-background shadow-2xl lg:scale-105"
-                    : "liquid-glass glass-specular text-card-foreground shadow-lg"
+                    : "liquid-glass glass-specular glow-card text-card-foreground shadow-lg"
                 }`}
               >
                 {/* Popular Badge */}
