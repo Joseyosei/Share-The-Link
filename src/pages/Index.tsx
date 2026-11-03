@@ -5,6 +5,7 @@ import { AIBuilderDemo } from "@/components/landing/AIBuilderDemo";
 import { Pricing } from "@/components/landing/Pricing";
 import { Reviews } from "@/components/landing/Reviews";
 import { Footer } from "@/components/landing/Footer";
+import { PlatformVideos } from "@/components/landing/PlatformVideos";
 import { Link } from "react-router-dom";
 import { ArrowRight, Radio, Wand2, Share2, Play, Eye, TrendingUp, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -478,6 +479,7 @@ const Index = () => {
       <ProfileShowcase />
       <Features />
       <HowItWorks />
+      <PlatformVideos />
       <MediaShowcase />
       <AIBuilderDemo />
       <Reviews />
