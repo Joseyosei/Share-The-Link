@@ -35,19 +35,51 @@ const getSpotifyEmbed = (url: string) => {
   return null;
 };
 
-const MediaPreview = ({ url }: { url: string }) => {
-  const ytId = getYouTubeId(url);
-  if (ytId) {
+const YouTubePreview = ({ videoId }: { videoId: string }) => {
+  const [playing, setPlaying] = useState(false);
+
+  if (playing) {
     return (
       <div className="w-full aspect-video rounded-lg overflow-hidden mt-1.5 mb-1">
-        <img
-          src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
-          alt="YouTube thumbnail"
-          className="w-full h-full object-cover"
-          loading="lazy"
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+          width="100%"
+          height="100%"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          allowFullScreen
+          style={{ border: 0 }}
+          title="YouTube video"
         />
       </div>
     );
+  }
+
+  return (
+    <div
+      className="w-full aspect-video rounded-lg overflow-hidden mt-1.5 mb-1 relative cursor-pointer group/yt"
+      onClick={(e) => { e.stopPropagation(); setPlaying(true); }}
+    >
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+        alt="YouTube thumbnail"
+        className="w-full h-full object-cover"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover/yt:bg-black/40 transition-colors">
+        <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover/yt:scale-110 transition-transform">
+          <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5 ml-0.5">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MediaPreview = ({ url }: { url: string }) => {
+  const ytId = getYouTubeId(url);
+  if (ytId) {
+    return <YouTubePreview videoId={ytId} />;
   }
 
   const spotify = getSpotifyEmbed(url);

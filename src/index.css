@@ -627,7 +627,56 @@
 
   /* ── Link Entry Animations ──────────────────────────────── */
 
-  /* Pulse - gentle scale throb */
+  /* Rotating border base — shared by all animated link styles.
+     Uses inset:0 so it works even inside overflow:hidden containers. */
+  .stl-link-pulse,
+  .stl-link-shake,
+  .stl-link-bounce,
+  .stl-link-glow,
+  .stl-link-slide-in {
+    position: relative;
+    z-index: 0;
+  }
+  .stl-link-pulse::before,
+  .stl-link-shake::before,
+  .stl-link-bounce::before,
+  .stl-link-glow::before,
+  .stl-link-slide-in::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
+    padding: 2px;
+    background: conic-gradient(
+      from var(--stl-border-angle, 0deg),
+      transparent 0%,
+      rgba(139, 92, 246, 0.9) 10%,
+      rgba(236, 72, 153, 0.9) 20%,
+      rgba(251, 146, 60, 0.7) 30%,
+      transparent 40%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    animation: stlBorderRotate 3s linear infinite;
+  }
+  @property --stl-border-angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+  @keyframes stlBorderRotate {
+    to { --stl-border-angle: 360deg; }
+  }
+
+  /* Pulse - gentle scale throb + rotating border */
   .stl-link-pulse {
     animation: stlLinkPulse 2s ease-in-out infinite;
   }
@@ -636,7 +685,7 @@
     50% { transform: scale(1.03); }
   }
 
-  /* Shake - horizontal wiggle to grab attention */
+  /* Shake - horizontal wiggle + rotating border */
   .stl-link-shake {
     animation: stlLinkShake 3s ease-in-out infinite;
   }
@@ -649,7 +698,7 @@
     50%, 100% { transform: translateX(0); }
   }
 
-  /* Bounce - playful vertical bounce */
+  /* Bounce - playful vertical bounce + rotating border */
   .stl-link-bounce {
     animation: stlLinkBounce 2.5s ease-in-out infinite;
   }
@@ -661,7 +710,7 @@
     80% { transform: translateY(0); }
   }
 
-  /* Glow - pulsing box-shadow glow */
+  /* Glow - rotating border + pulsing outer glow */
   .stl-link-glow {
     animation: stlLinkGlow 2s ease-in-out infinite;
   }
@@ -670,7 +719,7 @@
     50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(236, 72, 153, 0.2); }
   }
 
-  /* Slide-in - entrance from left on page load */
+  /* Slide-in - entrance from left on page load + rotating border */
   .stl-link-slide-in {
     animation: stlLinkSlideIn 0.6s ease-out both;
   }
