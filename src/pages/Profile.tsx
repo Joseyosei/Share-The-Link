@@ -1121,7 +1121,7 @@ const Profile = () => {
     if (pageIndex === totalPages - 2) {
       return (
         <div className="flex flex-col items-center justify-center h-full px-6 py-8">
-          <EmailCollector username={username || ""} creatorId={creatorId || undefined} textColor={currentTheme.textColor} />
+          <EmailCollector username={username || ""} creatorId={creatorId || undefined} textColor={currentTheme.textColor} isDark={viewerDarkMode === null ? isDarkTheme : viewerDarkMode} />
         </div>
       );
     }
@@ -1263,12 +1263,10 @@ const Profile = () => {
     );
   };
 
-  // Flipbook flip animation class
+  // Flipbook page-turn animation class (simple fade to avoid 3D transform issues)
   const getFlipClass = () => {
     if (!flipDirection) return "";
-    return flipDirection === "next"
-      ? "animate-[flipNext_0.5s_ease-in-out]"
-      : "animate-[flipPrev_0.5s_ease-in-out]";
+    return "animate-[pageTurn_0.5s_ease-in-out]";
   };
 
   return (
@@ -1283,20 +1281,11 @@ const Profile = () => {
         {/* Dark/Light mode toggle */}
         <button
           onClick={() => {
-            if (viewerDarkMode === null) {
-              // First click: toggle opposite of creator theme
-              setViewerDarkMode(!isDarkTheme);
-            } else if (viewerDarkMode) {
-              // Currently dark, switch to light
-              setViewerDarkMode(false);
-            } else {
-              // Currently light, reset to creator theme
-              setViewerDarkMode(null);
-            }
+            const isCurrentlyDark = viewerDarkMode === null ? isDarkTheme : viewerDarkMode;
+            setViewerDarkMode(!isCurrentlyDark);
           }}
           className={`p-3 rounded-full backdrop-blur-lg hover:opacity-80 transition-all ${currentTheme.textColor} bg-white/10`}
           aria-label="Toggle dark/light mode"
-          title={viewerDarkMode === null ? "Switch mode" : viewerDarkMode ? "Switch to light" : "Reset to theme"}
         >
           {(viewerDarkMode === null ? isDarkTheme : viewerDarkMode) ? (
             <Sun className="w-5 h-5" />
@@ -1317,17 +1306,12 @@ const Profile = () => {
       {/* Flipbook container */}
       <div
         className="relative w-full max-w-md"
-        style={{ perspective: "1200px" }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {/* The "book" page */}
         <div
           className={`relative w-full bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden min-h-[520px] flex flex-col ${getFlipClass()}`}
-          style={{
-            transformStyle: "preserve-3d",
-            backfaceVisibility: "hidden",
-          }}
         >
           {renderPage(currentPage)}
         </div>
@@ -1404,15 +1388,11 @@ const Profile = () => {
 
       {/* Flipbook CSS animations */}
       <style>{`
-        @keyframes flipNext {
-          0% { transform: rotateY(0deg); opacity: 1; }
-          50% { transform: rotateY(-90deg); opacity: 0.5; }
-          100% { transform: rotateY(0deg); opacity: 1; }
-        }
-        @keyframes flipPrev {
-          0% { transform: rotateY(0deg); opacity: 1; }
-          50% { transform: rotateY(90deg); opacity: 0.5; }
-          100% { transform: rotateY(0deg); opacity: 1; }
+        @keyframes pageTurn {
+          0% { opacity: 1; transform: scale(1); }
+          40% { opacity: 0; transform: scale(0.96); }
+          60% { opacity: 0; transform: scale(0.96); }
+          100% { opacity: 1; transform: scale(1); }
         }
         @keyframes fadeInScale {
           from { opacity: 0; transform: scale(0.8); }

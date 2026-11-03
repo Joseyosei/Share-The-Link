@@ -7,9 +7,10 @@ interface EmailCollectorProps {
   creatorId?: string;
   textColor?: string;
   buttonColor?: string;
+  isDark?: boolean;
 }
 
-export const EmailCollector = ({ username, creatorId, textColor = "text-white", buttonColor }: EmailCollectorProps) => {
+export const EmailCollector = ({ username, creatorId, textColor = "text-white", buttonColor, isDark = true }: EmailCollectorProps) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -62,9 +63,17 @@ export const EmailCollector = ({ username, creatorId, textColor = "text-white", 
     }
   };
 
+  const inputBg = isDark ? "bg-white/20" : "bg-black/10";
+  const inputText = isDark ? "text-white" : "text-gray-900";
+  const placeholderText = isDark ? "placeholder:text-white/50" : "placeholder:text-gray-500";
+  const focusRing = isDark ? "focus:ring-white/30" : "focus:ring-black/20";
+  const containerBg = isDark ? "bg-white/10" : "bg-black/5";
+  const defaultBtnBg = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.8)";
+  const btnText = isDark ? "white" : "white";
+
   if (status === "success") {
     return (
-      <div className="w-full max-w-xs mx-auto mt-4 p-4 rounded-2xl bg-white/10 backdrop-blur-sm text-center">
+      <div className={`w-full max-w-xs mx-auto mt-4 p-4 rounded-2xl ${containerBg} backdrop-blur-sm text-center`}>
         <CheckCircle className={`w-6 h-6 mx-auto mb-2 text-green-400`} />
         <p className={`text-sm font-medium ${textColor}`}>You're subscribed!</p>
         <p className={`text-xs ${textColor} opacity-70 mt-1`}>Thanks for joining the list.</p>
@@ -74,7 +83,7 @@ export const EmailCollector = ({ username, creatorId, textColor = "text-white", 
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xs mx-auto mt-4">
-      <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 space-y-2">
+      <div className={`rounded-2xl ${containerBg} backdrop-blur-sm p-4 space-y-2`}>
         <div className="flex items-center gap-2 mb-2">
           <Mail className={`w-4 h-4 ${textColor} opacity-70`} />
           <span className={`text-sm font-medium ${textColor}`}>Stay connected</span>
@@ -84,7 +93,7 @@ export const EmailCollector = ({ username, creatorId, textColor = "text-white", 
           placeholder="Your name (optional)"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-3 py-2 rounded-xl bg-white/20 text-sm placeholder:text-white/50 text-white border-0 outline-none focus:ring-2 focus:ring-white/30"
+          className={`w-full px-3 py-2 rounded-xl ${inputBg} text-sm ${placeholderText} ${inputText} border-0 outline-none focus:ring-2 ${focusRing}`}
         />
         <input
           type="email"
@@ -92,13 +101,13 @@ export const EmailCollector = ({ username, creatorId, textColor = "text-white", 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded-xl bg-white/20 text-sm placeholder:text-white/50 text-white border-0 outline-none focus:ring-2 focus:ring-white/30"
+          className={`w-full px-3 py-2 rounded-xl ${inputBg} text-sm ${placeholderText} ${inputText} border-0 outline-none focus:ring-2 ${focusRing}`}
         />
         <button
           type="submit"
           disabled={status === "loading"}
           className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: buttonColor || "rgba(255,255,255,0.25)", color: "white" }}
+          style={{ backgroundColor: buttonColor || defaultBtnBg, color: btnText }}
         >
           {status === "loading" ? (
             <Loader2 className="w-4 h-4 animate-spin mx-auto" />
