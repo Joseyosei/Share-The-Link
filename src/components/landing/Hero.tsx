@@ -123,7 +123,7 @@ export const Hero = () => {
   const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 
   return (
-    <section className="relative min-h-screen gradient-bg flex items-center pt-24 pb-16 overflow-hidden">
+    <section className="relative min-h-screen hero-aurora-bg flex items-center pt-24 pb-16 overflow-hidden">
       {/* Animated floating background orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="floating-orb floating-orb-1" style={{ top: '10%', left: '15%' }} />
