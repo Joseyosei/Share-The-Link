@@ -477,6 +477,8 @@ export type Database = {
           section_icon: string | null
           bento_size: string | null
           is_featured: boolean | null
+          countdown_end: string | null
+          countdown_label: string | null
         }
         Insert: {
           clicks?: number | null
@@ -494,6 +496,8 @@ export type Database = {
           section_icon?: string | null
           bento_size?: string | null
           is_featured?: boolean | null
+          countdown_end?: string | null
+          countdown_label?: string | null
         }
         Update: {
           clicks?: number | null
@@ -511,6 +515,8 @@ export type Database = {
           section_icon?: string | null
           bento_size?: string | null
           is_featured?: boolean | null
+          countdown_end?: string | null
+          countdown_label?: string | null
         }
         Relationships: []
       }
@@ -1251,6 +1257,8 @@ export type Database = {
           link_type: string
           title: string
           url: string
+          countdown_end: string | null
+          countdown_label: string | null
         }[]
       }
       get_public_profile: {

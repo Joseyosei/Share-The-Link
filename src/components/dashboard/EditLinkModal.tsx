@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { X, Calendar, Clock, FolderOpen } from "lucide-react";
+import { X, Calendar, Clock, FolderOpen, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface EditLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, updates: { title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null }) => void;
+  onSave: (id: string, updates: { title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null; countdown_end?: string | null; countdown_label?: string | null }) => void;
   link: {
     id: string;
     title: string;
@@ -14,6 +14,8 @@ interface EditLinkModalProps {
     schedule_start?: string | null;
     schedule_end?: string | null;
     link_group?: string | null;
+    countdown_end?: string | null;
+    countdown_label?: string | null;
   } | null;
   existingGroups?: string[];
 }
@@ -33,10 +35,13 @@ export const EditLinkModal = ({ isOpen, onClose, onSave, link, existingGroups = 
     schedule_start: "",
     schedule_end: "",
     link_group: "",
+    countdown_end: "",
+    countdown_label: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showSchedule, setShowSchedule] = useState(false);
   const [showGroup, setShowGroup] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
 
   useEffect(() => {
     if (link) {
@@ -47,9 +52,12 @@ export const EditLinkModal = ({ isOpen, onClose, onSave, link, existingGroups = 
         schedule_start: link.schedule_start ? new Date(link.schedule_start).toISOString().slice(0, 16) : "",
         schedule_end: link.schedule_end ? new Date(link.schedule_end).toISOString().slice(0, 16) : "",
         link_group: link.link_group || "",
+        countdown_end: link.countdown_end ? new Date(link.countdown_end).toISOString().slice(0, 16) : "",
+        countdown_label: link.countdown_label || "",
       });
       setShowSchedule(!!(link.schedule_start || link.schedule_end));
       setShowGroup(!!link.link_group);
+      setShowCountdown(!!(link.countdown_end));
     }
   }, [link]);
 
@@ -87,6 +95,8 @@ export const EditLinkModal = ({ isOpen, onClose, onSave, link, existingGroups = 
       schedule_start: showSchedule && formData.schedule_start ? new Date(formData.schedule_start).toISOString() : null,
       schedule_end: showSchedule && formData.schedule_end ? new Date(formData.schedule_end).toISOString() : null,
       link_group: showGroup && formData.link_group ? formData.link_group : null,
+      countdown_end: showCountdown && formData.countdown_end ? new Date(formData.countdown_end).toISOString() : null,
+      countdown_label: showCountdown && formData.countdown_label ? formData.countdown_label : null,
     });
     setErrors({});
   };
@@ -288,6 +298,53 @@ export const EditLinkModal = ({ isOpen, onClose, onSave, link, existingGroups = 
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Countdown Timer Toggle */}
+          <div className="border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => setShowCountdown(!showCountdown)}
+              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                showCountdown ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Timer className="w-4 h-4" />
+              Add Countdown Timer
+              {showCountdown && formData.countdown_end && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>}
+            </button>
+
+            {showCountdown && (
+              <div className="mt-3 space-y-3 p-3 bg-muted rounded-xl">
+                <p className="text-xs text-muted-foreground">
+                  Show a countdown timer on this link (e.g., for a product launch or limited offer).
+                </p>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    <Timer className="w-3 h-3 inline mr-1" />
+                    Countdown ends at
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="countdown_end"
+                    value={formData.countdown_end}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">Label (optional)</label>
+                  <input
+                    type="text"
+                    name="countdown_label"
+                    placeholder="e.g., Sale ends in"
+                    value={formData.countdown_label}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
               </div>
             )}
           </div>

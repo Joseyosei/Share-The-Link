@@ -104,15 +104,16 @@ const DashboardLinks = () => {
         title: link.title,
         url: link.url,
         type: link.type || "standard",
+        countdown_end: link.countdown_end || null,
+        countdown_label: link.countdown_label || null,
       });
     }
   };
 
-  const handleSaveEdit = async (id: string, updates: { title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null }) => {
+  const handleSaveEdit = async (id: string, updates: { title: string; url: string; type: string; schedule_start?: string | null; schedule_end?: string | null; link_group?: string | null; countdown_end?: string | null; countdown_label?: string | null }) => {
     try {
-      // Only send fields that exist in the database schema
-      const { title, url, type } = updates;
-      await updateLink(id, { title, url, type });
+      const { title, url, type, countdown_end, countdown_label } = updates;
+      await updateLink(id, { title, url, type, countdown_end: countdown_end || null, countdown_label: countdown_label || null });
       toast({
         title: "Link updated",
         description: "Your changes have been saved.",
@@ -145,12 +146,14 @@ const DashboardLinks = () => {
     }
   };
 
-  const handleAddLink = async (newLink: { title: string; url: string; type: string }) => {
+  const handleAddLink = async (newLink: { title: string; url: string; type: string; countdown_end?: string | null; countdown_label?: string | null }) => {
     try {
       await addLink({
         title: newLink.title,
         url: newLink.url,
         type: newLink.type,
+        countdown_end: newLink.countdown_end || null,
+        countdown_label: newLink.countdown_label || null,
       });
       toast({
         title: "Link added!",
@@ -217,6 +220,8 @@ const DashboardLinks = () => {
                   isActive={link.is_active ?? true}
                   isDragging={dragIndex === index}
                   isDragOver={dragOverIndex === index}
+                  countdownEnd={link.countdown_end}
+                  countdownLabel={link.countdown_label}
                   onToggle={handleToggle}
                   onEdit={handleEdit}
                   onDelete={handleDelete}

@@ -93,7 +93,7 @@ const getFaviconUrl = (url: string) => {
 
 // ── Link Button component ───────────────────────────────────────────
 interface LinkButtonProps {
-  link: { id: string; title: string; url: string; link_type: string; animation?: string; thumbnail_url?: string | null };
+  link: { id: string; title: string; url: string; link_type: string; animation?: string; thumbnail_url?: string | null; countdown_end?: string | null; countdown_label?: string | null };
   onClick: (id: string, url: string) => void;
   btnClass: string;
   btnInlineStyle: React.CSSProperties;
@@ -150,6 +150,13 @@ const LinkButton = ({ link, onClick, btnClass, btnInlineStyle, btnTextColor, btn
         <ExternalLink className={`w-5 h-5 opacity-70 flex-shrink-0 ${btnTextColor}`} style={btnTextInlineStyle} />
       </div>
       {showMedia && <MediaPreview url={link.url} />}
+      {link.countdown_end && new Date(link.countdown_end) > new Date() && (
+        <CountdownTimer
+          endDate={link.countdown_end}
+          label={link.countdown_label || undefined}
+          textColor={btnTextColor}
+        />
+      )}
     </button>
   );
 };
@@ -269,6 +276,8 @@ interface LinkData {
   section_icon?: string | null;
   bento_size?: string;
   is_featured?: boolean;
+  countdown_end?: string | null;
+  countdown_label?: string | null;
 }
 
 const Profile = () => {
