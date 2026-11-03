@@ -124,10 +124,11 @@ export const Hero = () => {
 
   return (
     <section className="relative min-h-screen gradient-bg flex items-center pt-24 pb-16 overflow-hidden">
-      {/* Background decoration */}
+      {/* Animated floating background orbs */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary-foreground/5 rounded-full blur-3xl" />
+        <div className="floating-orb floating-orb-1" style={{ top: '10%', left: '15%' }} />
+        <div className="floating-orb floating-orb-2" style={{ top: '60%', right: '10%' }} />
+        <div className="floating-orb floating-orb-3" style={{ bottom: '15%', left: '40%' }} />
       </div>
 
       {/* Social media dropdown button - fixed left side */}
@@ -217,7 +218,7 @@ export const Hero = () => {
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-primary-foreground leading-[1.1] mb-6 animate-fade-in stagger-1 tracking-tight">
             {t("hero.headline1")}
             <br />
-            {t("hero.headline2")}
+            <span className="gradient-text-animate">{t("hero.headline2")}</span>
           </h1>
 
           {/* Subheadline */}

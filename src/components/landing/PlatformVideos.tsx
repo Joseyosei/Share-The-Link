@@ -10,7 +10,7 @@ function useScrollReveal() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.querySelectorAll(".scroll-reveal, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-scale").forEach((child) => {
+            entry.target.querySelectorAll(".scroll-reveal, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-scale, .scroll-reveal-blur").forEach((child) => {
               child.classList.add("revealed");
             });
             observer.unobserve(entry.target);
@@ -54,7 +54,7 @@ export const PlatformVideos = () => {
     <section className="py-24 bg-background relative overflow-hidden" ref={sectionRef}>
       <div className="absolute inset-0 bg-gradient-to-b from-muted/30 via-transparent to-muted/30 pointer-events-none" />
       <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-12 scroll-reveal">
+        <div className="text-center max-w-3xl mx-auto mb-12 scroll-reveal-blur">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             <Film className="w-4 h-4" />
             Watch How It Works
