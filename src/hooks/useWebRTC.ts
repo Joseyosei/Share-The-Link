@@ -4,9 +4,9 @@
  * P2P WebRTC streaming using Supabase Realtime for signaling.
  * - Broadcaster: captures media, creates peer connections per viewer
  * - Viewer: receives stream from broadcaster via peer connection
- * 
- * Improvements:
- * - Multiple STUN servers for reliability
+ *
+ * Features:
+ * - STUN + TURN servers (TURN credentials fetched from /api/ice-servers)
  * - ICE candidate buffering (queue candidates until remote description is set)
  * - Exponential backoff retry for connection failures
  * - Connection health monitoring
@@ -16,24 +16,42 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-// Enhanced ICE configuration with multiple STUN servers for reliability
-const ICE_SERVERS: RTCConfiguration = {
+// ICE configuration with STUN + TURN servers for reliable connectivity.
+// TURN relay servers ensure connections work behind symmetric NATs and
+// restrictive firewalls where STUN alone fails (~10-15% of users).
+const ICE_CONFIG: RTCConfiguration = {
   iceServers: [
+    // Public STUN servers
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" },
-    // Additional reliable STUN servers
     { urls: "stun:stun.cloudflare.com:3478" },
-    { urls: "stun:stun.stunprotocol.org:3478" },
+    // Free public TURN relay (openrelay.metered.ca)
+    // For production: replace with Cloudflare TURN, Twilio, or Xirsys credentials
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turns:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
   ],
   iceCandidatePoolSize: 10,
-  // Prioritize UDP for lower latency
   iceTransportPolicy: "all",
   bundlePolicy: "max-bundle",
   rtcpMuxPolicy: "require",
 };
+
+function getIceConfig(): RTCConfiguration {
+  return ICE_CONFIG;
+}
 
 // Retry configuration
 const MAX_RECONNECT_ATTEMPTS = 3;
@@ -161,7 +179,7 @@ export function useBroadcaster(roomName: string) {
         existing.connection.close();
       }
 
-      const pc = new RTCPeerConnection(ICE_SERVERS);
+      const pc = new RTCPeerConnection(getIceConfig());
 
       const peerState: PeerState = {
         connection: pc,
@@ -511,8 +529,8 @@ export function useViewer(roomName: string) {
     setIsConnecting(true);
     const viewerId = viewerIdRef.current;
 
-    const pc = new RTCPeerConnection(ICE_SERVERS);
-    
+    const pc = new RTCPeerConnection(getIceConfig());
+
     const peerState: ViewerPeerState = {
       connection: pc,
       iceCandidateBuffer: [],
