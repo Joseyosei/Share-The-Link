@@ -29,15 +29,13 @@ const VIDEOS = [
   {
     id: "overview",
     label: "Platform Overview",
-    duration: "0:39",
-    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SHARE%20THE%20LINK%20PLATFORM%20OVERVIEW-eD8liUWt4yGZk5HonUbf0Ah9xJEYBb.mp4",
-    description: "A 39-second overview of everything Share The Link offers — from AI page building to live streaming.",
+    src: "/videos/platform-overview.mp4",
+    description: "See everything Share The Link offers — from AI page building to live streaming.",
   },
   {
     id: "walkthrough",
     label: "Full Walkthrough",
-    duration: "1:12",
-    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SHARE%20THE%20LINK%20WALKTHROUGH-AZ7rLxaQ3kYfU7vdFuxNOMmYTUbBt0.mp4",
+    src: "/videos/platform-walkthrough.mp4",
     description: "A full walkthrough: claim your name, build with AI, share to 7 platforms, go live, and track your growth.",
   },
 ] as const;
@@ -130,9 +128,6 @@ export const PlatformVideos = () => {
               >
                 <Play className={`w-3.5 h-3.5 ${activeTab === video.id ? "text-white" : ""}`} />
                 {video.label}
-                <span className={`text-xs ${activeTab === video.id ? "text-white/70" : "text-muted-foreground/60"}`}>
-                  {video.duration}
-                </span>
               </button>
             ))}
           </div>
