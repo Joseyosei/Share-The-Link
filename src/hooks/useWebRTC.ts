@@ -98,6 +98,7 @@ export function useBroadcaster(roomName: string) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const announceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Adaptive bitrate: adjust encoding based on viewer count and connection quality
   const adaptBitrate = useCallback(() => {
@@ -339,7 +340,25 @@ export function useBroadcaster(roomName: string) {
           }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          // Tell any viewers who opened the page before we went live to (re)join.
+          announce();
+        }
+      });
+
+    // Viewers only learn about the broadcaster through signalling, so if a
+    // viewer's "viewer-join" was sent before we subscribed it is lost.
+    // Re-announcing on an interval lets late and early viewers connect.
+    function announce() {
+      channel.send({
+        type: "broadcast",
+        event: "broadcaster-ready",
+        payload: { at: Date.now() },
+      });
+    }
+    if (announceIntervalRef.current) clearInterval(announceIntervalRef.current);
+    announceIntervalRef.current = setInterval(announce, 8000);
 
     channelRef.current = channel;
     setIsBroadcasting(true);
@@ -367,6 +386,7 @@ export function useBroadcaster(roomName: string) {
           autoGainControl: true,
         },
       });
+      localStreamRef.current = stream;
       setLocalStream(stream);
       setMediaSource("camera");
       return stream;
@@ -392,6 +412,7 @@ export function useBroadcaster(roomName: string) {
         setLocalStream(null);
         setMediaSource(null);
       });
+      localStreamRef.current = stream;
       setLocalStream(stream);
       setMediaSource("screen");
       return stream;
@@ -407,6 +428,17 @@ export function useBroadcaster(roomName: string) {
       clearInterval(healthCheckIntervalRef.current);
       healthCheckIntervalRef.current = null;
     }
+    if (announceIntervalRef.current) {
+      clearInterval(announceIntervalRef.current);
+      announceIntervalRef.current = null;
+    }
+
+    // Tell every viewer the stream is over so their player can switch state
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "stream-ended",
+      payload: { at: Date.now() },
+    });
 
     // Close all peer connections
     peersRef.current.forEach((peer) => peer.connection.close());
@@ -419,10 +451,11 @@ export function useBroadcaster(roomName: string) {
     setLocalStream(null);
     setMediaSource(null);
 
-    // Leave channel
+    // Leave channel (after a short delay so "stream-ended" is delivered)
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      const ch = channelRef.current;
       channelRef.current = null;
+      setTimeout(() => supabase.removeChannel(ch), 750);
     }
     setIsBroadcasting(false);
   }, []);
@@ -432,6 +465,9 @@ export function useBroadcaster(roomName: string) {
     return () => {
       if (healthCheckIntervalRef.current) {
         clearInterval(healthCheckIntervalRef.current);
+      }
+      if (announceIntervalRef.current) {
+        clearInterval(announceIntervalRef.current);
       }
       peersRef.current.forEach((peer) => peer.connection.close());
       peersRef.current.clear();
@@ -494,183 +530,210 @@ export function useBroadcaster(roomName: string) {
   };
 }
 
+
 /**
  * Viewer hook - connects to broadcaster and receives stream
+ *
+ * Signalling flow (all over the Supabase Realtime broadcast channel `stream:<room>`):
+ *   viewer  -> "viewer-join"       (on subscribe, on "broadcaster-ready", and on a retry timer)
+ *   bcaster -> "offer"             (one fresh RTCPeerConnection per join)
+ *   viewer  -> "answer"
+ *   both    -> "ice-candidate"
+ *   bcaster -> "stream-ended"      (when the creator ends the stream)
+ *
+ * The viewer builds a fresh RTCPeerConnection for every offer it receives, so a
+ * re-join (because the viewer arrived before the creator went live, or the
+ * connection dropped) never collides with stale peer state.
  */
+export type ViewerConnectionState =
+  | "new"
+  | "waiting"
+  | "connecting"
+  | "connected"
+  | "failed"
+  | "ended";
+
+const VIEWER_REJOIN_INTERVAL = 6000;
+
 export function useViewer(roomName: string) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [connectionState, setConnectionState] = useState<string>("new");
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionState, setConnectionState] = useState<ViewerConnectionState>("new");
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   const peerStateRef = useRef<ViewerPeerState | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const viewerIdRef = useRef(`viewer-${Math.random().toString(36).substring(2, 10)}`);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rejoinTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastOfferAtRef = useRef(0);
+  const endedRef = useRef(false);
+  const connectedRef = useRef(false);
 
-  // Process buffered ICE candidates
-  const processBufferedCandidates = useCallback(async () => {
-    const peerState = peerStateRef.current;
-    if (!peerState || !peerState.hasRemoteDescription) return;
-    
-    for (const candidate of peerState.iceCandidateBuffer) {
+  const closePeer = useCallback(() => {
+    if (peerStateRef.current) {
+      peerStateRef.current.connection.close();
+      peerStateRef.current = null;
+    }
+  }, []);
+
+  const sendJoin = useCallback(() => {
+    const channel = channelRef.current;
+    if (!channel || endedRef.current || connectedRef.current) return;
+    // Do not spam joins while an offer is being negotiated
+    if (Date.now() - lastOfferAtRef.current < 4000) return;
+    channel.send({
+      type: "broadcast",
+      event: "viewer-join",
+      payload: { viewerId: viewerIdRef.current },
+    });
+  }, []);
+
+  const flushCandidates = useCallback(async (peerState: ViewerPeerState) => {
+    if (!peerState.hasRemoteDescription) return;
+    const queued = peerState.iceCandidateBuffer;
+    peerState.iceCandidateBuffer = [];
+    for (const candidate of queued) {
       try {
         await peerState.connection.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (err) {
-        console.error("Error adding buffered ICE candidate:", err);
+        console.warn("Error adding buffered ICE candidate:", err);
       }
     }
-    peerState.iceCandidateBuffer = [];
   }, []);
 
-  const connect = useCallback(() => {
-    if (!roomName) return;
+  const handleOffer = useCallback(
+    async (sdp: RTCSessionDescriptionInit) => {
+      const channel = channelRef.current;
+      if (!channel) return;
+      lastOfferAtRef.current = Date.now();
+      setConnectionState("connecting");
 
-    setIsConnecting(true);
-    const viewerId = viewerIdRef.current;
+      // Fresh peer for every offer: the broadcaster created a fresh one too.
+      closePeer();
+      const pc = new RTCPeerConnection(getIceConfig());
+      const peerState: ViewerPeerState = {
+        connection: pc,
+        iceCandidateBuffer: [],
+        hasRemoteDescription: false,
+      };
+      peerStateRef.current = peerState;
 
-    const pc = new RTCPeerConnection(getIceConfig());
-
-    const peerState: ViewerPeerState = {
-      connection: pc,
-      iceCandidateBuffer: [],
-      hasRemoteDescription: false,
-    };
-    peerStateRef.current = peerState;
-
-    // Receive remote tracks
-    pc.ontrack = (event) => {
-      const [stream] = event.streams;
-      if (stream) {
+      pc.ontrack = (event) => {
+        const stream = event.streams[0] || new MediaStream([event.track]);
         setRemoteStream(stream);
-        setIsConnecting(false);
-        setReconnectAttempts(0);
-      }
-    };
+      };
 
-    pc.onicecandidateerror = (event) => {
-      console.warn("ICE candidate error:", event);
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      const state = pc.iceConnectionState;
-      if (state === "failed") {
-        console.log("ICE connection failed, attempting restart");
-        pc.restartIce();
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      const state = pc.connectionState;
-      setConnectionState(state);
-      
-      if (state === "connected") {
-        setIsConnecting(false);
-        setReconnectAttempts(0);
-      } else if (state === "failed" || state === "disconnected") {
-        // Attempt reconnection with exponential backoff
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          const delay = INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts);
-          console.log(`Connection ${state}, attempting reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setReconnectAttempts((prev) => prev + 1);
-            disconnect();
-            connect();
-          }, delay);
-        } else {
-          setIsConnecting(false);
-          setRemoteStream(null);
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          channel.send({
+            type: "broadcast",
+            event: "ice-candidate",
+            payload: {
+              candidate: event.candidate.toJSON(),
+              fromId: viewerIdRef.current,
+              targetId: "broadcaster",
+            },
+          });
         }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "failed") pc.restartIce();
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (peerStateRef.current?.connection !== pc) return; // stale peer
+        const state = pc.connectionState;
+        if (state === "connected") {
+          connectedRef.current = true;
+          setConnectionState("connected");
+          setReconnectAttempts(0);
+        } else if (state === "failed" || state === "disconnected") {
+          connectedRef.current = false;
+          if (endedRef.current) return;
+          setReconnectAttempts((n) => n + 1);
+          setConnectionState(state === "failed" ? "failed" : "waiting");
+          // Ask the broadcaster for a new peer; the rejoin timer keeps trying.
+          lastOfferAtRef.current = 0;
+          sendJoin();
+        }
+      };
+
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        peerState.hasRemoteDescription = true;
+        await flushCandidates(peerState);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        channel.send({
+          type: "broadcast",
+          event: "answer",
+          payload: { sdp: pc.localDescription?.toJSON(), fromId: viewerIdRef.current },
+        });
+      } catch (err) {
+        console.error("Error handling offer:", err);
+        setConnectionState("failed");
       }
-    };
+    },
+    [closePeer, flushCandidates, sendJoin]
+  );
+
+  const connect = useCallback(() => {
+    if (!roomName || channelRef.current) return;
+    endedRef.current = false;
+    connectedRef.current = false;
+    setConnectionState("waiting");
+    const viewerId = viewerIdRef.current;
 
     const channel = supabase.channel(`stream:${roomName}`, {
       config: { broadcast: { self: false } },
     });
+    channelRef.current = channel;
 
     channel
-      .on("broadcast", { event: "offer" }, async (msg) => {
+      .on("broadcast", { event: "offer" }, (msg) => {
         const { sdp, targetId } = msg.payload || {};
         if (targetId !== viewerId || !sdp) return;
-
-        try {
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-          peerState.hasRemoteDescription = true;
-          
-          // Process any buffered ICE candidates
-          await processBufferedCandidates();
-          
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-
-          channel.send({
-            type: "broadcast",
-            event: "answer",
-            payload: {
-              sdp: pc.localDescription?.toJSON(),
-              fromId: viewerId,
-            },
-          });
-        } catch (err) {
-          console.error("Error handling offer:", err);
-        }
+        handleOffer(sdp);
       })
       .on("broadcast", { event: "ice-candidate" }, async (msg) => {
         const { candidate, targetId } = msg.payload || {};
         if (targetId !== viewerId || !candidate) return;
-
+        const peerState = peerStateRef.current;
+        if (!peerState) return;
         if (peerState.hasRemoteDescription) {
           try {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            await peerState.connection.addIceCandidate(new RTCIceCandidate(candidate));
           } catch (err) {
-            console.error("Error adding ICE candidate:", err);
+            console.warn("Error adding ICE candidate:", err);
           }
         } else {
-          // Buffer the candidate until remote description is set
           peerState.iceCandidateBuffer.push(candidate);
         }
       })
-      .on("broadcast", { event: "stream-ended" }, () => {
-        // Broadcaster ended the stream
-        setRemoteStream(null);
-        setConnectionState("closed");
-        setIsConnecting(false);
+      .on("broadcast", { event: "broadcaster-ready" }, () => {
+        // Creator just went live (or is re-announcing): join if not connected.
+        sendJoin();
       })
-      .subscribe(() => {
-        // Once subscribed, signal the broadcaster that we joined
-        channel.send({
-          type: "broadcast",
-          event: "viewer-join",
-          payload: { viewerId },
-        });
+      .on("broadcast", { event: "stream-ended" }, () => {
+        endedRef.current = true;
+        connectedRef.current = false;
+        closePeer();
+        setRemoteStream(null);
+        setConnectionState("ended");
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") sendJoin();
       });
 
-    // Send ICE candidates to broadcaster
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        channel.send({
-          type: "broadcast",
-          event: "ice-candidate",
-          payload: {
-            candidate: event.candidate.toJSON(),
-            fromId: viewerId,
-            targetId: "broadcaster",
-          },
-        });
-      }
-    };
-
-    channelRef.current = channel;
-  }, [roomName, reconnectAttempts, processBufferedCandidates]);
+    if (rejoinTimerRef.current) clearInterval(rejoinTimerRef.current);
+    rejoinTimerRef.current = setInterval(sendJoin, VIEWER_REJOIN_INTERVAL);
+  }, [roomName, handleOffer, sendJoin, closePeer]);
 
   const disconnect = useCallback(() => {
-    // Clear any pending reconnect timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+    if (rejoinTimerRef.current) {
+      clearInterval(rejoinTimerRef.current);
+      rejoinTimerRef.current = null;
     }
-
     if (channelRef.current) {
       channelRef.current.send({
         type: "broadcast",
@@ -680,35 +743,27 @@ export function useViewer(roomName: string) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-    if (peerStateRef.current) {
-      peerStateRef.current.connection.close();
-      peerStateRef.current = null;
-    }
+    closePeer();
+    connectedRef.current = false;
+    lastOfferAtRef.current = 0;
     setRemoteStream(null);
     setConnectionState("new");
-    setIsConnecting(false);
     setReconnectAttempts(0);
-  }, []);
+  }, [closePeer]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-      if (peerStateRef.current) {
-        peerStateRef.current.connection.close();
-      }
+      if (rejoinTimerRef.current) clearInterval(rejoinTimerRef.current);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (peerStateRef.current) peerStateRef.current.connection.close();
     };
   }, []);
 
   return {
     remoteStream,
     connectionState,
-    isConnecting,
+    isConnecting: connectionState === "connecting" || connectionState === "waiting",
     reconnectAttempts,
     connect,
     disconnect,

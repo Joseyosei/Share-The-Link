@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor, Save, Mic, MicOff, Volume2, VolumeX, Settings2, Signal, Wifi, WifiOff } from "lucide-react";
+import { Sparkles, Video, Loader2, X, Radio, Users, DollarSign, MessageCircle, Camera, Monitor, Save, Mic, MicOff, Volume2, VolumeX, Settings2, Signal, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { useStreaming } from "@/hooks/useStreaming";
 import { useBroadcaster, useViewer, QUALITY_PRESETS, type QualityPreset } from "@/hooks/useWebRTC";
 import { useStreamRecording } from "@/hooks/useStreamRecording";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface GoLiveModalProps {
   isOpen: boolean;
@@ -25,6 +26,27 @@ export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+
+  const suggestWithAI = async () => {
+    setSuggesting(true);
+    setError("");
+    try {
+      const res = await authFetch("/api/ai-agent?action=agents&op=run", {
+        method: "POST",
+        body: JSON.stringify({ workflow: "go-live-prep", idea: title || description }),
+      });
+      const json = await res.json().catch(() => ({}));
+      const out = json?.run?.output;
+      if (!res.ok || !out?.title) throw new Error(json?.error || json?.run?.error || "No suggestion returned");
+      setTitle(out.title);
+      setDescription(out.description || "");
+    } catch (err: any) {
+      setError(err?.message || "AI suggestion failed");
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +75,13 @@ export const GoLiveModal = ({ isOpen, onClose, onStreamCreated, createStreamFn, 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground">Stream Title *</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Stream Title *</label>
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={suggestWithAI} disabled={suggesting}>
+                {suggesting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                Suggest with AI
+              </Button>
+            </div>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -110,6 +138,7 @@ interface StreamPlayerProps {
 
 export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCountChange }: StreamPlayerProps) => {
   const { goLive, endStream, isLive } = useStreaming();
+  const { toast } = useToast();
   const broadcaster = useBroadcaster(roomName || `stream-${streamId}`);
   const recorder = useStreamRecording();
   const [loading, setLoading] = useState(false);
@@ -153,6 +182,21 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
     onViewerCountChange?.(broadcaster.viewerCount);
   }, [broadcaster.viewerCount, onViewerCountChange]);
 
+  const [saveProgress, setSaveProgress] = useState<number | null>(null);
+  const [failedBlob, setFailedBlob] = useState<Blob | null>(null);
+
+  // Warn before closing the tab while live or while the recording is saving,
+  // otherwise the replay is lost.
+  useEffect(() => {
+    if (!isLive && saveProgress === null) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isLive, saveProgress]);
+
   const handleGoLive = async () => {
     setLoading(true);
     try {
@@ -160,12 +204,21 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
       if (!stream) {
         stream = await broadcaster.startCamera();
       }
+      if (!stream || stream.getVideoTracks().length === 0) {
+        toast({
+          title: "Camera unavailable",
+          description: "Allow camera and microphone access in your browser (or pick Screen), then press Go Live again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Listen for viewers first, then flip the DB status so viewer pages switch to the player.
       broadcaster.startBroadcasting();
       await goLive(streamId);
-      // Start recording the stream
-      if (stream) {
-        recorder.startRecording(stream);
-      }
+      recorder.startRecording(stream);
+    } catch (err) {
+      broadcaster.stopBroadcasting();
+      console.error("Go live failed:", err);
     } finally {
       setLoading(false);
     }
@@ -174,22 +227,64 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
   const handleEndStream = async () => {
     setLoading(true);
     try {
-      // Stop recording and upload
+      // Grab a thumbnail while the camera is still on
+      const thumbnail = broadcaster.localStream
+        ? await recorder.generateThumbnail(broadcaster.localStream)
+        : null;
       const blob = await recorder.stopRecording();
       const { data: { user } } = await supabase.auth.getUser();
 
       broadcaster.stopBroadcasting();
       await endStream(streamId);
 
-      // Upload the recording in the background
-      if (blob && user) {
-        recorder.uploadRecording(blob, user.id, streamId, streamTitleRef.current || "Stream Recording");
+      // Keep this component mounted until the replay is saved to Media.
+      if (blob && blob.size > 0 && user) {
+        setSaveProgress(0);
+        const url = await recorder.uploadRecording(
+          blob,
+          user.id,
+          streamId,
+          streamTitleRef.current || "Stream Recording",
+          undefined,
+          thumbnail || undefined,
+          (pct) => setSaveProgress(pct)
+        );
+        setSaveProgress(null);
+        if (!url) {
+          setFailedBlob(blob);
+          return; // stay on screen so the creator can retry or download
+        }
       }
 
       onEnd?.();
     } finally {
       setLoading(false);
     }
+  };
+
+  const retryUpload = async () => {
+    if (!failedBlob) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setSaveProgress(0);
+    const url = await recorder.uploadRecording(
+      failedBlob, user.id, streamId, streamTitleRef.current || "Stream Recording",
+      undefined, undefined, (pct) => setSaveProgress(pct)
+    );
+    setSaveProgress(null);
+    if (url) {
+      setFailedBlob(null);
+      onEnd?.();
+    }
+  };
+
+  const downloadRecording = () => {
+    if (!failedBlob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(failedBlob);
+    a.download = `${(streamTitleRef.current || "stream").replace(/[^a-z0-9-_ ]/gi, "")}.webm`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   };
 
   return (
@@ -236,12 +331,30 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
           </Badge>
         </div>
       )}
-      {!isLive && recorder.isUploading && (
-        <div className="absolute top-4 right-4 z-10">
-          <Badge variant="secondary" className="bg-blue-600/80 text-white border-0">
-            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-            Saving...
-          </Badge>
+      {!isLive && (saveProgress !== null || failedBlob) && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80">
+          <div className="text-center text-white space-y-3 px-6">
+            {saveProgress !== null ? (
+              <>
+                <Loader2 className="w-8 h-8 mx-auto animate-spin" />
+                <p className="font-medium">Saving your replay to Media... {saveProgress}%</p>
+                <div className="w-64 h-2 bg-white/20 rounded-full mx-auto overflow-hidden">
+                  <div className="h-full bg-white transition-all" style={{ width: `${saveProgress}%` }} />
+                </div>
+                <p className="text-xs text-white/60">Keep this tab open until it finishes.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium">The replay could not be saved.</p>
+                <div className="flex gap-2 justify-center">
+                  <Button size="sm" onClick={retryUpload}>Retry upload</Button>
+                  <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white" onClick={downloadRecording}>
+                    Download file
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -379,9 +492,10 @@ export const StreamPlayer = ({ isOwner, streamId, roomName, onEnd, onViewerCount
 interface ViewerPlayerProps {
   roomName: string;
   streamTitle?: string;
+  onEnded?: () => void;
 }
 
-export const ViewerPlayer = ({ roomName, streamTitle }: ViewerPlayerProps) => {
+export const ViewerPlayer = ({ roomName, streamTitle, onEnded }: ViewerPlayerProps) => {
   const viewer = useViewer(roomName);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasConnected, setHasConnected] = useState(false);
@@ -400,12 +514,29 @@ export const ViewerPlayer = ({ roomName, streamTitle }: ViewerPlayerProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomName]);
 
-  // Attach remote stream to video
+  const [needsTapToUnmute, setNeedsTapToUnmute] = useState(false);
+
+  // Attach remote stream to video. Browsers block unmuted autoplay until the
+  // viewer interacts with the page, which used to leave a black player. Try
+  // with sound first, then fall back to muted playback + a tap-to-unmute chip.
   useEffect(() => {
-    if (videoRef.current && viewer.remoteStream) {
-      videoRef.current.srcObject = viewer.remoteStream;
-    }
+    const el = videoRef.current;
+    if (!el || !viewer.remoteStream) return;
+    el.srcObject = viewer.remoteStream;
+    el.muted = isMuted;
+    el.play().catch(() => {
+      el.muted = true;
+      setIsMuted(true);
+      setNeedsTapToUnmute(true);
+      el.play().catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewer.remoteStream]);
+
+  useEffect(() => {
+    if (viewer.connectionState === "ended") onEnded?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewer.connectionState]);
 
   return (
     <div className="relative bg-black rounded-2xl overflow-hidden">
@@ -430,6 +561,23 @@ export const ViewerPlayer = ({ roomName, streamTitle }: ViewerPlayerProps) => {
               muted={isMuted}
               className="w-full h-full object-cover"
             />
+            {needsTapToUnmute && (
+              <button
+                onClick={() => {
+                  if (videoRef.current) {
+                    videoRef.current.muted = false;
+                    videoRef.current.play().catch(() => {});
+                  }
+                  setIsMuted(false);
+                  setNeedsTapToUnmute(false);
+                }}
+                className="absolute inset-0 z-10 flex items-end justify-center pb-6 bg-transparent"
+              >
+                <span className="flex items-center gap-2 bg-black/70 text-white text-sm px-4 py-2 rounded-full">
+                  <VolumeX className="w-4 h-4" /> Tap to unmute
+                </span>
+              </button>
+            )}
             {/* Volume controls - visible on hover */}
             <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full px-3 py-2">
               <button
@@ -464,7 +612,12 @@ export const ViewerPlayer = ({ roomName, streamTitle }: ViewerPlayerProps) => {
         
         ) : (
           <div className="text-center text-white/60 space-y-3">
-            {viewer.isConnecting ? (
+            {viewer.connectionState === "ended" ? (
+              <>
+                <Video className="w-12 h-12 mx-auto opacity-40" />
+                <p className="text-sm">The stream has ended. The replay will appear on the Media page shortly.</p>
+              </>
+            ) : viewer.connectionState === "connecting" ? (
               <>
                 <Loader2 className="w-10 h-10 mx-auto animate-spin" />
                 <p className="text-sm">Connecting to stream...</p>

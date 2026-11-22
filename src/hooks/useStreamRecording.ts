@@ -1,14 +1,17 @@
 /**
  * useStreamRecording Hook
- * Records the local MediaStream using MediaRecorder and uploads to Vercel Blob via API.
+ * Records the local MediaStream using MediaRecorder and uploads it directly to Vercel Blob.
  * This is the single source of truth for recording uploads - useStreaming no longer creates recordings.
  */
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { upload } from "@vercel/blob/client";
 
-// Max recording size before we stop (500MB)
-const MAX_RECORDING_SIZE = 500 * 1024 * 1024;
+// Max recording size before we stop (1.5GB, about 2 hours at the bitrate below).
+// The file is uploaded with multipart client uploads, so size is no longer
+// limited by the serverless body limit, only by browser memory.
+const MAX_RECORDING_SIZE = 1.5 * 1024 * 1024 * 1024;
 
 export function useStreamRecording() {
   const { toast } = useToast();
@@ -37,7 +40,7 @@ export function useStreamRecording() {
     try {
       const recorder = new MediaRecorder(stream, { 
         mimeType, 
-        videoBitsPerSecond: 2500000, // 2.5 Mbps
+        videoBitsPerSecond: 1500000, // 1.5 Mbps: good 720p replays, ~11 MB/min
         audioBitsPerSecond: 128000, // 128 kbps
       });
       
@@ -81,8 +84,15 @@ export function useStreamRecording() {
     return new Promise((resolve) => {
       const recorder = mediaRecorderRef.current;
       if (!recorder || recorder.state === "inactive") {
+        // The recorder may have auto-stopped at the size cap: keep what we have.
         setIsRecording(false);
-        resolve(null);
+        if (chunksRef.current.length > 0) {
+          const blob = new Blob(chunksRef.current, { type: recorder?.mimeType || "video/webm" });
+          chunksRef.current = [];
+          resolve(blob);
+        } else {
+          resolve(null);
+        }
         return;
       }
       
@@ -98,86 +108,95 @@ export function useStreamRecording() {
     });
   }, []);
 
+  /**
+   * Upload the finished recording and register it on the Media page.
+   *
+   * The file goes straight from the browser to Vercel Blob (multipart, resumable
+   * parts) using a short-lived token from /api/upload-video?action=client-upload. It never passes
+   * through a serverless function, so the 4.5 MB function body limit that used to
+   * reject every stream recording no longer applies. A small JSON "finalize" call
+   * then writes the stream_recordings row and kicks off the post-stream AI agent.
+   */
   const uploadRecording = useCallback(
     async (
-      blob: Blob, 
-      userId: string, 
-      streamId: string, 
-      title: string, 
+      blob: Blob,
+      userId: string,
+      streamId: string,
+      title: string,
       description?: string,
-      thumbnailDataUrl?: string
+      thumbnailDataUrl?: string,
+      onProgress?: (percentage: number) => void
     ): Promise<string | null> => {
       setIsUploading(true);
-      
-      try {
-        // Get auth token
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          throw new Error("Not authenticated");
-        }
 
-        // Calculate actual duration from recording time
-        const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
-        
-        // Determine file extension based on MIME type
-        const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-        
-        // Create form data for upload
-        const formData = new FormData();
-        formData.append("file", blob, `recording-${streamId}.${ext}`);
-        formData.append("title", title);
-        formData.append("description", description || "");
-        formData.append("visibility", "public");
-        formData.append("duration", String(duration));
-        formData.append("stream_id", streamId);
-        
-        // Add thumbnail if provided
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Not authenticated");
+        const authHeaders = { Authorization: `Bearer ${session.access_token}` };
+
+        const duration = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+        // MediaRecorder reports e.g. "video/webm;codecs=vp9,opus" - strip codec params
+        const contentType = (blob.type || "video/webm").split(";")[0].trim();
+        const ext = contentType.includes("mp4") ? "mp4" : "webm";
+
+        const video = await upload(`recordings/${userId}/${streamId}.${ext}`, blob, {
+          access: "public",
+          handleUploadUrl: "/api/upload-video?action=client-upload",
+          headers: authHeaders,
+          clientPayload: JSON.stringify({ streamId, kind: "video" }),
+          contentType,
+          multipart: blob.size > 8 * 1024 * 1024,
+          onUploadProgress: ({ percentage }) => onProgress?.(Math.min(99, Math.round(percentage))),
+        });
+
+        let thumbnailUrl: string | null = null;
         if (thumbnailDataUrl) {
           try {
-            const thumbResponse = await fetch(thumbnailDataUrl);
-            const thumbBlob = await thumbResponse.blob();
-            formData.append("thumbnail", thumbBlob, "thumbnail.jpg");
+            const thumbBlob = await (await fetch(thumbnailDataUrl)).blob();
+            const thumb = await upload(`recordings/${userId}/${streamId}-thumb.jpg`, thumbBlob, {
+              access: "public",
+              handleUploadUrl: "/api/upload-video?action=client-upload",
+              headers: authHeaders,
+              clientPayload: JSON.stringify({ streamId, kind: "thumbnail" }),
+              contentType: "image/jpeg",
+            });
+            thumbnailUrl = thumb.url;
           } catch (err) {
-            console.warn("Failed to process thumbnail:", err);
+            console.warn("Thumbnail upload failed:", err);
           }
         }
 
-        // Upload via API route (uses Vercel Blob)
-        const response = await fetch("/api/upload-video", {
+        const res = await fetch("/api/upload-video?action=finalize", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: formData,
+          headers: { ...authHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stream_id: streamId,
+            video_url: video.url,
+            thumbnail_url: thumbnailUrl,
+            title,
+            description: description || "",
+            duration,
+            size_bytes: blob.size,
+          }),
         });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Upload failed");
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || "Could not save the recording");
         }
+        onProgress?.(100);
 
-        const result = await response.json();
-        
-        // Also update the stream record with the recording URL
-        await supabase
-          .from("streams")
-          .update({ 
-            recording_url: result.video?.video_url || null,
-          })
-          .eq("id", streamId);
-
-        toast({ 
-          title: "Recording saved!", 
-          description: "Your stream has been saved to your media library." 
+        toast({
+          title: "Replay saved",
+          description: "Your stream is on your Media page. AI is writing the title, description and social posts.",
         });
-        
-        return result.video?.video_url || null;
+
+        return video.url;
       } catch (err) {
         console.error("Upload failed:", err);
-        toast({ 
-          title: "Upload failed", 
-          description: err instanceof Error ? err.message : "Could not save recording.", 
-          variant: "destructive" 
+        toast({
+          title: "Upload failed",
+          description: err instanceof Error ? err.message : "Could not save recording.",
+          variant: "destructive",
         });
         return null;
       } finally {

@@ -7,6 +7,7 @@
  * POST /api/ai-agent?action=save-settings
  * POST /api/ai-agent?action=generate-key
  * GET|POST /api/ai-agent?action=webhook-trigger
+ * GET|POST /api/ai-agent?action=agents&op=...   ← Agent workflows (see _lib/agents/handler.ts)
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
@@ -15,6 +16,7 @@ import { verifyAuth, unauthorized } from "./_lib/auth.js";
 import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 import { sanitizeString, isValidUUID, isValidUrl, badRequest } from "./_lib/validate.js";
 import * as crypto from "crypto";
+import { agentsHandler } from "./_lib/agents/handler.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -22,9 +24,12 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (handleCors(req, res)) return;
-
   const action = req.query.action as string || "";
+
+  // Agent workflows handle their own CORS (and the cron call comes from Vercel)
+  if (action === "agents") return agentsHandler(req, res);
+
+  if (handleCors(req, res)) return;
 
   switch (action) {
     case "chat":

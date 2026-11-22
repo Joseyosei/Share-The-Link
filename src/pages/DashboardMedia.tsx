@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Play, Eye, Clock, Trash2, Globe, Upload, Radio, ExternalLink, Video, Lock, Link2, Film, Edit2 } from "lucide-react";
+import { Play, Eye, Clock, Trash2, Globe, Upload, Radio, ExternalLink, Video, Lock, Link2, Film, Edit2, Sparkles, Loader2, Copy, Share2 } from "lucide-react";
+import { authFetch } from "@/lib/auth-fetch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +40,10 @@ interface Recording {
   visibility: string;
   created_at: string;
   stream_id: string;
+  ai_status?: "none" | "pending" | "ready" | "failed" | "skipped";
+  ai_summary?: string | null;
+  tags?: string[];
+  social_posts?: Record<string, string> | null;
 }
 
 interface UserVideo {
@@ -69,12 +74,65 @@ const DashboardMedia = () => {
   const [activeTab, setActiveTab] = useState<"all" | "recordings" | "uploads">("all");
   const [playingVideo, setPlayingVideo] = useState<MediaItem | null>(null);
 
+  const [postsFor, setPostsFor] = useState<Recording | null>(null);
+  const [rerunning, setRerunning] = useState<string | null>(null);
+
   useEffect(() => {
     fetchMyMedia();
+
+    // New replays (and AI updates to them) appear without a refresh
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      channel = supabase
+        .channel(`my-media-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "stream_recordings", filter: `user_id=eq.${user.id}` },
+          () => fetchMyMedia(true)
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "streams", filter: `user_id=eq.${user.id}` },
+          () => fetchMyMedia(true)
+        )
+        .subscribe();
+    });
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchMyMedia = async () => {
-    setLoading(true);
+  // Fallback poll while an AI write-up is in progress
+  useEffect(() => {
+    if (!recordings.some((r) => r.ai_status === "pending")) return;
+    const t = setInterval(() => fetchMyMedia(true), 8000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordings]);
+
+  const rerunAI = async (rec: Recording) => {
+    setRerunning(rec.id);
+    setRecordings((prev) => prev.map((r) => (r.id === rec.id ? { ...r, ai_status: "pending" } : r)));
+    try {
+      const res = await authFetch("/api/ai-agent?action=agents&op=run", {
+        method: "POST",
+        body: JSON.stringify({ workflow: "post-stream", stream_id: rec.stream_id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "AI run failed");
+      toast({ title: "AI details updated" });
+    } catch (err) {
+      toast({ title: "AI run failed", description: err instanceof Error ? err.message : "", variant: "destructive" });
+    } finally {
+      setRerunning(null);
+      fetchMyMedia(true);
+    }
+  };
+
+  const fetchMyMedia = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -354,6 +412,35 @@ const DashboardMedia = () => {
                             {item.description}
                           </p>
                         )}
+                        {item.type === "recording" && (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            {(item as Recording).ai_status === "pending" && (
+                              <Badge variant="secondary" className="text-[10px] gap-1">
+                                <Loader2 className="w-3 h-3 animate-spin" /> AI is writing details...
+                              </Badge>
+                            )}
+                            {((item as Recording).tags || []).slice(0, 5).map((t) => (
+                              <Badge key={t} variant="outline" className="text-[10px]">#{t}</Badge>
+                            ))}
+                            {(item as Recording).social_posts && (
+                              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setPostsFor(item as Recording)}>
+                                <Share2 className="w-3 h-3 mr-1" /> Social posts
+                              </Button>
+                            )}
+                            {(item as Recording).ai_status !== "pending" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                disabled={rerunning === item.id}
+                                onClick={() => rerunAI(item as Recording)}
+                              >
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                {(item as Recording).ai_status === "ready" ? "Regenerate" : "Write with AI"}
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Actions */}
@@ -459,6 +546,44 @@ const DashboardMedia = () => {
               {playingVideo.description}
             </div>
           )}
+          {playingVideo?.type === "recording" && (playingVideo as Recording).ai_summary && (
+            <div className="px-4 pb-4 text-sm whitespace-pre-line">
+              <p className="font-medium mb-1">Key moments</p>
+              <p className="text-muted-foreground">{(playingVideo as Recording).ai_summary}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI social posts */}
+      <Dialog open={!!postsFor} onOpenChange={(open) => !open && setPostsFor(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" /> Social posts for "{postsFor?.title}"
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {Object.entries(postsFor?.social_posts || {}).map(([platform, text]) => (
+              <div key={platform} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">{platform === "x" ? "X / Twitter" : platform}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7"
+                    onClick={() => {
+                      navigator.clipboard.writeText(String(text));
+                      toast({ title: "Copied" });
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy
+                  </Button>
+                </div>
+                <p className="text-sm whitespace-pre-line">{String(text)}</p>
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink, Camera, Loader2, Search, HeadphonesIcon, Send, CheckCheck, MessageSquare, Settings2, Smartphone, Ban, AlertTriangle, Check } from "lucide-react";
+import { Shield, Users, FileText, Plus, Trash2, Save, Upload, Eye, EyeOff, Video, ImageIcon, Type, BarChart3, Link2, Radio, User, Briefcase, Mail, Phone, Globe, ExternalLink, Camera, Loader2, Search, HeadphonesIcon, Send, CheckCheck, MessageSquare, Settings2, Smartphone, Ban, AlertTriangle, Check, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/auth-fetch";
+import { AgentOpsPanel } from "@/components/admin/AgentOpsPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,7 +111,7 @@ const AdminPage = () => {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content" | "applications" | "support" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content" | "applications" | "support" | "agents" | "settings">("overview");
 
   // Data
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -639,13 +640,14 @@ const AdminPage = () => {
 
       <div className="container mx-auto px-6 py-8">
         {/* Tabs */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex flex-wrap gap-2 mb-8">
           {[
             { id: "overview" as const, label: "Overview", icon: BarChart3 },
             { id: "team" as const, label: "Team Members", icon: Users },
             { id: "content" as const, label: "Site Content", icon: FileText },
             { id: "applications" as const, label: `Applications (${applications.length})`, icon: Briefcase },
             { id: "support" as const, label: `Support (${tickets.filter((t) => t.status === "open" || t.status === "in_progress").length})`, icon: HeadphonesIcon },
+            { id: "agents" as const, label: "AI Agents", icon: Bot },
             { id: "settings" as const, label: "Settings", icon: Settings2 },
           ].map((tab) => (
             <button
@@ -1369,6 +1371,8 @@ const AdminPage = () => {
           </div>
         )}
         {/* Settings Tab */}
+        {activeTab === "agents" && <AgentOpsPanel />}
+
         {activeTab === "settings" && (
           <div className="space-y-8">
             {/* App Launch Countdown */}
