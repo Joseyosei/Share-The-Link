@@ -39,6 +39,8 @@ const LiveStreamPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewerName, setViewerName] = useState("Anonymous");
+  const [streamerUserId, setStreamerUserId] = useState<string | null>(null);
+  const [checkNonce, setCheckNonce] = useState(0);
   const streamRef = useRef<LiveStreamData | null>(null);
   const streamerRef = useRef<StreamerProfile | null>(null);
 
@@ -84,6 +86,10 @@ const LiveStreamPage = () => {
         }
 
         setStreamer(profile as StreamerProfile);
+        setStreamerUserId(profile.user_id);
+
+        // Close out streams whose broadcaster disconnected without ending
+        await supabase.rpc("end_stale_streams" as never).then(() => {}, () => {});
 
         // Get active live stream
         const { data: liveStream, error: streamError } = await supabase
@@ -93,14 +99,15 @@ const LiveStreamPage = () => {
           .eq("status", "live")
           .order("started_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (streamError || !liveStream) {
-          setError("not_live");
+          setError((prev) => (prev === "stream_ended" ? prev : "not_live"));
           setLoading(false);
           return;
         }
 
+        setError(null);
         setStream(liveStream as unknown as LiveStreamData);
 
         // Try to get current user's name
@@ -124,7 +131,29 @@ const LiveStreamPage = () => {
     };
 
     fetchStream();
-  }, [username]);
+  }, [username, checkNonce]);
+
+  // While the creator is offline, watch for them going live and switch to the
+  // player automatically (realtime, with a polling fallback).
+  useEffect(() => {
+    if (!streamerUserId || stream) return;
+    const recheck = () => setCheckNonce((n) => n + 1);
+    const channel = supabase
+      .channel(`creator-live-${streamerUserId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "streams", filter: `user_id=eq.${streamerUserId}` },
+        (payload) => {
+          if ((payload.new as Record<string, unknown>)?.status === "live") recheck();
+        }
+      )
+      .subscribe();
+    const poll = setInterval(recheck, 10000);
+    return () => {
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
+  }, [streamerUserId, stream]);
 
   // Subscribe to stream status changes
   useEffect(() => {
@@ -189,7 +218,7 @@ const LiveStreamPage = () => {
               {streamer?.full_name || username} is not live
             </h2>
             <p className="text-muted-foreground">
-              Check back later or visit their profile for more content.
+              Keep this page open: the stream will start here automatically when they go live.
             </p>
             <Button asChild variant="outline">
               <Link to={`/${username}`}>
@@ -213,14 +242,19 @@ const LiveStreamPage = () => {
             </div>
             <h2 className="text-xl font-bold">Stream has ended</h2>
             <p className="text-muted-foreground">
-              Thanks for watching! Visit {streamer?.full_name || username}&apos;s profile.
+              Thanks for watching! The replay will be on the Media page in a few minutes.
             </p>
-            <Button asChild variant="outline">
-              <Link to={`/${username}`}>
-                <User className="w-4 h-4 mr-2" />
-                View Profile
-              </Link>
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button asChild>
+                <Link to="/media">Watch replays</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to={`/${username}`}>
+                  <User className="w-4 h-4 mr-2" />
+                  View Profile
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -290,8 +324,14 @@ const LiveStreamPage = () => {
           {/* Video */}
           <div className="lg:col-span-2 space-y-4">
             <ViewerPlayer
+              key={stream.id}
               roomName={stream.room_name}
               streamTitle={stream.title}
+              onEnded={() => {
+                setError("stream_ended");
+                streamRef.current = null;
+                setStream(null);
+              }}
             />
             <div>
               <h1 className="text-xl font-bold">{stream.title}</h1>

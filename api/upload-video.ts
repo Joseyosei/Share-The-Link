@@ -4,6 +4,7 @@ import { put } from "@vercel/blob";
 import { handleCors } from "./_lib/cors.js";
 import { verifyAuth, unauthorized } from "./_lib/auth.js";
 import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
+import { recordingUploadHandler } from "./_lib/recording-upload.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -22,6 +23,11 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Stream replays: direct-to-Blob client uploads + finalize (see _lib/recording-upload.ts)
+  if (req.query.action === "client-upload" || req.query.action === "finalize") {
+    return recordingUploadHandler(req, res);
+  }
+
   if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -62,7 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Validate file type
-    const mimeType = file.contentType || "video/mp4";
+    // Browsers may send codec params, e.g. "video/webm;codecs=vp9,opus"
+    const mimeType = (file.contentType || "video/mp4").split(";")[0].trim().toLowerCase();
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return res.status(400).json({ 
         error: "Invalid file type. Allowed: MP4, WebM, MOV, M4V" 

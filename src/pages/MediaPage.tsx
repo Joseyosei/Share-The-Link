@@ -71,6 +71,13 @@ const MediaPage = () => {
           fetchContent();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "stream_recordings" },
+        () => {
+          fetchContent();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -81,6 +88,9 @@ const MediaPage = () => {
   const fetchContent = async () => {
     setLoading(true);
     try {
+      // End streams whose broadcaster disconnected, so "Live Now" stays accurate
+      await supabase.rpc("end_stale_streams" as never).then(() => {}, () => {});
+
       // Fetch live streams
       const { data: liveData } = await supabase
         .from("streams")
