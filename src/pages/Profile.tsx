@@ -1,3 +1,5 @@
+import { SocialMediaGallery } from "@/components/profile/SocialMediaGallery";
+import { collectSocialMedia } from "@/lib/social-media";
 import { useParams, Link } from "react-router-dom";
 import { User, Share2, ExternalLink, Loader2, Github, Globe, Linkedin, Music, ChevronLeft, ChevronRight, QrCode, Calendar, Video, ArrowRight, Sun, Moon, ChevronDown, ShoppingBag, Image as ImageIcon, Eye, MapPin, ClipboardList } from "lucide-react";
 import { XIcon } from "@/components/icons/XIcon";
@@ -1372,6 +1374,7 @@ const Profile = () => {
         </div>
       </div>
 
+      {collectSocialMedia(visibleLinks).length>0&&<section className={`mt-8 w-full max-w-3xl rounded-3xl p-5 bg-white/10 backdrop-blur-lg ${currentTheme.textColor}`}><h2 className="text-xl font-bold mb-4">Featured content</h2><SocialMediaGallery links={visibleLinks}/></section>}
       {/* VideoAsk-style intro video bubble */}
       {introVideoUrl && (
         <ProfileVideoAsk
