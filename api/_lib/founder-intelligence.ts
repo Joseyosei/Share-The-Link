@@ -29,6 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (admin?.role !== "super_admin") return res.status(403).json({error:"Founder access required"});
     const {data,error} = await db.rpc("founder_snapshot",{p_admin:auth.userId,p_days:days});
     if (error) throw error;
+    const onboardingResult = await db.rpc("founder_onboarding_snapshot",{p_admin:auth.userId});
+    const onboarding = onboardingResult.error ? null : onboardingResult.data;
     let revenue = null;
     try {
       if (!process.env.STRIPE_SECRET_KEY) throw new Error("Stripe not configured");
@@ -47,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       revenue = {...calculateRecurringRevenue(items),activeSubscriptions:count};
     } catch (err) { console.error("Founder revenue unavailable",err); }
-    return res.status(200).json({...data,revenue,generatedAt:new Date().toISOString(),days});
+    return res.status(200).json({...data,onboarding,revenue,generatedAt:new Date().toISOString(),days});
   } catch (err) {
     console.error("Founder intelligence unavailable",err);
     return res.status(503).json({error:"Analytics unavailable. Check database migration and server configuration."});
