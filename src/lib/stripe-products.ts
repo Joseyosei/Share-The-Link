@@ -1,4 +1,4 @@
-import { PLAN_POLICY } from "./plan-policy";
+import { PLAN_POLICY } from "./plan-policy.js";
 // Share The Link - Live Stripe Products (account: acct_1SpA5QE2FuZ01nXU)
 export interface PricingPlan {
   id: string;

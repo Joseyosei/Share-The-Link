@@ -6,18 +6,18 @@ export const WEBSITE_TEMPLATES = [
  {id:"consultant",name:"Executive",category:"Services",premium:true,background:"#eef2ff",surface:"#ffffff",ink:"#172554",accent:"#3730a3",layout:"split",description:"A polished service business and personal brand."},
  {id:"signal",name:"Signal",category:"Creator",premium:true,background:"#171717",surface:"#262626",ink:"#fafafa",accent:"#bef264",layout:"split",description:"Bold contrast for creators and launches."},
 ] as const;
-export const SECTION_TYPES=["hero","links","about","shop","contact","note"] as const;
+export const SECTION_TYPES=["hero","links","about","shop","contact","note","media"] as const;
 export type SectionType=typeof SECTION_TYPES[number];
 export type WebsiteSection={id:SectionType;heading:string;body:string};
 export type WebsiteConfig={templateId:string;sections:WebsiteSection[];accent:string|null;hideBrand:boolean};
 export type WebsiteSource={username:string;name:string;bio:string;avatar:string|null;links:{id:string;title:string;url:string}[];products:{id:string;name:string;amount:number}[]};
-export const SECTION_LABELS:Record<SectionType,string>={hero:"Hero",links:"Links",about:"About",shop:"Digital shop",contact:"Contact & services",note:"Custom text"};
+export const SECTION_LABELS:Record<SectionType,string>={hero:"Hero",links:"Links",about:"About",shop:"Digital shop",contact:"Contact & services",note:"Custom text",media:"Social media"};
 export function templateFor(id:string){return WEBSITE_TEMPLATES.find(t=>t.id===id);}
 export function defaultWebsite():WebsiteConfig{return {templateId:"essential",sections:[{id:"hero",heading:"",body:""},{id:"links",heading:"Explore my links",body:""},{id:"about",heading:"About me",body:""}],accent:null,hideBrand:false};}
 export function validateWebsite(value:unknown):WebsiteConfig{
  if(!value||typeof value!=="object")throw Error("Invalid website");
  const v=value as Record<string,unknown>;
- if(typeof v.templateId!=="string"||!templateFor(v.templateId)||!Array.isArray(v.sections)||v.sections.length<1||v.sections.length>6||typeof v.hideBrand!=="boolean"||(v.accent!==null&&(typeof v.accent!=="string"||!/^#[0-9a-fA-F]{6}$/.test(v.accent))))throw Error("Invalid website settings");
+ if(typeof v.templateId!=="string"||!templateFor(v.templateId)||!Array.isArray(v.sections)||v.sections.length<1||v.sections.length>SECTION_TYPES.length||typeof v.hideBrand!=="boolean"||(v.accent!==null&&(typeof v.accent!=="string"||!/^#[0-9a-fA-F]{6}$/.test(v.accent))))throw Error("Invalid website settings");
  const seen=new Set<string>();
  const sections=v.sections.map(s=>{
   if(!s||typeof s!=="object"||!SECTION_TYPES.includes(s.id)||seen.has(s.id)||typeof s.heading!=="string"||typeof s.body!=="string"||s.heading.length>100||s.body.length>1000)throw Error("Invalid or duplicate section");

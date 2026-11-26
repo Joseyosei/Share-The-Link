@@ -19,5 +19,5 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vitest run tests/founder-metrics.test.ts tests/creator-onboarding.test.ts tests/commerce.test.ts tests/plan-policy.test.ts tests/storefront-studio.test.ts
+      - run: pnpm exec vitest run tests/founder-metrics.test.ts tests/creator-onboarding.test.ts tests/commerce.test.ts tests/plan-policy.test.ts tests/storefront-studio.test.ts tests/social-media.test.ts
       - run: pnpm build
