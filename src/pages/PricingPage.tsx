@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { trackFounderEvent } from "@/lib/track-founder-event";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -88,6 +89,7 @@ const comparisonFeatures = [
 ];
 
 const PricingPage = () => {
+  useEffect(() => { void trackFounderEvent("pricing_viewed"); }, []);
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const navigate = useNavigate();
   const { startCheckout } = useSubscription();
