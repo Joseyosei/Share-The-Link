@@ -1,3 +1,5 @@
+import { resolvePlan,usageSnapshot } from "./entitlements.js";
+import { platformFee,PLAN_POLICY } from "../../src/lib/plan-policy.js";
 import type { VercelRequest,VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -73,12 +75,14 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    const code=normalizeCode(body.code);
    if(code&&code!==product.discount_code)return res.status(400).json({error:"Discount code is invalid"});
    const amount=discountedAmount(product.amount,code?product.discount_percent:0);
+   const sellerPlan=await resolvePlan(product.seller_id);
+   const fee=platformFee(amount,sellerPlan.tier);
    const account=await accountFor(db,product.seller_id);
    if(!account)return res.status(409).json({error:"Seller payments are not ready"});
    const id=randomUUID(),token=randomBytes(32).toString("hex");
    const base=origin();
-   checked(await db.from("commerce_orders").insert({id,seller_id:product.seller_id,product_id:product.id,product_name:product.name,file_path:product.file_path,connected_account:account,amount,currency:"gbp",claim_hash:hash(token)}));
-   const session=await stripeClient().checkout.sessions.create({mode:"payment",payment_method_types:["card"],line_items:[{price_data:{currency:"gbp",unit_amount:amount,product_data:{name:product.name}},quantity:1}],metadata:{commerce_order_id:id},payment_intent_data:{metadata:{commerce_order_id:id}},success_url:base+"/commerce/order?order="+id+"#key="+token,cancel_url:base+"/commerce/order?cancelled=1",expires_at:Math.floor(Date.now()/1000)+3600},{stripeAccount:account,idempotencyKey:"commerce:"+id});
+   checked(await db.from("commerce_orders").insert({id,seller_id:product.seller_id,product_id:product.id,product_name:product.name,file_path:product.file_path,connected_account:account,amount,currency:"gbp",claim_hash:hash(token),platform_fee:fee,seller_tier:sellerPlan.tier}));
+   const session=await stripeClient().checkout.sessions.create({mode:"payment",payment_method_types:["card"],line_items:[{price_data:{currency:"gbp",unit_amount:amount,product_data:{name:product.name}},quantity:1}],metadata:{commerce_order_id:id},payment_intent_data:{application_fee_amount:fee,metadata:{commerce_order_id:id}},success_url:base+"/commerce/order?order="+id+"#key="+token,cancel_url:base+"/commerce/order?cancelled=1",expires_at:Math.floor(Date.now()/1000)+3600},{stripeAccount:account,idempotencyKey:"commerce:"+id});
    checked(await db.from("commerce_orders").update({stripe_session_id:session.id}).eq("id",id));
    return res.json({url:session.url});
   }
@@ -111,7 +115,9 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
   if(action==="commerce-dashboard"){
    const products=checked(await db.from("commerce_products").select("id,name,description,amount,active,discount_code,discount_percent,created_at").eq("seller_id",auth.userId).order("created_at",{ascending:false}).limit(100));
    const orders=checked(await db.from("commerce_orders").select("id,product_name,amount,status,buyer_email,created_at,paid_at").eq("seller_id",auth.userId).order("created_at",{ascending:false}).limit(100));
-   return res.json({products,orders,checkoutEnabled:enabled()});
+   const {tier}=await resolvePlan(auth.userId,auth.email);
+   const usage=await usageSnapshot(auth.userId,tier);
+   return res.json({products,orders,checkoutEnabled:enabled(),usage});
   }
   if(action==="commerce-create"){
    const name=sanitizeString(body.name,120),description=sanitizeString(body.description,2000);
@@ -123,7 +129,11 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    if(!files.some(f=>f.name===filename))return res.status(400).json({error:"Upload a PDF first"});
    const code=normalizeCode(body.code),percent=body.percent??0;
    if((code&&(!validCode(code)||!Number.isInteger(percent)||percent<1||percent>80))||(!code&&percent!==0))return res.status(400).json({error:"Invalid discount"});
-   checked(await db.from("commerce_products").insert({seller_id:auth.userId,name,description,amount:body.amount,file_path:path,discount_code:code||null,discount_percent:percent}));
+   const {tier}=await resolvePlan(auth.userId,auth.email);
+   if(code&&!PLAN_POLICY[tier].discounts)return res.status(403).json({error:"Product discount codes require Creator Pro or Business."});
+   const created=await db.rpc("create_plan_product",{p_user:auth.userId,p_tier:tier,p_name:name,p_description:description,p_amount:body.amount,p_file:path,p_code:code||null,p_percent:percent});
+   if(created.error?.message.includes("PRODUCT_LIMIT"))return res.status(409).json({error:"Digital product limit reached. Compare plans."});
+   checked(created);
    return res.json({success:true});
   }
   if(action==="commerce-publish"){

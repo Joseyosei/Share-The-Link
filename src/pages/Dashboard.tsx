@@ -1,3 +1,4 @@
+import { PlanUsage } from "@/components/dashboard/PlanUsage";
 import { trackFounderEvent } from "@/lib/track-founder-event";
 import { useState, useEffect } from "react";
 import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2, Store, Copy, Palette, BarChart3 } from "lucide-react";
@@ -228,6 +229,7 @@ const Dashboard = () => {
               </div>
 
               {!loading && profile && <CreatorOnboarding key={profile.user_id} userId={profile.user_id} profileReady={Boolean(profile.full_name?.trim() && profile.avatar_url?.trim())} hasPage={Boolean(profilePath)} activeLinks={stats.activeLinks} totalLinks={stats.totalLinks} isFree={!subscriptionLoading && !subscription.subscribed} onAdd={()=>setIsAddModalOpen(true)} onCopy={copyProfile}/>} 
+              {!loading && profile && <PlanUsage key={profile.user_id}/>}
               <section aria-label="Creator workspace" className="space-y-3">
                 <h2 className="text-xl font-semibold">Grow your business</h2>
                 <div className="grid sm:grid-cols-3 gap-3">

@@ -1,182 +1,21 @@
-import { trackFounderEvent } from "@/lib/track-founder-event";
-import { Check, Sparkles } from "lucide-react";
+import { useEffect,useState,useRef } from "react";
+import { Link,useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import { PRICING_PLANS, formatPrice } from "@/lib/stripe-products";
+import { Card,CardContent } from "@/components/ui/card";
+import { Check } from "lucide-react";
+import { PLAN_POLICY } from "@/lib/plan-policy";
 import { useSubscription } from "@/hooks/useSubscription";
-
-export const Pricing = () => {
-  const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
-  const navigate = useNavigate();
-  const { startCheckout } = useSubscription();
-  const sectionRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            void trackFounderEvent("pricing_viewed");
-            el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale, .scroll-reveal-blur").forEach((child) => child.classList.add("revealed"));
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const handlePlanClick = async (planId: string) => {
-    if (planId === "free") {
-      navigate("/signup");
-      return;
-    }
-    if (planId === "enterprise") {
-      navigate("/contact");
-      return;
-    }
-    await startCheckout(planId as "pro" | "business" | "enterprise");
-  };
-
-  return (
-    <section id="pricing" className="py-24 bg-muted liquid-glass-muted relative overflow-hidden" ref={sectionRef}>
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="floating-orb floating-orb-2" style={{ top: '5%', left: '10%', opacity: 0.05 }} />
-        <div className="floating-orb floating-orb-3" style={{ bottom: '5%', right: '10%', opacity: 0.04 }} />
-      </div>
-      <div className="container mx-auto px-6 relative z-10">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 scroll-reveal-blur">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Pricing
-          </span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance">
-            Simple, <span className="gradient-text-animate">transparent</span> pricing
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Choose the plan that fits your needs. Upgrade or downgrade anytime.
-          </p>
-
-          {/* Monthly / Yearly Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-card border border-border">
-            <button
-              onClick={() => setInterval("monthly")}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                interval === "monthly"
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setInterval("yearly")}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                interval === "yearly"
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Yearly
-              <span className="ml-1.5 text-xs text-green-500 font-bold">Save 33%</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Pricing Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {PRICING_PLANS.map((plan) => {
-            const price = interval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
-            const perMonth = interval === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
-
-            return (
-              <div
-                key={plan.id}
-                className={`relative rounded-2xl p-7 transition-all duration-300 scroll-reveal-blur scroll-delay-${Math.min(PRICING_PLANS.indexOf(plan) + 1, 4)} ${
-                  plan.highlighted
-                    ? "bg-foreground text-background shadow-2xl lg:scale-105"
-                    : "liquid-glass glass-specular glow-card text-card-foreground shadow-lg"
-                }`}
-              >
-                {/* Popular Badge */}
-                {plan.highlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1.5 rounded-full text-sm font-semibold gradient-button text-white flex items-center gap-1.5 whitespace-nowrap">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      MOST POPULAR
-                    </span>
-                  </div>
-                )}
-
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-bold mb-1.5">{plan.name}</h3>
-                  <p className={`text-sm mb-4 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
-                    {plan.description}
-                  </p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-3xl font-extrabold">
-                      {price === 0 ? "Free" : formatPrice(interval === "yearly" ? perMonth : price)}
-                    </span>
-                    {price > 0 && (
-                      <span className={plan.highlighted ? "text-background/70" : "text-muted-foreground"}>
-                        /month
-                      </span>
-                    )}
-                  </div>
-                  {interval === "yearly" && price > 0 && (
-                    <p className={`text-xs mt-1 ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
-                      Billed {formatPrice(price)} per year
-                    </p>
-                  )}
-                  {price === 0 && (
-                    <p className={`text-xs mt-1 ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
-                      Free forever
-                    </p>
-                  )}
-                </div>
-
-                <ul className="space-y-2.5 mb-6">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2.5">
-                      <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center shrink-0 ${
-                        plan.highlighted ? "bg-background/20" : "bg-primary/10"
-                      }`}>
-                        <Check className={`w-3 h-3 ${plan.highlighted ? "text-background" : "text-primary"}`} />
-                      </div>
-                      <span className={`text-sm ${plan.highlighted ? "text-background/90" : ""}`}>
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  onClick={() => handlePlanClick(plan.id)}
-                  className={`w-full py-5 font-semibold text-base ${
-                    plan.highlighted
-                      ? "bg-background text-foreground hover:bg-background/90"
-                      : plan.id === "free"
-                        ? "bg-primary/10 text-primary hover:bg-primary/20"
-  : "gradient-button text-white hover:opacity-90"
-                  }`}
-                >
-                  {plan.id === "free" ? "Get Started Free" : `Subscribe to ${plan.name}`}
-                </Button>
-
-  {plan.id !== "free" && (
-  <p className={`text-center text-xs mt-3 ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
-  Secure checkout powered by Stripe
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
+import { trackFounderEvent } from "@/lib/track-founder-event";
+export const Pricing=()=>{
+ const [interval,setInterval]=useState<"monthly"|"yearly">("monthly"),[sales,setSales]=useState("250");
+ const {startCheckout,checkoutLoading,subscription,loading,openCustomerPortal}=useSubscription();
+ const navigate=useNavigate();const ref=useRef<HTMLElement>(null);
+ useEffect(()=>{if(!ref.current)return;const ob=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){void trackFounderEvent("pricing_viewed");ob.disconnect();}});ob.observe(ref.current);return()=>ob.disconnect();},[]);
+ const fmt=(n:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(n);
+ const revenue=Math.max(0,Math.min(1000000,Number(sales)||0));
+ return <section id="pricing" ref={ref} className="py-16 px-4 bg-muted"><div className="max-w-6xl mx-auto space-y-8"><div className="text-center space-y-3"><h2 className="text-4xl font-bold">Start free. Upgrade as you earn.</h2><p className="text-muted-foreground">Proposed digital commerce fees and plan allowances. New checkout is in testing; no live charges through this preview.</p><div className="flex gap-2 justify-center">{(["monthly","yearly"] as const).map(i=><Button key={i} variant={interval===i?"default":"outline"} aria-pressed={interval===i} onClick={()=>setInterval(i)}>{i==="monthly"?"Monthly":"Annual · save 33%"}</Button>)}</div></div>
+ <div className="grid md:grid-cols-3 gap-4">{(["free","pro","business"] as const).map(t=>{const p=PLAN_POLICY[t];return <Card key={t} className={t==="pro"?"border-primary shadow-md":""}><CardContent className="p-6 space-y-4"><h3 className="text-xl font-bold">{p.name}</h3><p className="text-3xl font-bold">{p.monthly===0?"£0":fmt(p[interval])}<span className="text-sm font-normal"> /{interval==="monthly"?"month":"year"}</span></p>{interval==="yearly"&&p.yearly>0&&<p className="text-sm text-muted-foreground">Equivalent to {fmt(p.yearly/12)}/month, billed annually</p>}
+ <ul className="space-y-2">{["Unlimited basic links",p.products+" digital PDF products (preview)",p.ai+" AI builder requests/month",p.feeBps/100+"% platform fee on digital sales (preview)",p.discounts?"Product discount codes (preview)":"Basic storefront"].map(f=><li key={f} className="flex gap-2 text-sm"><Check className="w-4 h-4 text-primary shrink-0"/>{f}</li>)}</ul>
+ <Button className="w-full" disabled={checkoutLoading||loading} onClick={()=>{if(t==="free"){navigate("/signup");return;}if(subscription.subscribed){void openCustomerPortal();return;}void startCheckout(t,interval);}}>{t==="free"?"Get started free":subscription.subscribed?"Manage subscription":"Choose "+p.name}</Button></CardContent></Card>;})}</div>
+ <Card><CardContent className="p-6 space-y-3"><h3 className="font-bold text-lg">Compare monthly costs</h3><label className="block text-sm">Monthly digital sales (£)<input className="block border rounded-md bg-background p-2 mt-1" type="number" min={0} max={1000000} value={sales} onChange={e=>setSales(e.target.value)}/></label><div className="grid sm:grid-cols-3 gap-3">{(["free","pro","business"] as const).map(t=><div key={t} className="border rounded-lg p-3"><p>{PLAN_POLICY[t].name}</p><strong>{fmt((interval==="yearly"?PLAN_POLICY[t].yearly/12:PLAN_POLICY[t].monthly)+revenue*PLAN_POLICY[t].feeBps/10000)}</strong></div>)}</div><p className="text-xs text-muted-foreground">Illustrative costs only. Excludes Stripe processing, taxes and refunds; per-order fees are rounded. Annual subscription is paid upfront.</p></CardContent></Card><p className="text-center text-sm">Existing enterprise accounts remain supported. <Link className="underline" to="/contact">Contact sales</Link>.</p></div></section>;
 };

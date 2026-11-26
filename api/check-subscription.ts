@@ -1,3 +1,5 @@
+import { resolvePlan,usageSnapshot } from "./_lib/entitlements.js";
+import { PLAN_POLICY,identifyPaidTier } from "../src/lib/plan-policy.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -17,6 +19,8 @@ const supabaseAdmin = createClient(
 const PRICE_TO_TIER: Record<string, string> = {
   "price_1SwbcFE2FuZ01nXUSQxTa1zF": "pro",
   "price_1SwbdIE2FuZ01nXUnGw4a2Yn": "business",
+  "price_1T7lpzE2FuZ01nXU2dHWg9mn": "business",
+  "price_1T7IcHE2FuZ01nXUub7JKnN3": "enterprise",
   "price_1SwbfRE2FuZ01nXU1UJvDqrO": "enterprise",
 };
 
@@ -31,12 +35,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { action } = req.body || {};
 
+  if (action === "confirm-checkout") {
+    try {
+      const { sessionId } = req.body;
+      if (typeof sessionId !== "string" || !/^cs_(test|live)_[a-zA-Z0-9]+$/.test(sessionId)) return res.status(400).json({ error: "Invalid session" });
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.metadata?.supabase_user_id !== auth.userId || session.mode !== "subscription") return res.status(403).json({ error: "Checkout does not belong to this account" });
+      if (session.status !== "complete" || typeof session.subscription !== "string") return res.status(200).json({ confirmed: false });
+      const sub = await stripe.subscriptions.retrieve(session.subscription);
+      const tier = identifyPaidTier(sub.items.data[0]?.price.id||"",sub.metadata?.tier);
+      if (!["pro", "business", "enterprise"].includes(tier || "") || sub.metadata?.supabase_user_id !== auth.userId) return res.status(409).json({ error: "Subscription could not be verified" });
+      const verified=await resolvePlan(auth.userId,auth.email);
+      return res.status(200).json({ confirmed: verified.subscription?.id===sub.id && ["active", "trialing"].includes(sub.status), tier });
+    } catch (error) {
+      console.error("Checkout confirmation error:", error);
+      return res.status(503).json({ error: "Checkout confirmation temporarily unavailable" });
+    }
+  }
+
+  if(action==="usage"){
+    try{const {tier}=await resolvePlan(auth.userId,auth.email);return res.json(await usageSnapshot(auth.userId,tier));}
+    catch(error){return res.status(503).json({error:"Plan usage unavailable; verify billing and migrations."});}
+  }
   // --- ACTION: cancel / reactivate subscription ---
   if (action === "cancel" || action === "reactivate") {
     try {
       const email = auth.email;
       if (!email) return res.status(400).json({ error: "Email is required" });
-      const customers = await stripe.customers.list({ email, limit: 1 });
+      const result = await stripe.customers.list({ email, limit: 100 });
+      const customers = { data: result.data.filter(c => c.metadata.supabase_user_id === auth.userId).sort((a,b) => Number(b.metadata.supabase_user_id === auth.userId) - Number(a.metadata.supabase_user_id === auth.userId)) };
       if (customers.data.length === 0) return res.status(404).json({ error: "No customer found" });
       const subs = await stripe.subscriptions.list({ customer: customers.data[0].id, status: "active", limit: 1 });
       if (subs.data.length === 0) return res.status(404).json({ error: "No active subscription found" });
@@ -59,9 +86,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const email = auth.email;
       if (!email) return res.status(400).json({ error: "Email is required" });
-      const customers = await stripe.customers.list({ email, limit: 1 });
+      const result = await stripe.customers.list({ email, limit: 100 });
+      const customers = { data: result.data.filter(c => c.metadata.supabase_user_id === auth.userId).sort((a,b) => Number(b.metadata.supabase_user_id === auth.userId) - Number(a.metadata.supabase_user_id === auth.userId)) };
       if (customers.data.length === 0) return res.status(404).json({ error: "No customer found" });
-      const origin = req.headers.origin || "https://sharethelink.com";
+      const origin = process.env.APP_URL || "https://sharethelink.app";
       const session = await stripe.billingPortal.sessions.create({
         customer: customers.data[0].id,
         return_url: `${origin}/dashboard`,
@@ -97,73 +125,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // --- DEFAULT: check subscription status ---
-  try {
-    const email = auth.email;
-    const userId = auth.userId;
-    if (!email) return res.status(200).json({ subscribed: false, tier: "free" });
-
-    const { data: dbSub } = await supabaseAdmin
-      .from("user_subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .in("status", ["active", "trialing"])
-      .single();
-
-    if (dbSub) {
-      const tier = PRICE_TO_TIER[dbSub.stripe_price_id] || dbSub.plan_name?.toLowerCase() || "pro";
-      return res.status(200).json({
-        subscribed: true, tier,
-        planName: tier.charAt(0).toUpperCase() + tier.slice(1),
-        subscriptionId: dbSub.stripe_subscription_id,
-        status: dbSub.status,
-        currentPeriodStart: dbSub.current_period_start,
-        currentPeriodEnd: dbSub.current_period_end,
-        cancelAtPeriodEnd: dbSub.cancel_at_period_end,
-      });
-    }
-
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    if (customers.data.length === 0) return res.status(200).json({ subscribed: false, tier: "free" });
-
-    const customerId = customers.data[0].id;
-
-    for (const status of ["active", "trialing"] as const) {
-      const subs = await stripe.subscriptions.list({ customer: customerId, status, limit: 1 });
-      if (subs.data.length > 0) {
-        const sub: any = subs.data[0];
-        const priceId = sub.items.data[0]?.price.id;
-        const tier = PRICE_TO_TIER[priceId] || sub.metadata?.tier || "pro";
-        const periodStartSec = sub.items.data[0]?.current_period_start ?? sub.current_period_start;
-        const periodEndSec = sub.items.data[0]?.current_period_end ?? sub.current_period_end;
-
-        await supabaseAdmin.from("user_subscriptions").upsert({
-            user_id: userId,
-            stripe_subscription_id: sub.id,
-            stripe_price_id: priceId,
-            plan_name: tier.charAt(0).toUpperCase() + tier.slice(1),
-            status: sub.status,
-            current_period_start: periodStartSec ? new Date(periodStartSec * 1000).toISOString() : null,
-            current_period_end: periodEndSec ? new Date(periodEndSec * 1000).toISOString() : null,
-            cancel_at_period_end: sub.cancel_at_period_end,
-            updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
-
-        return res.status(200).json({
-          subscribed: true, tier,
-          planName: tier.charAt(0).toUpperCase() + tier.slice(1),
-          subscriptionId: sub.id,
-          status: sub.status,
-          currentPeriodStart: periodStartSec ? new Date(periodStartSec * 1000).toISOString() : null,
-          currentPeriodEnd: periodEndSec ? new Date(periodEndSec * 1000).toISOString() : null,
-          cancelAtPeriodEnd: sub.cancel_at_period_end,
-        });
-      }
-    }
-
-    return res.status(200).json({ subscribed: false, tier: "free" });
-  } catch (error) {
-    console.error("Subscription check error:", error);
-    return res.status(200).json({ subscribed: false, tier: "free" });
-  }
+  // Verified Stripe identity, not client-writable subscription rows.
+  try{
+   const {tier,subscription:sub}=await resolvePlan(auth.userId,auth.email);
+   const item=sub?.items.data[0] as any;
+   return res.json({subscribed:!!sub,tier,planName:PLAN_POLICY[tier].name,subscriptionId:sub?.id,status:sub?.status,currentPeriodStart:item?.current_period_start?new Date(item.current_period_start*1000).toISOString():null,currentPeriodEnd:item?.current_period_end?new Date(item.current_period_end*1000).toISOString():null,cancelAtPeriodEnd:sub?.cancel_at_period_end});
+  }catch(error){console.error("Plan check unavailable");return res.status(503).json({error:"Billing verification unavailable. Contact support if you have a legacy subscription."});}
 }
