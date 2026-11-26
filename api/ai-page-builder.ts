@@ -1,3 +1,4 @@
+import { providerConfig } from "./_lib/creator-ai-provider.js";
 import { resolvePlan,consumeBuilder } from "./_lib/entitlements.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCors } from "./_lib/cors.js";
@@ -44,7 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }catch(error){return res.status(503).json({error:"AI allowance verification unavailable."});}
     const fullDescription=businessDescription+(typeof websiteUrl==="string"?"\nWebsite URL (not fetched): "+websiteUrl.slice(0,500):"");
 
-    const apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
+    const provider=process.env.CREATOR_AI_ENABLED==="true"?providerConfig():null;
+    const apiKey=provider?.key;
     if (!apiKey) {
       return res.status(200).json({
         generation: generateFallbackDesign(fullDescription),
@@ -52,14 +54,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(provider!.url, {
+      redirect:"error", signal:AbortSignal.timeout(22000),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: provider!.model,
         messages: [
           {
             role: "system",
