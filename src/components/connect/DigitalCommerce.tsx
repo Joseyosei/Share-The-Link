@@ -29,11 +29,13 @@ export function DigitalCommerce({username}:{username?:string|null}){
   await load();
  }catch(e){setError(e instanceof Error?e.message:"Unable to save");}finally{lock.current=false;setBusy(false);}};
  const publish=async(p:Product)=>{if(lock.current)return;lock.current=true;setBusy(true);try{await commerceApi("publish",{productId:p.id,active:!p.active});await load();}catch(e){setError(e instanceof Error?e.message:"Unable to update");}finally{lock.current=false;setBusy(false);}};
+ const setupSeller=async()=>{if(lock.current)return;lock.current=true;setBusy(true);try{const result=await commerceApi("seller-setup");const url=new URL(result.url);if(url.protocol!=="https:"||url.hostname!=="connect.stripe.com")throw Error("Invalid Stripe onboarding URL");window.location.assign(url.href);}catch(e){setError(e instanceof Error?e.message:"Unable to start seller setup");}finally{lock.current=false;setBusy(false);}};
  const paid=data?.orders.filter(o=>o.status==="paid")||[];
  return <section className="space-y-4"><header className="flex flex-wrap justify-between gap-2"><div><h2 className="text-xl font-bold">Digital commerce</h2><p className="text-sm text-muted-foreground">Sell downloadable PDFs with verified payments.</p></div><Button variant="outline" onClick={()=>void load()} disabled={loading||busy}>Refresh</Button></header>
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
  {loading&&<p role="status">Loading shop…</p>}
  {data&&<><p className="text-sm bg-muted p-3 rounded-lg">{data.checkoutEnabled?"Test mode only — no real charges. Seller Stripe test account must be ready.":"Checkout disabled until Stripe test setup and database validation are complete."}</p>
+ {data.checkoutEnabled&&<Button variant="outline" disabled={busy} onClick={()=>void setupSeller()}>Set up / resume Stripe test seller</Button>}
  <div className="grid sm:grid-cols-3 gap-3">{[["Paid test orders (latest 100)",paid.length],["Gross test sales (latest 100)",gbp(paid.reduce((sum,o)=>sum+o.amount,0))],["Digital products",data.products.length]].map(([label,value])=><Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="text-xl font-bold">{value}</p></CardContent></Card>)}</div>
  {username&&<Button asChild variant="outline"><a href={"/shop/"+encodeURIComponent(username)} target="_blank" rel="noopener noreferrer">View digital storefront</a></Button>}
  <Card><CardContent className="p-4 space-y-3"><h3 className="font-semibold">New digital product</h3><form onSubmit={save} className="space-y-3">

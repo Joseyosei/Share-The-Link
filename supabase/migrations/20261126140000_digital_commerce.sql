@@ -1,4 +1,12 @@
 begin;
+create table if not exists public.commerce_test_sellers (
+ seller_id uuid primary key references auth.users(id) on delete cascade,
+ stripe_account_id text unique not null,
+ created_at timestamptz not null default now()
+);
+alter table public.commerce_test_sellers enable row level security;
+revoke all on public.commerce_test_sellers from public,anon,authenticated;
+grant select,insert,update on public.commerce_test_sellers to service_role;
 create table if not exists public.commerce_products (
  id uuid primary key default gen_random_uuid(), seller_id uuid not null references auth.users(id),
  name text not null check(length(name) between 1 and 120), description text not null default '',

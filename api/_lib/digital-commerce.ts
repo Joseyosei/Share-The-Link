@@ -13,10 +13,10 @@ const enabled=()=>process.env.COMMERCE_CHECKOUT_ENABLED==="true"&&!!process.env.
 const stripeClient=()=>new Stripe(process.env.STRIPE_SECRET_KEY!,{apiVersion:"2025-04-30.basil" as any});
 const checked=<T>(result:{data:T;error:any}):T=>{if(result.error)throw result.error;return result.data;};
 async function accountFor(db:ReturnType<typeof dbClient>,sellerId:string){
- const row=checked(await db.from("connected_accounts").select("stripe_account_id").eq("user_id",sellerId).maybeSingle());
+ const row=checked(await db.from("commerce_test_sellers").select("stripe_account_id").eq("seller_id",sellerId).maybeSingle());
  if(!row)return null;
  const account=await stripeClient().accounts.retrieve(row.stripe_account_id);
- if(account.metadata?.user_id!==sellerId||!account.charges_enabled||!account.payouts_enabled)return null;
+ if(account.metadata?.user_id!==sellerId||account.metadata?.commerce!=="test"||!account.charges_enabled||!account.payouts_enabled)return null;
  return account.id;
 }
 function origin(){const url=new URL(process.env.COMMERCE_APP_URL||"https://sharethelink.app");if(url.protocol!=="https:"||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw Error("Invalid commerce origin");return url.origin;}
@@ -78,7 +78,7 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    const id=randomUUID(),token=randomBytes(32).toString("hex");
    const base=origin();
    checked(await db.from("commerce_orders").insert({id,seller_id:product.seller_id,product_id:product.id,product_name:product.name,file_path:product.file_path,connected_account:account,amount,currency:"gbp",claim_hash:hash(token)}));
-   const session=await stripeClient().checkout.sessions.create({mode:"payment",payment_method_types:["card"],line_items:[{price_data:{currency:"gbp",unit_amount:amount,product_data:{name:product.name}},quantity:1}],metadata:{commerce_order_id:id},payment_intent_data:{metadata:{commerce_order_id:id}},success_url:base+"/commerce/order?order="+id+"#key="+token,cancel_url:base+"/commerce/order?cancelled=1",expires_at:Math.floor(Date.now()/1000)+1800},{stripeAccount:account,idempotencyKey:"commerce:"+id});
+   const session=await stripeClient().checkout.sessions.create({mode:"payment",payment_method_types:["card"],line_items:[{price_data:{currency:"gbp",unit_amount:amount,product_data:{name:product.name}},quantity:1}],metadata:{commerce_order_id:id},payment_intent_data:{metadata:{commerce_order_id:id}},success_url:base+"/commerce/order?order="+id+"#key="+token,cancel_url:base+"/commerce/order?cancelled=1",expires_at:Math.floor(Date.now()/1000)+3600},{stripeAccount:account,idempotencyKey:"commerce:"+id});
    checked(await db.from("commerce_orders").update({stripe_session_id:session.id}).eq("id",id));
    return res.json({url:session.url});
   }
@@ -95,6 +95,19 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    return res.json({status:"paid",name:order.product_name,downloadUrl:signed.signedUrl,expiresIn:60});
   }
   const auth=await verifyAuth(req);if(!auth)return unauthorized(res);
+  if(action==="commerce-seller-setup"){
+   if(!enabled())return res.status(503).json({error:"Test checkout setup is disabled"});
+   let row=checked(await db.from("commerce_test_sellers").select("stripe_account_id").eq("seller_id",auth.userId).maybeSingle());
+   if(!row){
+    const account=await stripeClient().accounts.create({type:"express",country:"GB",email:auth.email||undefined,business_type:"individual",capabilities:{card_payments:{requested:true},transfers:{requested:true}},metadata:{user_id:auth.userId,commerce:"test"}},{idempotencyKey:"stl-commerce-test-seller:"+auth.userId});
+    row=checked(await db.from("commerce_test_sellers").upsert({seller_id:auth.userId,stripe_account_id:account.id},{onConflict:"seller_id"}).select("stripe_account_id").single());
+   }
+   const account=await stripeClient().accounts.retrieve(row.stripe_account_id);
+   if(account.metadata?.user_id!==auth.userId||account.metadata?.commerce!=="test")return res.status(403).json({error:"Seller account ownership mismatch"});
+   const base=origin();
+   const link=await stripeClient().accountLinks.create({account:account.id,refresh_url:base+"/connect",return_url:base+"/connect",type:"account_onboarding"});
+   return res.json({url:link.url});
+  }
   if(action==="commerce-dashboard"){
    const products=checked(await db.from("commerce_products").select("id,name,description,amount,active,discount_code,discount_percent,created_at").eq("seller_id",auth.userId).order("created_at",{ascending:false}).limit(100));
    const orders=checked(await db.from("commerce_orders").select("id,product_name,amount,status,buyer_email,created_at,paid_at").eq("seller_id",auth.userId).order("created_at",{ascending:false}).limit(100));
