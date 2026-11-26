@@ -29,7 +29,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     yearlyPrice: PLAN_POLICY.free.yearly,
     currency: "GBP",
     stripeProductId: "prod_TuQRMlT6Gfn7Sv",
-    features: ["Basic link page and analytics", "Unlimited basic links", "Free themes", `${PLAN_POLICY.free.products} digital PDF products (preview)`, `${PLAN_POLICY.free.ai} AI page-builder requests / month`, `${PLAN_POLICY.free.feeBps/100}% digital-sale platform fee (preview)`],
+    features: ["Basic link page and analytics", "Unlimited basic links", "Free themes", `${PLAN_POLICY.free.products} digital PDF products (preview)`, `${PLAN_POLICY.free.ai} AI creator requests / month`, `${PLAN_POLICY.free.feeBps/100}% digital-sale platform fee (preview)`],
     stripeLinks: {
       monthly: "https://buy.stripe.com/5kQ14n7DH2Ie2v2bHG3AY03",
       yearly: "https://buy.stripe.com/5kQ14n7DH2Ie2v2bHG3AY03",
@@ -48,7 +48,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     currency: "GBP",
     highlighted: true,
     stripeProductId: "prod_TuQTRlytxHScfY",
-    features: ["Everything in Free", `${PLAN_POLICY.pro.products} digital PDF products (preview)`, `${PLAN_POLICY.pro.ai} AI page-builder requests / month`, `${PLAN_POLICY.pro.feeBps/100}% digital-sale platform fee (preview)`, "Product discount codes (preview)", "Premium themes"],
+    features: ["Everything in Free", `${PLAN_POLICY.pro.products} digital PDF products (preview)`, `${PLAN_POLICY.pro.ai} AI creator requests / month`, `${PLAN_POLICY.pro.feeBps/100}% digital-sale platform fee (preview)`, "Product discount codes (preview)", "Premium themes"],
     stripeLinks: {
       monthly: "https://buy.stripe.com/3cI14ncY1fv0edKaDC3AY00",
       yearly: "https://buy.stripe.com/3cI14ncY1fv0edKaDC3AY00",
@@ -67,7 +67,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     currency: "GBP",
     highlighted: false,
     stripeProductId: "prod_TuQUStzRn07sTU",
-    features: ["Everything in Free", `${PLAN_POLICY.business.products} digital PDF products (preview)`, `${PLAN_POLICY.business.ai} AI page-builder requests / month`, `${PLAN_POLICY.business.feeBps/100}% digital-sale platform fee (preview)`, "Product discount codes (preview)", "Premium themes", "Custom domains and integrations"],
+    features: ["Everything in Free", `${PLAN_POLICY.business.products} digital PDF products (preview)`, `${PLAN_POLICY.business.ai} AI creator requests / month`, `${PLAN_POLICY.business.feeBps/100}% digital-sale platform fee (preview)`, "Product discount codes (preview)", "Premium themes", "Custom domains and integrations"],
     stripeLinks: {
       monthly: "https://buy.stripe.com/00w4gz1fjgz42v29zy3AY08",
       yearly: "https://buy.stripe.com/00w4gz1fjgz42v29zy3AY08",
@@ -85,7 +85,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     yearlyPrice: PLAN_POLICY.enterprise.yearly,
     currency: "GBP",
     stripeProductId: "prod_TuQWHzMKX8eKbS",
-    features: ["Everything in Free", `${PLAN_POLICY.enterprise.products} digital PDF products (preview)`, `${PLAN_POLICY.enterprise.ai} AI page-builder requests / month`, `${PLAN_POLICY.enterprise.feeBps/100}% digital-sale platform fee (preview)`, "Product discount codes (preview)", "Premium themes"],
+    features: ["Everything in Free", `${PLAN_POLICY.enterprise.products} digital PDF products (preview)`, `${PLAN_POLICY.enterprise.ai} AI creator requests / month`, `${PLAN_POLICY.enterprise.feeBps/100}% digital-sale platform fee (preview)`, "Product discount codes (preview)", "Premium themes"],
     stripeLinks: {
       monthly: "https://buy.stripe.com/6oU7sLe25beK4Da7rq3AY09",
       yearly: "https://buy.stripe.com/6oU7sLe25beK4Da7rq3AY09",

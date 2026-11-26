@@ -61,7 +61,7 @@ const navGroups = [
     { icon: Radio, label: "Live Streaming", href: "/streaming" },
     { icon: TrendingUp, label: "Discover", href: "/discover" },
     { icon: Play, label: "Media", href: "/dashboard/media" },
-    { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot" },
+    { icon: Bot, label: "STL AI Assistant", href: "/dashboard/stl-bot" },
     { icon: Wand2, label: "AI Builder", href: "/ai-builder" },
     { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply" },
   ] },

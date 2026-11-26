@@ -17,6 +17,7 @@ import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.j
 import { sanitizeString, isValidUUID, isValidUrl, badRequest } from "./_lib/validate.js";
 import * as crypto from "crypto";
 import { agentsHandler } from "./_lib/agents/handler.js";
+import creatorHandler from "./_lib/creator-ai.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -28,12 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Agent workflows handle their own CORS (and the cron call comes from Vercel)
   if (action === "agents") return agentsHandler(req, res);
+  if (action === "creator") return creatorHandler(req,res);
+  if (action === "chat") return creatorHandler(req,res,true);
 
   if (handleCors(req, res)) return;
 
   switch (action) {
-    case "chat":
-      return handleChat(req, res);
     case "distribute":
       return handleDistribute(req, res);
     case "save-settings":
