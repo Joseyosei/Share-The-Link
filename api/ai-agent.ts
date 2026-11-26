@@ -1,3 +1,4 @@
+import {localWorker} from "./_lib/local-ai.js";
 /**
  * Consolidated AI Agent API endpoint.
  * Routes to sub-handlers based on ?action= query parameter.
@@ -29,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Agent workflows handle their own CORS (and the cron call comes from Vercel)
   if (action === "agents") return agentsHandler(req, res);
+  if (action === "local-worker") return localWorker(req,res);
   if (action === "creator") return creatorHandler(req,res);
   if (action === "chat") return creatorHandler(req,res,true);
 
