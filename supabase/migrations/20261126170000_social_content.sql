@@ -9,7 +9,7 @@ create table if not exists public.social_connections (
  published boolean not null default false,
  media jsonb not null default '[]' check(jsonb_typeof(media)='array' and jsonb_array_length(media)<=20 and octet_length(media::text)<=160000),
  pins text[] not null default '{}' check(cardinality(pins)<=3),
- last_sync timestamptz, next_sync timestamptz not null default now(),
+ last_sync timestamptz, last_attempt timestamptz, next_sync timestamptz not null default now(),
  lease_id uuid, lease_until timestamptz, access_until timestamptz,
  primary key(user_id,provider)
 );

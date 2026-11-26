@@ -12,7 +12,7 @@ export function safeThumbnail(value:unknown,provider:Provider):string|null{
 export function makeFeedItem(provider:Provider,url:unknown,title:unknown,thumbnail:unknown,date:unknown,now=Date.now()):FeedItem|null{
  const item=parseSocialMedia(url,typeof title==="string"?title.slice(0,160):"");
  if(!item||item.platform!==PROVIDER_LABEL[provider]||item.kind==="playlist")return null;
- return {...item,thumbnail:safeThumbnail(thumbnail,provider),thumbnailUntil:now+5*3600000,publishedAt:typeof date==="string"&&Number.isFinite(Date.parse(date))?new Date(date).toISOString():""};
+ return {...item,thumbnail:safeThumbnail(thumbnail,provider),thumbnailUntil:now+(provider==="youtube"?24:5)*3600000,publishedAt:typeof date==="string"&&Number.isFinite(Date.parse(date))?new Date(date).toISOString():""};
 }
 export function publicItems(media:unknown,pins:string[],provider:Provider,now=Date.now()):FeedItem[]{
  if(!Array.isArray(media))return [];

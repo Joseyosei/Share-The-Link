@@ -18,8 +18,9 @@ async function paid(userId:string,email?:string){return (await resolvePlan(userI
 async function sync(db:ReturnType<typeof entitlementDb>,userId:string,p:Provider,force=false){
  if(!available(p))return "unavailable";
  const lease=randomUUID();
- let claim=db.from("social_connections").update({lease_id:lease,lease_until:iso(90000),next_sync:iso(3600000)}).eq("user_id",userId).eq("provider",p).eq("status","connected").or("lease_until.is.null,lease_until.lt."+iso());
+ let claim=db.from("social_connections").update({lease_id:lease,lease_until:iso(90000),last_attempt:iso(),next_sync:iso(3600000)}).eq("user_id",userId).eq("provider",p).eq("status","connected").or("lease_until.is.null,lease_until.lt."+iso());
  if(!force)claim=claim.lte("next_sync",iso());
+ claim=claim.or("last_attempt.is.null,last_attempt.lt."+iso(-15*60000));
  const row=checked(await claim.select("*").maybeSingle());
  if(!row)return "busy_or_not_due";
  const owned=()=>db.from("social_connections").update({lease_id:null,lease_until:null}).eq("user_id",userId).eq("provider",p).eq("generation",row.generation).eq("lease_id",lease);
@@ -49,6 +50,8 @@ async function cron(req:VercelRequest,res:VercelResponse){
  const results:string[]=[];
  // Bounded batch; dashboard refresh handles other accounts. Do not exceed Hobby runtime.
  const deadline=Date.now()+22000;
+ // Remove expired abandoned authorizations; no credentials were issued for these rows.
+ checked(await db.from("social_connections").delete().eq("status","pending").lt("state_expires",iso()));
  for(let i=0;i<rows.length&&Date.now()<deadline;i+=3){const batch=await Promise.allSettled(rows.slice(i,i+3).map(r=>isProvider(r.provider)?sync(db,r.user_id,r.provider):Promise.resolve("invalid")));results.push(...batch.map(r=>r.status==="fulfilled"?r.value:"unavailable"));}
  return res.json({processed:results.length,synced:results.filter(x=>x==="synced").length});
 }
@@ -100,7 +103,7 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    const row=checked(await db.from("social_connections").update({state_hash:null,state_expires:null}).eq("user_id",userId).eq("provider",p).eq("status","pending").eq("state_hash",digest(body.state)).gt("state_expires",iso()).select("generation,verifier_cipher").maybeSingle());
    if(!row)return res.status(400).json({error:"Authorization expired or already used. Connect again."});
    const tokens=await exchange(p,body.code,unseal<string>(row.verifier_cipher,aad(userId,p)));
-   const feed=await fetchFeed(p,tokens);
+   let feed;try{feed=await fetchFeed(p,tokens);}catch(e){try{await revoke(p,tokens);}catch{}throw e;}
    const saved=checked(await db.from("social_connections").update({status:"connected",token_cipher:seal(tokens,aad(userId,p)),verifier_cipher:null,account_id:feed.accountId,account_name:feed.name,media:feed.media,published:false,last_sync:iso(),next_sync:iso(day),access_until:iso(2*day)}).eq("user_id",userId).eq("provider",p).eq("generation",row.generation).eq("status","pending").select("generation").maybeSingle());
    if(!saved){try{await revoke(p,tokens);}catch{}return res.status(409).json({error:"Connection was cancelled."});}
    return res.json({success:true});
