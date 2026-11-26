@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2 } from "lucide-react";
+import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2, CheckCircle2, Circle, Store, Copy, ArrowRight, Palette, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLinks } from "@/hooks/useLinks";
 import { useAppearanceSettings } from "@/hooks/useAppearanceSettings";
 import { useSubscription } from "@/hooks/useSubscription";
-import { NavigationGuide } from "@/components/dashboard/NavigationGuide";
-import { UpgradePopup } from "@/components/dashboard/UpgradePopup";
 import { QRCodeWidget } from "@/components/dashboard/QRCodeWidget";
 import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
@@ -34,7 +32,7 @@ const Dashboard = () => {
     toggleLink 
   } = useLinks();
   const { settings: appearanceSettings } = useAppearanceSettings();
-  const { subscription } = useSubscription();
+  const { subscription, loading: subscriptionLoading } = useSubscription();
   
   // Look up the user's selected theme
   const userTheme = themes.find((t) => t.id === appearanceSettings?.theme) || themes[0];
@@ -141,6 +139,22 @@ const Dashboard = () => {
 
   const loading = profileLoading || linksLoading;
 
+  const profilePath = profile?.username ? `/${encodeURIComponent(profile.username)}` : null;
+  const setupSteps = [
+    { title: "Personalise your profile", done: Boolean(profile?.full_name && profile?.avatar_url), href: "/dashboard/settings" },
+    { title: "Add your first active link", done: stats.activeLinks > 0, href: "/dashboard/links" },
+  ];
+  const completed = setupSteps.filter(step => step.done).length;
+  const copyProfile = async () => {
+    if (!profilePath) return;
+    try {
+      await navigator.clipboard.writeText(new URL(profilePath, window.location.origin).href);
+      toast({ title: "Profile link copied" });
+    } catch {
+      toast({ title: "Unable to copy", description: "Open your profile and copy the address from your browser.", variant: "destructive" });
+    }
+  };
+
   // Transform links for ProfilePreview
   const previewLinks = links.map(link => ({
     id: link.id,
@@ -154,12 +168,7 @@ const Dashboard = () => {
       <Sidebar />
       <MobileSidebar />
 
-      {/* Upgrade Banner - shows for free users at top */}
-      <div className="lg:ml-64 pt-16 lg:pt-0">
-        <UpgradePopup />
-      </div>
-
-      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-8 pt-4 lg:pt-8">
+      <main className="lg:ml-64 px-4 sm:px-6 lg:px-8 pb-10 pt-24 lg:pt-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -182,16 +191,18 @@ const Dashboard = () => {
                     )}
                   </div>
                   <p className="text-muted-foreground text-sm sm:text-base">
-                    Here's what's happening with your links today.
+                    Build your page, grow your audience and start selling.
                   </p>
                 </>
               )}
             </div>
-            <Button asChild className="gradient-button text-primary-foreground hover:opacity-90 flex-shrink-0 self-start sm:self-auto">
-              <a href={`/${username}`} target="_blank" rel="noopener noreferrer">
-                View Profile
-              </a>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {profilePath && <>
+                <Button variant="outline" onClick={copyProfile}><Copy className="w-4 h-4 mr-2" /> Copy link</Button>
+                <Button asChild className="gradient-button text-primary-foreground"><a href={profilePath} target="_blank" rel="noopener noreferrer">View profile</a></Button>
+              </>}
+              {!subscriptionLoading && !subscription.subscribed && <Button variant="outline" asChild><Link to="/pricing">Compare plans</Link></Button>}
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -208,8 +219,6 @@ const Dashboard = () => {
                   icon={MousePointerClick}
                   label="Total Clicks"
                   value={stats.totalClicks}
-                  change="12%"
-                  positive
                 />
                 <StatsCard
                   icon={ToggleRight}
@@ -218,7 +227,35 @@ const Dashboard = () => {
                 />
               </div>
 
-              {/* New Features Section */}
+              {!loading && completed < setupSteps.length && (
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div><h2 className="text-lg font-semibold">Get your page ready</h2><p className="text-sm text-muted-foreground">Complete these steps to share your page with confidence.</p></div>
+                      <Badge variant="secondary">{completed}/{setupSteps.length}</Badge>
+                    </div>
+                    <div role="progressbar" aria-label="Profile setup" aria-valuenow={completed} aria-valuemin={0} aria-valuemax={setupSteps.length} className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all" style={{width: `${completed / setupSteps.length * 100}%`}} /></div>
+                    {setupSteps.map(step => <Link key={step.href} to={step.href} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50">
+                      {step.done ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" /> : <Circle className="h-5 w-5 text-muted-foreground shrink-0" />}
+                      <span className="flex-1 text-sm font-medium">{step.title}</span><ArrowRight className="h-4 w-4 shrink-0" />
+                    </Link>)}
+                  </CardContent>
+                </Card>
+              )}
+              <section aria-label="Creator workspace" className="space-y-3">
+                <h2 className="text-xl font-semibold">Grow your business</h2>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { icon: Store, title: "My shop", description: "Manage your listings", href: "/connect" },
+                    { icon: Palette, title: "Design your page", description: "Make your brand stand out", href: "/dashboard/appearance" },
+                    { icon: BarChart3, title: "Analytics", description: "Understand your audience", href: "/analytics" },
+                  ].map(item => <Link key={item.href} to={item.href} className="rounded-xl border bg-card p-4 hover:border-primary transition-colors">
+                    <item.icon className="w-5 h-5 text-primary mb-3" /><h3 className="font-semibold text-sm">{item.title}</h3><p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                  </Link>)}
+                </div>
+              </section>
+
+              {/* Existing creator tools */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <Link to="/streaming">
                   <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:shadow-lg transition-all cursor-pointer h-full">
@@ -328,7 +365,7 @@ const Dashboard = () => {
 
             {/* Preview Sidebar - reflects the user's selected theme */}
             <div className="hidden lg:block">
-              <div className="sticky top-8 space-y-6">
+              {profilePath && <div className="sticky top-8 space-y-6">
               <ThemedProfilePreview
                 username={username}
                 fullName={displayName}
@@ -339,7 +376,7 @@ const Dashboard = () => {
                 socialLinks={socialLinks}
               />
               <QRCodeWidget username={username} size="medium" />
-              </div>
+              </div>}
             </div>
           </div>
         </div>
@@ -362,8 +399,6 @@ const Dashboard = () => {
         existingGroups={existingGroups}
       />
 
-      {/* Navigation Guide - shows on first visit */}
-      <NavigationGuide />
 
     </div>
   );
