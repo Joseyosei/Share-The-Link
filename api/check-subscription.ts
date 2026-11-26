@@ -132,7 +132,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single();
 
     if (dbSub) {
-      const tier = PRICE_TO_TIER[dbSub.stripe_price_id] || dbSub.plan_name?.toLowerCase() || "pro";
+      const tier = PRICE_TO_TIER[dbSub.stripe_price_id] || dbSub.plan_name?.toLowerCase();
+      if (!["pro", "business", "enterprise"].includes(tier || "")) return res.status(409).json({ error: "Subscription plan requires review" });
       return res.status(200).json({
         subscribed: true, tier,
         planName: tier.charAt(0).toUpperCase() + tier.slice(1),
@@ -155,7 +156,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (subs.data.length > 0) {
         const sub: any = subs.data[0];
         const priceId = sub.items.data[0]?.price.id;
-        const tier = PRICE_TO_TIER[priceId] || sub.metadata?.tier || "pro";
+        const tier = PRICE_TO_TIER[priceId] || sub.metadata?.tier;
+        if (!["pro", "business", "enterprise"].includes(tier || "")) continue;
         const periodStartSec = sub.items.data[0]?.current_period_start ?? sub.current_period_start;
         const periodEndSec = sub.items.data[0]?.current_period_end ?? sub.current_period_end;
 
