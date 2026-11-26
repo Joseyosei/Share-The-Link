@@ -2,6 +2,8 @@ name: Dashboard checks
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main, stage-02-billing-reliability]
 permissions:
   contents: read
 jobs:
@@ -17,5 +19,5 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vitest run tests/dashboard-navigation.test.ts
+      - run: pnpm exec vitest run tests/dashboard-navigation.test.ts tests/billing-contract.test.ts
       - run: pnpm build
