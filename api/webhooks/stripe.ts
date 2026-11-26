@@ -129,11 +129,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subscription = event.data.object as any;
         const userId = await findSupabaseUserId(subscription.customer, subscription.metadata);
         if (userId) {
-          await supabaseAdmin.from("user_subscriptions").update({
+          const { error } = await supabaseAdmin.from("user_subscriptions").update({
             status: "canceled",
             cancel_at_period_end: true,
             updated_at: new Date().toISOString(),
           }).eq("user_id", userId).eq("stripe_subscription_id", subscription.id);
+          if (error) throw error;
         }
         break;
       }
