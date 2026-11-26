@@ -8,7 +8,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 export const Pricing = () => {
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const navigate = useNavigate();
-  const { startCheckout } = useSubscription();
+  const { startCheckout, checkoutLoading } = useSubscription();
   const sectionRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = sectionRef.current;
@@ -37,7 +37,7 @@ export const Pricing = () => {
       navigate("/contact");
       return;
     }
-    await startCheckout(planId as "pro" | "business" | "enterprise");
+    await startCheckout(planId as "pro" | "business" | "enterprise", interval);
   };
 
   return (
@@ -89,7 +89,7 @@ export const Pricing = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {PRICING_PLANS.map((plan) => {
             const price = interval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
-            const perMonth = interval === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+            const perMonth = interval === "yearly" ? plan.yearlyPrice / 12 : plan.monthlyPrice;
 
             return (
               <div
@@ -105,7 +105,7 @@ export const Pricing = () => {
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <span className="px-4 py-1.5 rounded-full text-sm font-semibold gradient-button text-white flex items-center gap-1.5 whitespace-nowrap">
                       <Sparkles className="w-3.5 h-3.5" />
-                      MOST POPULAR
+                      RECOMMENDED
                     </span>
                   </div>
                 )}
@@ -117,9 +117,9 @@ export const Pricing = () => {
                   </p>
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-3xl font-extrabold">
-                      {price === 0 ? "Free" : formatPrice(interval === "yearly" ? perMonth : price)}
+                      {price === 0 ? "Free" : plan.id === "enterprise" ? "Custom" : interval === "yearly" ? new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perMonth) : formatPrice(price)}
                     </span>
-                    {price > 0 && (
+                    {price > 0 && plan.id !== "enterprise" && (
                       <span className={plan.highlighted ? "text-background/70" : "text-muted-foreground"}>
                         /month
                       </span>
@@ -153,7 +153,8 @@ export const Pricing = () => {
                 </ul>
 
                 <Button
-                  onClick={() => handlePlanClick(plan.id)}
+                  disabled={checkoutLoading}
+                    onClick={() => handlePlanClick(plan.id)}
                   className={`w-full py-5 font-semibold text-base ${
                     plan.highlighted
                       ? "bg-background text-foreground hover:bg-background/90"
@@ -162,7 +163,7 @@ export const Pricing = () => {
   : "gradient-button text-white hover:opacity-90"
                   }`}
                 >
-                  {plan.id === "free" ? "Get Started Free" : `Subscribe to ${plan.name}`}
+                  {plan.id === "free" ? "Get Started Free" : plan.id === "enterprise" ? "Contact sales" : `Subscribe to ${plan.name}`}
                 </Button>
 
   {plan.id !== "free" && (

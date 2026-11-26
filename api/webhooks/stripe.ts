@@ -13,20 +13,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || "",
 );
 
-function detectTierFromSubscription(subscription: any): string {
-  if (subscription.metadata?.tier) return subscription.metadata.tier;
-  const amount = subscription.items?.data?.[0]?.price?.unit_amount;
-  if (amount === 700) return "pro";
-  if (amount === 2300) return "business";
-  if (amount === 10000) return "enterprise";
-  const productName = subscription.items?.data?.[0]?.price?.product?.name || "";
-  if (typeof productName === "string") {
-    const lower = productName.toLowerCase();
-    if (lower.includes("enterprise")) return "enterprise";
-    if (lower.includes("business")) return "business";
-    if (lower.includes("pro")) return "pro";
-  }
-  return "pro";
+function detectTierFromSubscription(subscription: any): string | null {
+  const price = subscription.items?.data?.[0]?.price;
+  const ids: Record<string, string> = {
+    "price_1SwbcFE2FuZ01nXUSQxTa1zF": "pro",
+    "price_1SwbdIE2FuZ01nXUnGw4a2Yn": "business",
+    "price_1SwbfRE2FuZ01nXU1UJvDqrO": "enterprise",
+    "price_1T7lpzE2FuZ01nXU2dHWg9mn": "business",
+    "price_1T7IcHE2FuZ01nXUub7JKnN3": "enterprise",
+  };
+  if (ids[price?.id]) return ids[price.id];
+  const tier = subscription.metadata?.tier;
+  return ["pro", "business", "enterprise"].includes(tier) ? tier : null;
 }
 
 export const config = { api: { bodyParser: false } };
@@ -46,14 +44,19 @@ async function findSupabaseUserId(customer: any, metadata?: Record<string, strin
   if (typeof customer === "string") {
     const cust: any = await stripe.customers.retrieve(customer);
     if (cust.deleted) return null;
+    if (cust.metadata?.supabase_user_id) return cust.metadata.supabase_user_id;
     email = cust.email;
   } else if (customer.email) {
     email = customer.email;
   }
   if (!email) return null;
-  const { data } = await (supabaseAdmin.auth as any).admin.listUsers();
-  const user = data?.users?.find((u: any) => u.email === email);
-  return user?.id || null;
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 });
+    if (error) throw error;
+    const user = data.users.find(u => u.email?.toLowerCase() === email?.toLowerCase());
+    if (user) return user.id;
+    if (data.users.length < 100) return null;
+  }
 }
 
 async function upsertSubscription(userId: string, subscription: any, tier: string) {
@@ -80,19 +83,7 @@ async function upsertSubscription(userId: string, subscription: any, tier: strin
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 
-  if (error) {
-    console.error("Upsert sub error:", error);
-    await supabaseAdmin.from("user_subscriptions").insert({
-      user_id: userId,
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: priceId,
-      plan_name: planName,
-      status: subscription.status,
-      current_period_start: periodStart,
-      current_period_end: periodEnd,
-      cancel_at_period_end: subscription.cancel_at_period_end,
-    });
-  }
+  if (error) throw error;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -113,13 +104,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as any;
-        console.log("Checkout completed:", session.customer_email, "Tier:", session.metadata?.tier);
+        if (session.mode === "subscription" && typeof session.subscription === "string") {
+          const sub = await stripe.subscriptions.retrieve(session.subscription);
+          const tier = detectTierFromSubscription(sub);
+          const userId = await findSupabaseUserId(sub.customer, sub.metadata);
+          if (tier && userId) await upsertSubscription(userId, sub, tier);
+        }
         break;
       }
       case "customer.subscription.created":
       case "customer.subscription.updated": {
-        const subscription = event.data.object as any;
+        const subscription = await stripe.subscriptions.retrieve((event.data.object as Stripe.Subscription).id);
         const tier = detectTierFromSubscription(subscription);
+        if (!tier) { console.warn("Unrecognised subscription", subscription.id); break; }
         console.log("Subscription event:", { type: event.type, tier, status: subscription.status });
         const userId = await findSupabaseUserId(subscription.customer, subscription.metadata);
         if (userId) {
@@ -132,11 +129,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subscription = event.data.object as any;
         const userId = await findSupabaseUserId(subscription.customer, subscription.metadata);
         if (userId) {
-          await supabaseAdmin.from("user_subscriptions").update({
+          const { error } = await supabaseAdmin.from("user_subscriptions").update({
             status: "canceled",
             cancel_at_period_end: true,
             updated_at: new Date().toISOString(),
-          }).eq("user_id", userId);
+          }).eq("user_id", userId).eq("stripe_subscription_id", subscription.id);
+          if (error) throw error;
         }
         break;
       }
@@ -146,17 +144,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       }
       case "invoice.payment_failed": {
-        const invoice = event.data.object as any;
-        console.log("Payment failed:", { customer: invoice.customer });
-        if (invoice.subscription) {
-          const userId = await findSupabaseUserId(invoice.customer);
-          if (userId) {
-            await supabaseAdmin.from("user_subscriptions").update({
-              status: "past_due",
-              updated_at: new Date().toISOString(),
-            }).eq("user_id", userId);
-          }
-        }
+        // Subscription status is reconciled by customer.subscription.updated.
+        console.log("Invoice payment failed");
         break;
       }
       default:
