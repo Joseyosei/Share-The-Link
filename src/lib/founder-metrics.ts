@@ -4,7 +4,8 @@ export interface RecurringItem {
 export function calculateRecurringRevenue(items: RecurringItem[]) {
   const mrrByCurrency: Record<string,number> = {};
   for (const i of items) {
-    const factor = {day:365/12,week:52/12,month:1,year:1/12}[i.interval];
+    const factors: Record<string,number> = {day:365/12,week:52/12,month:1,year:1/12};
+    const factor = factors[i.interval];
     if (!factor || !Number.isFinite(i.amount) || i.amount<0 || !Number.isInteger(i.intervalCount) || i.intervalCount<1 || !Number.isInteger(i.quantity) || i.quantity<1 || !/^[a-z]{3}$/.test(i.currency)) throw new Error("Invalid recurring price");
     mrrByCurrency[i.currency]=(mrrByCurrency[i.currency]||0)+i.amount*i.quantity*factor/i.intervalCount;
   }
