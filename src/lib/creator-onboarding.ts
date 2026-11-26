@@ -18,3 +18,19 @@ export function setupProgress(input:{goal:CreatorGoal|null;profileReady:boolean;
  ];
  return {steps,ready,completed:steps.filter(s=>s.done).length};
 }
+
+export interface LocalSetup { goal:CreatorGoal|null; copied:boolean; pendingGoal:boolean; pendingCopy:boolean }
+export const emptySetup=():LocalSetup=>({goal:null,copied:false,pendingGoal:false,pendingCopy:false});
+export const setupStorageKey=(userId:string)=>"stl:creator-setup:v1:"+userId;
+export function parseLocalSetup(raw:string|null):LocalSetup{
+ try{
+  const value=JSON.parse(raw||"null");
+  if(!value||typeof value!=="object")return emptySetup();
+  const goal=isCreatorGoal(value.goal)?value.goal:null;
+  const copied=value.copied===true;
+  return {goal,copied,pendingGoal:!!goal&&value.pendingGoal===true,pendingCopy:copied&&value.pendingCopy===true};
+ }catch{return emptySetup();}
+}
+export function mergeServerSetup(local:LocalSetup,server:{goal:CreatorGoal|null;copied:boolean}):LocalSetup{
+ return {goal:local.pendingGoal?local.goal:server.goal,copied:local.pendingCopy?local.copied:server.copied,pendingGoal:local.pendingGoal,pendingCopy:local.pendingCopy};
+}
