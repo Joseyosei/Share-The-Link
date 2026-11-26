@@ -1,6 +1,7 @@
 import { recordFounderEvent } from "../_lib/founder-events.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { commerceWebhook } from "../_lib/digital-commerce.js";
 import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -104,13 +105,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const buf = await buffer(req);
     const sig = req.headers["stripe-signature"] as string;
     if (!sig) return res.status(400).json({ error: "Missing stripe-signature header" });
-    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    try { event = stripe.webhooks.constructEvent(buf, sig, webhookSecret); if(event.account) return res.status(400).json({error:"Connected event requires Connect signing secret"}); }
+    catch (error) { const secret=process.env.STRIPE_CONNECT_WEBHOOK_SECRET; if(!secret)throw error; event=stripe.webhooks.constructEvent(buf,sig,secret); if(!event.account)return res.status(400).json({error:"Invalid Connect event"}); }
   } catch (err: any) {
     console.error("Webhook verification error:", err.message);
     return res.status(400).json({ error: err.message });
   }
 
   try {
+    if(event.account){ await commerceWebhook(event); return res.status(200).json({received:true}); }
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as any;

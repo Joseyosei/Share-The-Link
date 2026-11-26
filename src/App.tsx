@@ -30,6 +30,7 @@ import IntegrationsPage from "./pages/IntegrationsPage";
 import ChangelogPage from "./pages/ChangelogPage";
 import ConnectDashboard from "./pages/ConnectDashboard";
 import StorefrontPage from "./pages/StorefrontPage";
+import { DigitalStore,DigitalOrder } from "./pages/DigitalStore";
 import LiveStreamPage from "./pages/LiveStreamPage";
 import MediaPage from "./pages/MediaPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
@@ -95,6 +96,8 @@ const App = () => (
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           {/* Public storefront - anyone can view */}
+          <Route path="/shop/:username" element={<DigitalStore />} />
+          <Route path="/commerce/order" element={<DigitalOrder />} />
           <Route path="/store/:accountId" element={<StorefrontPage />} />
           
           {/* Public live stream viewer page */}

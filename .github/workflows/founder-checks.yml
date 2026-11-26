@@ -1,9 +1,9 @@
 name: Founder intelligence checks
 on:
   pull_request:
-    branches: [main, stage-03-founder-intelligence]
+    branches: [main, stage-03-founder-intelligence, stage-04-creator-onboarding]
   push:
-    branches: [stage-03-founder-intelligence, stage-04-creator-onboarding]
+    branches: [stage-03-founder-intelligence, stage-04-creator-onboarding, stage-05-commerce]
 permissions:
   contents: read
 jobs:
@@ -19,5 +19,5 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vitest run tests/founder-metrics.test.ts tests/creator-onboarding.test.ts
+      - run: pnpm exec vitest run tests/founder-metrics.test.ts tests/creator-onboarding.test.ts tests/commerce.test.ts
       - run: pnpm build

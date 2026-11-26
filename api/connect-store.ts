@@ -7,6 +7,7 @@
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import commerceHandler from "./_lib/digital-commerce.js";
 import { handleCors } from "./_lib/cors.js";
 import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 import { sanitizeString, isValidUUID, badRequest } from "./_lib/validate.js";
@@ -21,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const action = req.query.action as string || "";
 
+  if (typeof action === "string" && action.startsWith("commerce-")) return commerceHandler(req,res);
   switch (action) {
     case "list-products":
       return handleListProducts(req, res);
