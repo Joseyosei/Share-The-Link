@@ -1,3 +1,4 @@
+import { recordFounderEvent } from "./_lib/founder-events.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { handleCors } from "./_lib/cors.js";
@@ -62,6 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       metadata: { supabase_user_id: userId || "", tier },
     });
 
+    try { await recordFounderEvent(userId, "checkout_started", session.id); } catch (err) { console.error("Founder checkout tracking failed", err); }
     return res.status(200).json({ url: session.url });
   } catch (error: any) {
     console.error("Checkout error:", error);
