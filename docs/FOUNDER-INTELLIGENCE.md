@@ -7,3 +7,6 @@ Checkout events use server-created session IDs; paid completion from signed Stri
 Browser events are authenticated, daily deduplicated and self-reported; not trusted payment events. No raw email, IP or customer identities exposed in the new aggregate dashboard.
 ## Release checks
 Run unit tests and build. Apply migration on staging; test anonymous, ordinary user, admin and super_admin roles; verify direct RPC and table writes denied to clients, including subscription writes. Verify event deduplication and checkout webhook replay. Compare counts with SQL and revenue with Stripe test-mode subscriptions. Verify zero-data, missing Stripe, and missing migration error states. Review existing analytics policies and retention before rollout. No live database or Stripe mutations are required to validate.
+
+## Hobby deployment budget
+The founder handler is an internal module under api/_lib. Both founder UI and event tracking use POST /api/analytics-data?scope=founder. Existing creator analytics use the same endpoint without scope; its authentication and query behaviour remain unchanged. Keep standalone API entrypoints at 12 or fewer. CI tests enforce the budget.

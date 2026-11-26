@@ -15,7 +15,7 @@ export function FounderIntelligence(){
  useEffect(()=>{
   const controller=new AbortController();
   setLoading(true);setError("");setData(null);
-  authFetch("/api/founder-intelligence",{method:"POST",body:JSON.stringify({action:"snapshot",days}),signal:controller.signal})
+  authFetch("/api/analytics-data?scope=founder",{method:"POST",body:JSON.stringify({action:"snapshot",days}),signal:controller.signal})
   .then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||"Unable to load analytics");if(!controller.signal.aborted)setData(j);})
   .catch(e=>{if(!controller.signal.aborted)setError(e.message);})
   .finally(()=>{if(!controller.signal.aborted)setLoading(false);});

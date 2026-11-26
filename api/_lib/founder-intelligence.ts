@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { verifyAuth, unauthorized } from "./_lib/auth.js";
-import { handleCors } from "./_lib/cors.js";
-import { isRateLimited, tooManyRequests } from "./_lib/rate-limit.js";
-import { recordFounderEvent } from "./_lib/founder-events.js";
-import { calculateRecurringRevenue } from "../src/lib/founder-metrics.js";
-import { PRICING_PLANS } from "../src/lib/stripe-products.js";
+import { verifyAuth, unauthorized } from "./auth.js";
+import { handleCors } from "./cors.js";
+import { isRateLimited, tooManyRequests } from "./rate-limit.js";
+import { recordFounderEvent } from "./founder-events.js";
+import { calculateRecurringRevenue } from "../../src/lib/founder-metrics.js";
+import { PRICING_PLANS } from "../../src/lib/stripe-products.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "private, no-store");
