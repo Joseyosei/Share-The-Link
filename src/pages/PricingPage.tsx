@@ -90,7 +90,7 @@ const comparisonFeatures = [
 const PricingPage = () => {
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const navigate = useNavigate();
-  const { startCheckout } = useSubscription();
+  const { startCheckout, checkoutLoading } = useSubscription();
 
   const handlePlanClick = async (planId: string) => {
     if (planId === "free") {
@@ -101,7 +101,7 @@ const PricingPage = () => {
       navigate("/contact");
       return;
     }
-    await startCheckout(planId as "pro" | "business" | "enterprise");
+    await startCheckout(planId as "pro" | "business" | "enterprise", interval);
   };
 
   const renderFeatureValue = (value: boolean | string) => {
@@ -165,7 +165,7 @@ const PricingPage = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {PRICING_PLANS.map((plan) => {
               const price = interval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
-              const perMonth = interval === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+              const perMonth = interval === "yearly" ? plan.yearlyPrice / 12 : plan.monthlyPrice;
               return (
                 <div
                   key={plan.id}
@@ -179,7 +179,7 @@ const PricingPage = () => {
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                       <span className="px-4 py-1.5 rounded-full text-sm font-semibold gradient-button text-white flex items-center gap-1.5 whitespace-nowrap">
                         <Sparkles className="w-3.5 h-3.5" />
-                        MOST POPULAR
+                        RECOMMENDED
                       </span>
                     </div>
                   )}
@@ -191,7 +191,7 @@ const PricingPage = () => {
                     </p>
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-3xl font-extrabold">
-                        {price === 0 ? "Free" : plan.id === "enterprise" ? "Custom" : formatPrice(interval === "yearly" ? perMonth : price)}
+                        {price === 0 ? "Free" : plan.id === "enterprise" ? "Custom" : interval === "yearly" ? new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perMonth) : formatPrice(price)}
                       </span>
                       {price > 0 && plan.id !== "enterprise" && (
                         <span className={plan.highlighted ? "text-background/70" : "text-muted-foreground"}>
@@ -227,6 +227,7 @@ const PricingPage = () => {
                   </ul>
 
                   <Button
+                    disabled={checkoutLoading}
                     onClick={() => handlePlanClick(plan.id)}
                     className={`w-full py-5 font-semibold text-base ${
                       plan.highlighted
@@ -280,7 +281,7 @@ const PricingPage = () => {
               </div>
               <div className="text-center">
                 <div className="font-bold text-foreground">Business</div>
-                <div className="text-sm text-muted-foreground">{formatPrice(23)}/mo</div>
+                <div className="text-sm text-muted-foreground">{formatPrice(17)}/mo</div>
               </div>
               <div className="text-center">
                 <div className="font-bold text-foreground">Enterprise</div>
@@ -394,7 +395,7 @@ const PricingPage = () => {
               },
               {
                 q: "Is there a free trial?",
-                a: "Pro and Business plans come with a 14-day free trial. No credit card required to start.",
+                a: "The Free plan is available without a subscription. Paid plans are billed at checkout.",
               },
               {
                 q: "What payment methods do you accept?",
