@@ -34,7 +34,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tierConfig = PRICING_PLANS.find(plan => plan.id === tier);
     if (!tierConfig || tierConfig.monthlyPrice <= 0) return badRequest(res, "Invalid paid plan");
-    const origin = process.env.APP_URL || "https://sharethelink.app";
+    const configuredOrigin=new URL(process.env.APP_URL || "https://sharethelink.app");
+    if(configuredOrigin.protocol!=="https:"||configuredOrigin.username||configuredOrigin.password||configuredOrigin.pathname!=="/"||configuredOrigin.search||configuredOrigin.hash)throw Error("Invalid app origin");
+    const origin=configuredOrigin.origin;
     const amount = (interval === "yearly" ? tierConfig.yearlyPrice : tierConfig.monthlyPrice) * 100;
 
     const current=await resolvePlan(userId,email);

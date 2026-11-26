@@ -9,6 +9,15 @@ export async function resolvePlan(userId:string, email?:string){
  const customers:Stripe.Customer[]=[];
  for await(const customer of stripe.customers.list({email,limit:100})) customers.push(customer);
  const owned=customers.filter(c=>c.metadata.supabase_user_id===userId);
+ // An email change must not silently downgrade a known existing subscriber.
+ const {data:hint,error:hintError}=await db.from("user_subscriptions").select("stripe_subscription_id,status").eq("user_id",userId).maybeSingle();
+ if(hintError)throw hintError;
+ if(hint?.stripe_subscription_id&&["active","trialing"].includes(hint.status)){
+  const linked=await stripe.subscriptions.retrieve(hint.stripe_subscription_id);
+  const linkedCustomer=typeof linked.customer==="string"?await stripe.customers.retrieve(linked.customer):linked.customer;
+  if(!linkedCustomer.deleted&&linkedCustomer.metadata.supabase_user_id===userId&&!owned.some(c=>c.id===linkedCustomer.id))owned.push(linkedCustomer as Stripe.Customer);
+  else if(linkedCustomer.deleted||linkedCustomer.metadata.supabase_user_id!==userId)throw Error("Legacy subscription ownership requires review");
+ }
  let selected:{tier:PlanTier;subscription:Stripe.Subscription;customerId:string}|null=null;
  for(const customer of owned){
   for await(const sub of stripe.subscriptions.list({customer:customer.id,status:"all",limit:100})){

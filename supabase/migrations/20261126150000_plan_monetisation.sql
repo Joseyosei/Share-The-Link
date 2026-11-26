@@ -12,7 +12,7 @@ alter table public.commerce_orders add column if not exists platform_fee integer
 alter table public.commerce_orders add column if not exists seller_tier text not null default 'free' check(seller_tier in ('free','pro','business','enterprise'));
 create or replace function public.plan_limits(p_tier text)
 returns table(products integer,ai integer,discounts boolean) language sql immutable set search_path='' as $$
- select * from (values ('free',3,3,false),('pro',30,30,true),('business',100,100,true),('enterprise',100,100,true)) v(tier,products,ai,discounts) where tier=p_tier
+ select v.products,v.ai,v.discounts from (values ('free',3,3,false),('pro',30,30,true),('business',100,100,true),('enterprise',100,100,true)) v(tier,products,ai,discounts) where tier=p_tier
 $$;
 create or replace function public.consume_builder_usage(p_user uuid,p_tier text)
 returns boolean language plpgsql security invoker set search_path='' as $$

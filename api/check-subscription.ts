@@ -43,9 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (session.metadata?.supabase_user_id !== auth.userId || session.mode !== "subscription") return res.status(403).json({ error: "Checkout does not belong to this account" });
       if (session.status !== "complete" || typeof session.subscription !== "string") return res.status(200).json({ confirmed: false });
       const sub = await stripe.subscriptions.retrieve(session.subscription);
-      const tier = PRICE_TO_TIER[sub.items.data[0]?.price.id] || sub.metadata?.tier;
+      const tier = identifyPaidTier(sub.items.data[0]?.price.id||"",sub.metadata?.tier);
       if (!["pro", "business", "enterprise"].includes(tier || "") || sub.metadata?.supabase_user_id !== auth.userId) return res.status(409).json({ error: "Subscription could not be verified" });
-      return res.status(200).json({ confirmed: ["active", "trialing"].includes(sub.status), tier });
+      const verified=await resolvePlan(auth.userId,auth.email);
+      return res.status(200).json({ confirmed: verified.subscription?.id===sub.id && ["active", "trialing"].includes(sub.status), tier });
     } catch (error) {
       console.error("Checkout confirmation error:", error);
       return res.status(503).json({ error: "Checkout confirmation temporarily unavailable" });
