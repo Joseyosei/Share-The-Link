@@ -1,3 +1,4 @@
+import { trackFounderEvent } from "@/lib/track-founder-event";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ export const Pricing = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            void trackFounderEvent("pricing_viewed");
             el.querySelectorAll(".scroll-reveal, .scroll-reveal-scale, .scroll-reveal-blur").forEach((child) => child.classList.add("revealed"));
             observer.unobserve(entry.target);
           }
