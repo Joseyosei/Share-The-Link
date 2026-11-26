@@ -38,39 +38,42 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const navItems = [
-  // Core
-  { icon: LayoutDashboard, labelKey: "sidebar.dashboard", href: "/dashboard" },
-  { icon: Link2, labelKey: "sidebar.links", href: "/dashboard/links" },
-  { icon: Palette, labelKey: "sidebar.appearance", href: "/dashboard/appearance" },
-  { icon: BarChart3, labelKey: "sidebar.analytics", href: "/analytics" },
-  // Content & Commerce
-  { icon: ClipboardList, labelKey: "sidebar.forms", href: "/dashboard/forms", isNew: true },
-  { icon: Store, labelKey: "sidebar.myShop", href: "/connect", isNew: true },
-  { icon: CalendarCheck, labelKey: "sidebar.bookings", href: "/dashboard/bookings", isNew: true },
-  { icon: Heart, labelKey: "sidebar.tipJar", href: "/dashboard/tip-jar", isNew: true },
-  // Media & Live
-  { icon: Radio, labelKey: "sidebar.liveStreaming", href: "/streaming", isNew: true },
-  { icon: TrendingUp, label: "Discover", href: "/discover", isNew: true },
-  { icon: Play, labelKey: "sidebar.media", href: "/dashboard/media", isNew: true },
-  { icon: QrCode, labelKey: "sidebar.qrCodes", href: "/dashboard/qr-code", isNew: true },
-  // AI & Automation
-  { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
-  { icon: Wand2, labelKey: "sidebar.aiBuilder", href: "/ai-builder", isNew: true },
-  { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
-  // Audience & Growth
-  { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers", isNew: true },
-  { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
-  { icon: FlaskConical, labelKey: "sidebar.abTesting", href: "/dashboard/ab-testing", isNew: true },
-  // Tools & Config
-  { icon: Zap, labelKey: "sidebar.integrations", href: "/dashboard/integrations", isNew: true },
-  { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks", isNew: true },
-  { icon: Globe, label: "Domains", href: "/dashboard/domains", isNew: true },
-  { icon: Users, labelKey: "sidebar.teamMembers", href: "/dashboard/team", isNew: true },
-  // Support & Settings
-  { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support", isNew: true },
-  { icon: Settings, labelKey: "sidebar.settings", href: "/dashboard/settings" },
-  { icon: HelpCircle, labelKey: "sidebar.helpCenter", href: "/help" },
+const navGroups = [
+  { label: "Workspace", items: [
+    { icon: LayoutDashboard, labelKey: "sidebar.dashboard", href: "/dashboard" },
+    { icon: Link2, labelKey: "sidebar.links", href: "/dashboard/links" },
+    { icon: Palette, labelKey: "sidebar.appearance", href: "/dashboard/appearance" },
+    { icon: QrCode, labelKey: "sidebar.qrCodes", href: "/dashboard/qr-code" },
+    { icon: Globe, label: "Domains", href: "/dashboard/domains" },
+  ] },
+  { label: "Commerce", items: [
+    { icon: Store, labelKey: "sidebar.myShop", href: "/connect" },
+    { icon: CalendarCheck, labelKey: "sidebar.bookings", href: "/dashboard/bookings" },
+    { icon: Heart, labelKey: "sidebar.tipJar", href: "/dashboard/tip-jar" },
+  ] },
+  { label: "Audience & analytics", items: [
+    { icon: BarChart3, labelKey: "sidebar.analytics", href: "/analytics" },
+    { icon: ClipboardList, labelKey: "sidebar.forms", href: "/dashboard/forms" },
+    { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers" },
+    { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews" },
+    { icon: FlaskConical, labelKey: "sidebar.abTesting", href: "/dashboard/ab-testing" },
+  ] },
+  { label: "Content & AI", items: [
+    { icon: Radio, labelKey: "sidebar.liveStreaming", href: "/streaming" },
+    { icon: TrendingUp, label: "Discover", href: "/discover" },
+    { icon: Play, labelKey: "sidebar.media", href: "/dashboard/media" },
+    { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot" },
+    { icon: Wand2, labelKey: "sidebar.aiBuilder", href: "/ai-builder" },
+    { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply" },
+  ] },
+  { label: "Settings & support", items: [
+    { icon: Zap, labelKey: "sidebar.integrations", href: "/dashboard/integrations" },
+    { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks" },
+    { icon: Users, labelKey: "sidebar.teamMembers", href: "/dashboard/team" },
+    { icon: Settings, labelKey: "sidebar.settings", href: "/dashboard/settings" },
+    { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support" },
+    { icon: HelpCircle, labelKey: "sidebar.helpCenter", href: "/help" },
+  ] },
 ];
 
 const ADMIN_EMAILS = ["admin@sharethelink.io"];
@@ -124,7 +127,10 @@ export const Sidebar = () => {
 
       {/* Navigation - scrollable */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
-        {navItems.map((item) => {
+        {navGroups.map(group => (
+          <section key={group.label} className="mb-4">
+            <h2 className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">{group.label}</h2>
+            {group.items.map((item) => {
           const isActive = location.pathname === item.href;
           const IconComponent = item.icon;
           const displayLabel = item.labelKey ? t(item.labelKey) : item.label;
@@ -132,6 +138,7 @@ export const Sidebar = () => {
             <Link
               key={item.href}
               to={item.href}
+                aria-current={isActive ? "page" : undefined}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive
                   ? "bg-white/10 backdrop-blur-lg text-white border border-white/10 shadow-lg shadow-primary/10"
@@ -140,14 +147,11 @@ export const Sidebar = () => {
             >
               <IconComponent className="w-5 h-5" />
               <span className="font-medium">{displayLabel}</span>
-              {item.isNew && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold">
-                  NEW
-                </span>
-              )}
             </Link>
           );
         })}
+          </section>
+        ))}
 
         {/* Admin Panel link */}
         {isAdmin && (

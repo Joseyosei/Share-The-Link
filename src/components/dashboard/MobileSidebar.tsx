@@ -28,7 +28,8 @@ import {
   Globe,
   FlaskConical,
   ClipboardList,
-  Zap
+  Zap,
+  TrendingUp
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -36,38 +37,42 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const navItems = [
-  // ── Core ──
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Link2, label: "Links", href: "/dashboard/links" },
-  { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
-  { icon: BarChart3, label: "Analytics", href: "/analytics" },
-  // ── Content & Commerce ──
-  { icon: ClipboardList, label: "Forms", href: "/dashboard/forms", isNew: true },
-  { icon: Store, label: "My Shop", href: "/connect", isNew: true },
-  { icon: CalendarCheck, label: "Bookings", href: "/dashboard/bookings", isNew: true },
-  { icon: Heart, label: "Tip Jar", href: "/dashboard/tip-jar", isNew: true },
-  // ── Media & Live ──
-  { icon: Radio, label: "Live Streaming", href: "/streaming", isNew: true },
-  { icon: Play, label: "Media", href: "/dashboard/media", isNew: true },
-  { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code", isNew: true },
-  // ── AI & Automation ──
-  { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot", isNew: true },
-  { icon: Wand2, label: "AI Builder", href: "/ai-builder", isNew: true },
-  { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply", isNew: true },
-  // ── Audience & Growth ──
-  { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers", isNew: true },
-  { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews", isNew: true },
-  { icon: FlaskConical, label: "A/B Testing", href: "/dashboard/ab-testing", isNew: true },
-  // ── Tools & Config ──
-  { icon: Zap, label: "Integrations", href: "/dashboard/integrations", isNew: true },
-  { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks", isNew: true },
-  { icon: Globe, label: "Domains", href: "/dashboard/domains", isNew: true },
-  { icon: Users, label: "Team", href: "/dashboard/team", isNew: true },
-  // ── Support & Settings ──
-  { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support", isNew: true },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-  { icon: HelpCircle, label: "Help", href: "/help" },
+const navGroups = [
+  { label: "Workspace", items: [
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+    { icon: Link2, label: "Links", href: "/dashboard/links" },
+    { icon: Palette, label: "Appearance", href: "/dashboard/appearance" },
+    { icon: QrCode, label: "QR Code", href: "/dashboard/qr-code" },
+    { icon: Globe, label: "Domains", href: "/dashboard/domains" },
+  ] },
+  { label: "Commerce", items: [
+    { icon: Store, label: "My Shop", href: "/connect" },
+    { icon: CalendarCheck, label: "Bookings", href: "/dashboard/bookings" },
+    { icon: Heart, label: "Tip Jar", href: "/dashboard/tip-jar" },
+  ] },
+  { label: "Audience & analytics", items: [
+    { icon: BarChart3, label: "Analytics", href: "/analytics" },
+    { icon: ClipboardList, label: "Forms", href: "/dashboard/forms" },
+    { icon: Mail, label: "Subscribers", href: "/dashboard/subscribers" },
+    { icon: MessageSquareQuote, label: "Reviews", href: "/dashboard/reviews" },
+    { icon: FlaskConical, label: "A/B Testing", href: "/dashboard/ab-testing" },
+  ] },
+  { label: "Content & AI", items: [
+    { icon: Radio, label: "Live Streaming", href: "/streaming" },
+    { icon: TrendingUp, label: "Discover", href: "/discover" },
+    { icon: Play, label: "Media", href: "/dashboard/media" },
+    { icon: Bot, label: "STL Bot", href: "/dashboard/stl-bot" },
+    { icon: Wand2, label: "AI Builder", href: "/ai-builder" },
+    { icon: MessageSquareQuote, label: "Auto-Reply", href: "/dashboard/auto-reply" },
+  ] },
+  { label: "Settings & support", items: [
+    { icon: Zap, label: "Integrations", href: "/dashboard/integrations" },
+    { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks" },
+    { icon: Users, label: "Team", href: "/dashboard/team" },
+    { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+    { icon: HeadphonesIcon, label: "Support", href: "/dashboard/support" },
+    { icon: HelpCircle, label: "Help", href: "/help" },
+  ] },
 ];
 
 const ADMIN_EMAILS = ["admin@sharethelink.io"];
@@ -120,6 +125,8 @@ export const MobileSidebar = () => {
           <Button
             variant="ghost"
             size="icon"
+            aria-label={isOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={isOpen}
             onClick={() => setIsOpen(!isOpen)}
             className="text-sidebar-foreground hover:bg-sidebar-accent"
           >
@@ -139,7 +146,7 @@ export const MobileSidebar = () => {
       {/* Mobile Sidebar */}
       <aside
         className={`lg:hidden fixed top-0 left-0 h-screen w-[280px] max-w-[85vw] liquid-glass-sidebar text-sidebar-foreground z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "invisible -translate-x-full"
         }`}
       >
         {/* Logo */}
@@ -151,13 +158,17 @@ export const MobileSidebar = () => {
 
         {/* Navigation - scrollable */}
         <nav className="flex-1 p-3 sm:p-4 space-y-1 overflow-y-auto overscroll-contain">
-          {navItems.map((item) => {
+          {navGroups.map(group => (
+          <section key={group.label} className="mb-4">
+            <h2 className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">{group.label}</h2>
+            {group.items.map((item) => {
             const isActive = location.pathname === item.href;
             const IconComponent = item.icon;
             return (
               <Link
                 key={item.href}
                 to={item.href}
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-all duration-200 ${
                   isActive
@@ -167,14 +178,11 @@ export const MobileSidebar = () => {
               >
                 <IconComponent className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium text-sm sm:text-base">{item.label}</span>
-                {item.isNew && (
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold flex-shrink-0">
-                    NEW
-                  </span>
-                )}
               </Link>
             );
           })}
+          </section>
+        ))}
 
           {/* Admin Panel link */}
           {isAdmin && (
