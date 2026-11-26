@@ -5,6 +5,7 @@
  * Users can list products/services, manage them, and share their shop link.
  */
 import { useState, useEffect, useCallback, useRef } from "react";
+import { DigitalCommerce } from "@/components/connect/DigitalCommerce";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -256,6 +257,9 @@ const ConnectDashboard = () => {
             </Button>
           </div>
 
+          <DigitalCommerce username={profile?.username}/>
+          {/* Existing external listings */}
+          <h2 className="text-xl font-semibold">External product listings</h2>
           {/* Shop Link */}
           {profile?.username && (
             <Card>
