@@ -7,7 +7,6 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { TEMPLATES } from "@/pages/TemplatesPage";
-import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -219,7 +218,6 @@ const Signup = () => {
             </Link>
           </p>
 
-          <SocialAuthButtons type="signup" />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {[
