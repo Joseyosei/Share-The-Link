@@ -1,3 +1,4 @@
+import { recordFounderEvent } from "../_lib/founder-events.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -113,6 +114,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as any;
+        if (session.mode === "subscription" && session.metadata?.supabase_user_id && session.payment_status === "paid") {
+          await recordFounderEvent(session.metadata.supabase_user_id, "checkout_completed", session.id);
+        }
         console.log("Checkout completed:", session.customer_email, "Tier:", session.metadata?.tier);
         break;
       }
