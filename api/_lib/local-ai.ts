@@ -3,7 +3,7 @@ import {timingSafeEqual} from "node:crypto";
 import {entitlementDb} from "./entitlements.js";
 import {modelMessages,validateCreatorResult,type CreatorInput,type CreatorMetrics} from "../../src/lib/creator-ai.js";
 const uuid=(v:unknown):v is string=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
-export function localEnabled(userId:string){return process.env.LOCAL_AI_ENABLED==="true"&&uuid(process.env.LOCAL_AI_PILOT_USER_ID)&&userId===process.env.LOCAL_AI_PILOT_USER_ID&&/^[a-f0-9]{64}$/i.test(process.env.LOCAL_AI_WORKER_SECRET||"");}
+export function localEnabled(userId:string){return process.env.VERCEL_ENV!=="production"&&process.env.LOCAL_AI_ENABLED==="true"&&uuid(process.env.LOCAL_AI_PILOT_USER_ID)&&userId===process.env.LOCAL_AI_PILOT_USER_ID&&/^[a-f0-9]{64}$/i.test(process.env.LOCAL_AI_WORKER_SECRET||"");}
 export async function queueLocal(userId:string,input:CreatorInput,metrics:CreatorMetrics|null){
  const db=entitlementDb();
  const cleanup=await db.from("local_ai_jobs").delete().eq("user_id",userId).lt("expires_at",new Date().toISOString());if(cleanup.error)throw cleanup.error;

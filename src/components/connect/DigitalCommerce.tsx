@@ -14,7 +14,7 @@ export function DigitalCommerce({username}:{username?:string|null}){
  const [data,setData]=useState<Snapshot|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
  const [name,setName]=useState(""),[description,setDescription]=useState(""),[price,setPrice]=useState(""),[code,setCode]=useState(""),[percent,setPercent]=useState(""),[file,setFile]=useState<File|null>(null);
  const fileRef=useRef<HTMLInputElement>(null),lock=useRef(false);
- const load=async()=>{setLoading(true);try{setData(await commerceApi("dashboard"));setError("");}catch(e){setError(e instanceof Error?e.message:"Unable to load commerce");}finally{setLoading(false);}};
+ const load=async()=>{setLoading(true);try{setData(await commerceApi("dashboard"));setError("");}catch(e){setError("Digital commerce is not available yet. Your existing product listings remain available.");}finally{setLoading(false);}};
  useEffect(()=>{void load();},[]);
  const save=async(e:React.FormEvent)=>{e.preventDefault();if(lock.current)return;lock.current=true;setBusy(true);setError("");
  try{

@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { action, event, days = 30 } = req.body || {};
     if (action === "track") {
       if (event !== "dashboard_opened" && event !== "pricing_viewed") return res.status(400).json({error:"Invalid event"});
-      await recordFounderEvent(auth.userId,event,new Date().toISOString().slice(0,10));
+      try{await recordFounderEvent(auth.userId,event,new Date().toISOString().slice(0,10));}catch(e){if(["42P01","PGRST205"].includes((e as any)?.code))return res.status(200).json({success:false,trackingAvailable:false});throw e;}
       return res.status(200).json({success:true});
     }
     if (action !== "snapshot" || ![7,30,90].includes(days)) return res.status(400).json({error:"Invalid request"});
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (adminError) throw adminError;
     if (admin?.role !== "super_admin") return res.status(403).json({error:"Founder access required"});
     const {data,error} = await db.rpc("founder_snapshot",{p_admin:auth.userId,p_days:days});
-    if (error) throw error;
+    if (error){if(["PGRST202","PGRST205","42P01"].includes(error.code))return res.status(503).json({error:"Founder reporting is not configured yet. Apply the database migrations."});throw error;}
     const onboardingResult = await db.rpc("founder_onboarding_snapshot",{p_admin:auth.userId});
     const onboarding = onboardingResult.error ? null : onboardingResult.data;
     let revenue = null;

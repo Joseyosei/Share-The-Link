@@ -11,7 +11,7 @@ const endpoint="/api/analytics-data?scope=onboarding";
 export function CreatorOnboarding({userId,profileReady,hasPage,activeLinks,totalLinks,isFree,onAdd,onCopy}:Props){
  const [saved,setSaved]=useState<LocalSetup>(()=>{try{return parseLocalSetup(localStorage.getItem(setupStorageKey(userId)));}catch{return emptySetup();}});
  const [status,setStatus]=useState<"syncing"|"synced"|"offline">("syncing");
- const [storageFailed,setStorageFailed]=useState(false),[revision,setRevision]=useState(0),[copying,setCopying]=useState(false);
+ const [schemaMissing,setSchemaMissing]=useState(false),[storageFailed,setStorageFailed]=useState(false),[revision,setRevision]=useState(0),[copying,setCopying]=useState(false);
  const latest=useRef(saved), generation=useRef(0), queue=useRef<Promise<void>>(Promise.resolve()), copyLock=useRef(false), mounted=useRef(true);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;}},[]);
  const persist=(value:LocalSetup)=>{
@@ -24,7 +24,7 @@ export function CreatorOnboarding({userId,profileReady,hasPage,activeLinks,total
   const timeout=setTimeout(()=>controller.abort(),8000);
   try{
    const res=await authFetch(endpoint,{method:"POST",body:JSON.stringify({action,goal,expectedUserId:userId}),signal:controller.signal});
-   const json=await res.json();if(!res.ok)throw Error(json.error||"Unable to sync setup");
+   const json=await res.json().catch(()=>null);if(!res.ok||!json)throw Object.assign(Error("Unable to sync setup"),{schemaMissing:json?.code==="ONBOARDING_SCHEMA_UNAVAILABLE"});
    return {goal:isCreatorGoal(json.goal)?json.goal:null,copied:json.copied===true,activated:json.activated===true};
   }finally{clearTimeout(timeout);}
  };
@@ -41,8 +41,8 @@ export function CreatorOnboarding({userId,profileReady,hasPage,activeLinks,total
     if(initial.pendingCopy&&hasPage&&activeLinks>0){remote=await request("copied");if(!valid())return;}
     const remaining={...initial,pendingGoal:false,pendingCopy:initial.pendingCopy&&!remote.copied};
     persist(mergeServerSetup(remaining,remote));
-    setStatus(remaining.pendingCopy?"offline":"synced");
-   }catch{if(valid())setStatus("offline");}
+    setSchemaMissing(false);setStatus(remaining.pendingCopy?"offline":"synced");
+   }catch(e){if(valid()){setSchemaMissing(!!(e as {schemaMissing?:boolean})?.schemaMissing);setStatus("offline");}}
   });
   return()=>{cancelled=true;};
  },[userId,hasPage,activeLinks,revision]);
@@ -59,10 +59,10 @@ export function CreatorOnboarding({userId,profileReady,hasPage,activeLinks,total
  };
  const progress=setupProgress({goal:saved.goal,profileReady,hasPage,activeLinks,copied:saved.copied});
  const goal=saved.goal?GOALS[saved.goal]:null;
- return <Card><CardContent className="p-5 space-y-4">
+ return <Card data-testid="creator-launchpad"><CardContent className="p-5 space-y-4">
   <div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Your creator launchpad</h2><p className="text-sm text-muted-foreground">Choose a goal and get your page ready to share.</p></div><span className="text-sm font-semibold">{progress.completed}/4</span></div>
   <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-label="Creator setup progress" aria-valuemin={0} aria-valuemax={4} aria-valuenow={progress.completed}><div className="h-full bg-primary rounded-full" style={{width:progress.completed*25+"%"}}/></div>
-  {status==="offline"&&<div role="status" className="text-sm text-muted-foreground flex flex-wrap items-center gap-2"><span>{storageFailed?"Setup changes are available for this session only.":"Setup works on this device. Account sync is temporarily unavailable."}</span><Button size="sm" variant="outline" onClick={()=>setRevision(v=>v+1)}>Retry sync</Button></div>}
+  {status==="offline"&&<div role="status" className="text-sm text-muted-foreground flex flex-wrap items-center gap-2"><span>{storageFailed?"Setup changes are available for this session only.":schemaMissing?"Progress saved on this device. Account sync is not set up yet.":"Setup works on this device. Account sync is temporarily unavailable."}</span><Button size="sm" variant="outline" onClick={()=>setRevision(v=>v+1)}>Retry sync</Button></div>}
   {status==="syncing"&&<p role="status" className="text-xs text-muted-foreground">Syncing account preferences… You can keep working.</p>}
   {storageFailed&&status!=="offline"&&<p role="status" className="text-xs text-muted-foreground">Browser storage is unavailable; unsynced changes may be lost when you leave.</p>}
   <fieldset className="space-y-2"><legend className="text-sm font-semibold mb-2">What do you want to achieve?</legend><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{Object.entries(GOALS).map(([id,g])=><button key={id} type="button" aria-pressed={saved.goal===id} onClick={()=>{if(isCreatorGoal(id))chooseGoal(id);}} className={"rounded-lg border p-3 text-left disabled:opacity-60 "+(saved?.goal===id?"border-primary bg-primary/5":"hover:bg-muted")}><span className="block font-medium text-sm">{g.label}</span><span className="text-xs text-muted-foreground">{g.description}</span></button>)}</div></fieldset>

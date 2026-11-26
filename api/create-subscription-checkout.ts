@@ -23,10 +23,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!auth) return unauthorized(res);
 
   try {
-    if(process.env.SUBSCRIPTION_CHECKOUT_ENABLED!=="true"||!process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_"))return res.status(503).json({error:"New subscription checkout is not enabled yet."});
+    const production=process.env.VERCEL_ENV==="production";
+    const live=production&&process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_");
+    const test=!production&&process.env.SUBSCRIPTION_CHECKOUT_ENABLED==="true"&&process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
+    if(!live&&!test)return res.status(503).json({error:"Subscription checkout is not enabled in this environment."});
     const { tier, interval = "monthly" } = req.body || {};
     if (!isOneOf(tier, ["pro", "business"])) return badRequest(res, "Invalid tier");
 
+    if(live&&interval!=="monthly")return res.status(400).json({error:"Annual billing is not yet available. Choose monthly billing."});
     if (interval !== "monthly" && interval !== "yearly") return badRequest(res, "Invalid billing interval");
     const email = auth.email;
     if (!email) return badRequest(res, "Account email required");
@@ -34,11 +38,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tierConfig = PRICING_PLANS.find(plan => plan.id === tier);
     if (!tierConfig || tierConfig.monthlyPrice <= 0) return badRequest(res, "Invalid paid plan");
-    const configuredOrigin=new URL(process.env.APP_URL || "https://sharethelink.app");
+    const configuredOrigin=new URL(live?"https://sharethelink.app":process.env.APP_URL || "https://sharethelink.app");
     if(configuredOrigin.protocol!=="https:"||configuredOrigin.username||configuredOrigin.password||configuredOrigin.pathname!=="/"||configuredOrigin.search||configuredOrigin.hash)throw Error("Invalid app origin");
     const origin=configuredOrigin.origin;
     const amount = (interval === "yearly" ? tierConfig.yearlyPrice : tierConfig.monthlyPrice) * 100;
 
+    // Live checkout uses the existing Stripe catalogue; never silently charge a mismatched price.
+    let lineItem:Stripe.Checkout.SessionCreateParams.LineItem={price_data:{currency:tierConfig.currency.toLowerCase(),product_data:{name:"Share The Link "+tierConfig.name,metadata:{tier}},unit_amount:amount,recurring:{interval:interval==="yearly"?"year":"month"}},quantity:1};
+    if(live){
+      const price=await stripe.prices.retrieve(tierConfig.stripePriceIds.monthly);
+      const productId=typeof price.product==="string"?price.product:price.product.id;
+      if(!price.active||!price.livemode||price.currency!=="gbp"||price.unit_amount!==amount||price.recurring?.interval!=="month"||price.recurring?.interval_count!==1||productId!==tierConfig.stripeProductId)return res.status(503).json({error:"Subscription price needs verification. No payment was taken."});
+      lineItem={price:price.id,quantity:1};
+    }
     const current=await resolvePlan(userId,email);
     if(current.subscription)return res.status(409).json({error:"Manage your existing plan in billing settings."});
     const customerId=current.customerId||(await stripe.customers.create({email,metadata:{supabase_user_id:userId}},{idempotencyKey:"stl-subscription-customer:"+userId})).id;
@@ -51,15 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
-      line_items: [{
-        price_data: {
-          currency: tierConfig.currency.toLowerCase(),
-          product_data: { name: `Share The Link ${tierConfig.name}`, metadata: { tier } },
-          unit_amount: amount,
-          recurring: { interval: interval === "yearly" ? "year" : "month" },
-        },
-        quantity: 1,
-      }],
+      line_items: [lineItem],
       subscription_data: { metadata: { supabase_user_id: userId || "", tier } },
       success_url: `${origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pricing?subscription=cancelled`,

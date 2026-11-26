@@ -228,8 +228,8 @@ const Dashboard = () => {
                 />
               </div>
 
-              {!loading && profile && <CreatorOnboarding key={profile.user_id} userId={profile.user_id} profileReady={Boolean(profile.full_name?.trim() && profile.avatar_url?.trim())} hasPage={Boolean(profilePath)} activeLinks={stats.activeLinks} totalLinks={stats.totalLinks} isFree={!subscriptionLoading && !subscription.subscribed} onAdd={()=>setIsAddModalOpen(true)} onCopy={copyProfile}/>} 
-              {!loading && profile && <PlanUsage key={profile.user_id}/>}
+              {!loading && profile && <CreatorOnboarding key={"onboarding:"+profile.user_id} userId={profile.user_id} profileReady={Boolean(profile.full_name?.trim() && profile.avatar_url?.trim())} hasPage={Boolean(profilePath)} activeLinks={stats.activeLinks} totalLinks={stats.totalLinks} isFree={!subscriptionLoading && !subscription.subscribed} onAdd={()=>setIsAddModalOpen(true)} onCopy={copyProfile}/>} 
+              {!loading && profile && <PlanUsage key={"usage:"+profile.user_id}/>}
               <section aria-label="Creator workspace" className="space-y-3">
                 <h2 className="text-xl font-semibold">Grow your business</h2>
                 <div className="grid sm:grid-cols-3 gap-3">
@@ -280,7 +280,7 @@ const Dashboard = () => {
                             <Badge className="bg-primary/20 text-primary text-[10px]">NEW</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Describe your business, get a pro page in 30 seconds
+                            Draft a website layout with your AI assistant
                           </p>
                         </div>
                       </div>

@@ -11,7 +11,7 @@ import { discountedAmount,normalizeCode,validCode } from "../../src/lib/commerce
 import { isBlockedText } from "../../src/lib/content-moderation.js";
 const dbClient=()=>createClient(process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL||"",process.env.SUPABASE_SERVICE_ROLE_KEY||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const hash=(token:string)=>createHash("sha256").update(token).digest("hex");
-const enabled=()=>process.env.COMMERCE_CHECKOUT_ENABLED==="true"&&!!process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")&&!!process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+const enabled=()=>process.env.VERCEL_ENV!=="production"&&process.env.COMMERCE_CHECKOUT_ENABLED==="true"&&!!process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")&&!!process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
 const stripeClient=()=>new Stripe(process.env.STRIPE_SECRET_KEY!,{apiVersion:"2025-04-30.basil" as any});
 const checked=<T>(result:{data:T;error:any}):T=>{if(result.error)throw result.error;return result.data;};
 async function accountFor(db:ReturnType<typeof dbClient>,sellerId:string){

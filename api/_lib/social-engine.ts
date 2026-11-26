@@ -74,6 +74,7 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
   const auth=await verifyAuth(req);if(!auth)return unauthorized(res);
   const userId=auth.userId;
   if(body.action==="list"){
+   if(process.env.SOCIAL_INTEGRATIONS_ENABLED!=="true")return res.json({premium:false,providers:PROVIDERS.map(provider=>({provider,configured:false,status:"disconnected",published:false,accountName:null,lastSync:null,due:false,items:[]}))});
    const rows=checked(await db.from("social_connections").select(publicFields).eq("user_id",userId));
    let premium=false;try{premium=await paid(userId,auth.email);}catch{/* fail closed */}
    return res.json({premium,providers:PROVIDERS.map(p=>{const r=rows.find(r=>r.provider===p);return {provider:p,configured:available(p),status:r?.status||"disconnected",published:!!r?.published,accountName:r?.account_name||null,lastSync:r?.last_sync||null,due:r?.status==="connected"&&Date.parse(r.next_sync)<=Date.now(),items:r?publicItems(r.media,r.pins,p):[]};})});
