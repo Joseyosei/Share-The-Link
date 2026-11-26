@@ -247,7 +247,7 @@ const ConnectDashboard = () => {
                 My Shop
               </h1>
               <p className="text-muted-foreground">
-                List your products and services for your audience to discover
+                Manage your product listings and share your storefront.
               </p>
             </div>
             <Button onClick={openAddModal} className="gradient-button text-primary-foreground hover:opacity-90">
@@ -316,7 +316,7 @@ const ConnectDashboard = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">${(totalValue / 100).toFixed(0)}</p>
-                  <p className="text-sm text-muted-foreground">Catalog Value</p>
+                  <p className="text-sm text-muted-foreground">Listed prices (not sales)</p>
                 </div>
               </CardContent>
             </Card>
@@ -335,7 +335,7 @@ const ConnectDashboard = () => {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No products yet</h3>
                 <p className="text-muted-foreground mb-6">
-                  Add your first product to start selling to your audience
+                  Add your first listing and share it with your audience
                 </p>
                 <Button onClick={openAddModal} className="gradient-button text-primary-foreground hover:opacity-90">
                   <Plus className="w-4 h-4 mr-2" />
