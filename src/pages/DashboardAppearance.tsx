@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
@@ -750,6 +751,7 @@ const DashboardAppearance = () => {
 
       <main className="lg:ml-64 px-3 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8 overflow-x-hidden">
         <div className="max-w-6xl mx-auto w-full">
+          <div className="rounded-xl border bg-card p-4 mb-5 flex flex-wrap gap-3 items-center justify-between"><div><h2 className="font-semibold">New: Storefront Studio</h2><p className="text-sm text-muted-foreground">Build a separate professional website with drag-and-drop sections and premium layouts.</p></div><Button asChild><Link to="/dashboard/website">Open website builder</Link></Button></div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>

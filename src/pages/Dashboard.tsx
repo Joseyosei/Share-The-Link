@@ -236,6 +236,7 @@ const Dashboard = () => {
                   {[
                     { icon: Store, title: "My shop", description: "Manage your listings", href: "/connect" },
                     { icon: Palette, title: "Design your page", description: "Make your brand stand out", href: "/dashboard/appearance" },
+                    { icon: Palette, title: "Build your website", description: "Professional layouts and storefronts", href: "/dashboard/website" },
                     { icon: BarChart3, title: "Analytics", description: "Understand your audience", href: "/analytics" },
                   ].map(item => <Link key={item.href} to={item.href} className="rounded-xl border bg-card p-4 hover:border-primary transition-colors">
                     <item.icon className="w-5 h-5 text-primary mb-3" /><h3 className="font-semibold text-sm">{item.title}</h3><p className="text-xs text-muted-foreground mt-1">{item.description}</p>

@@ -15,6 +15,8 @@ import DashboardSettings from "./pages/DashboardSettings";
 import DashboardAppearance from "./pages/DashboardAppearance";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
+import StorefrontStudio from "./pages/StorefrontStudio";
+import CreatorWebsite from "./pages/CreatorWebsite";
 import Streaming from "./pages/Streaming";
 import AIBuilder from "./pages/AIBuilder";
 import FeaturesPage from "./pages/FeaturesPage";
@@ -96,6 +98,7 @@ const App = () => (
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           {/* Public storefront - anyone can view */}
+          <Route path="/site/:username" element={<CreatorWebsite />} />
           <Route path="/shop/:username" element={<DigitalStore />} />
           <Route path="/commerce/order" element={<DigitalOrder />} />
           <Route path="/store/:accountId" element={<StorefrontPage />} />
@@ -117,6 +120,7 @@ const App = () => (
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/links" element={<ProtectedRoute><DashboardLinks /></ProtectedRoute>} />
           <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
+          <Route path="/dashboard/website" element={<ProtectedRoute><StorefrontStudio /></ProtectedRoute>} />
           <Route path="/dashboard/appearance" element={<ProtectedRoute><DashboardAppearance /></ProtectedRoute>} />
           <Route path="/dashboard/media" element={<ProtectedRoute><DashboardMedia /></ProtectedRoute>} />
           <Route path="/dashboard/qr-code" element={<ProtectedRoute><DashboardQRCode /></ProtectedRoute>} />
