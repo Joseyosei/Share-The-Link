@@ -1,3 +1,4 @@
+import { AppleSignInButton } from "@/components/AppleSignInButton";
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
@@ -14,6 +15,7 @@ const Login = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [appleBusy,setAppleBusy]=useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -32,6 +34,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(appleBusy||isLoading)return;
     setError("");
 
     if (!formData.email || !formData.password) {
@@ -110,6 +113,7 @@ const Login = () => {
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-xl p-4 mb-6">{error}</div>
           )}
+          <AppleSignInButton next={getRedirectUrl()} disabled={isLoading} onBusy={setAppleBusy}/>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />

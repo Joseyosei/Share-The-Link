@@ -62,6 +62,7 @@ import { LiveMiniPlayer } from "./components/dashboard/LiveMiniPlayer";
 import { CookieConsent } from "./components/CookieConsent";
 import { AccessibilityButton } from "./components/AccessibilityButton";
 import AuthCallback from "./pages/AuthCallback";
+import AppleAuthCallback from "./pages/AppleAuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/apple/callback" element={<AppleAuthCallback />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/careers" element={<CareersPage />} />
