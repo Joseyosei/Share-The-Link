@@ -7,6 +7,7 @@ import { isOneOf } from "./_lib/validate.js";
 import founderHandler from "./_lib/founder-intelligence.js";
 import onboardingHandler from "./_lib/creator-onboarding.js";
 import studioHandler from "./_lib/storefront-studio.js";
+import socialHandler from "./_lib/social-engine.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -14,6 +15,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.query.scope === "social") return socialHandler(req,res);
   if (req.query.scope === "website") return studioHandler(req,res);
   if (req.query.scope === "onboarding") return onboardingHandler(req, res);
   if (req.query.scope === "founder") return founderHandler(req, res);
