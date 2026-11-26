@@ -20,7 +20,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    // Social account OAuth is separate from Supabase authentication.
+    detectSessionInUrl: !/^\/dashboard\/social\/callback\/(instagram|tiktok|youtube)\/?$/.test(window.location.pathname),
     flowType: 'pkce',
   }
 });

@@ -48,6 +48,10 @@
     {
       "path": "/api/ai-agent?action=agents&op=cron",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/analytics-data?scope=social&op=cron",
+      "schedule": "0 9 * * *"
     }
   ],
   "functions": {
@@ -55,6 +59,9 @@
       "maxDuration": 60
     },
     "api/upload-video.ts": {
+      "maxDuration": 60
+    },
+    "api/analytics-data.ts": {
       "maxDuration": 60
     }
   }

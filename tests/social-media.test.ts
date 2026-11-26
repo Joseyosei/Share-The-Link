@@ -25,7 +25,7 @@ describe("social media and runtime recovery",()=>{
  it("preserves Node ESM import suffix and restricts embeds to expected hosts",()=>{
  expect(read("src/lib/stripe-products.ts")).toContain('from "./plan-policy.js"');
  const c=read("vercel.json");expect(c).toContain("https://www.instagram.com https://www.tiktok.com");
- expect(read("src/pages/Profile.tsx")).toContain("SocialMediaGallery links={visibleLinks}");
+ expect(read("src/pages/Profile.tsx")).toContain("links={visibleLinks} heading=\"Featured content\"");
  expect(read("src/components/website/WebsiteRenderer.tsx")).toContain("SocialMediaGallery links={source.links}");
  });
 });

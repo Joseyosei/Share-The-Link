@@ -24,7 +24,7 @@ export function WebsiteRenderer({config,source,preview=false}:{config:WebsiteCon
      {s.id==="links"&&(source.links.length?<div className="grid gap-3" style={{gridTemplateColumns:theme.layout==="stack"?"1fr":"repeat(auto-fit,minmax(min(100%,220px),1fr))"}}>{source.links.map(l=><div key={l.id}>{safeWebUrl(l.url)&&action(l.url,l.title,true)}</div>)}</div>:<p className="text-sm opacity-70">No active links yet.</p>)}
      {s.id==="about"&&!s.body&&<p className="whitespace-pre-wrap">{source.bio||"More information coming soon."}</p>}
      {s.id==="shop"&&<div className="space-y-3">{source.products.map(p=><div className="flex justify-between gap-3 border-b border-current/10 pb-2" key={p.id}><span>{p.name}</span><strong>{gbp(p.amount)}</strong></div>)}{action(shopPath,"Visit digital shop")}</div>}
-     {s.id==="media"&&<SocialMediaGallery links={source.links} preview={preview} showEmpty={preview}/>}
+     {s.id==="media"&&<SocialMediaGallery links={source.links} username={source.username} preview={preview} showEmpty={preview}/>}
      {s.id==="contact"&&action(profilePath,"View profile and contact options")}
      </>}
     </section>;

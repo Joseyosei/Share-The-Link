@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardLinks from "./pages/DashboardLinks";
+import SocialCallback from "./pages/SocialCallback";
 import DashboardSettings from "./pages/DashboardSettings";
 import DashboardAppearance from "./pages/DashboardAppearance";
 import Analytics from "./pages/Analytics";
@@ -118,6 +119,7 @@ const App = () => (
           
           {/* Protected routes - require authentication */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/social/callback/:provider" element={<ProtectedRoute><SocialCallback /></ProtectedRoute>} />
           <Route path="/dashboard/links" element={<ProtectedRoute><DashboardLinks /></ProtectedRoute>} />
           <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/dashboard/website" element={<ProtectedRoute><StorefrontStudio /></ProtectedRoute>} />

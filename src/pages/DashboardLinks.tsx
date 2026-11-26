@@ -1,3 +1,4 @@
+import { SocialContentManager } from "@/components/dashboard/SocialContentManager";
 import { useState } from "react";
 import { Link2, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -177,6 +178,7 @@ const DashboardLinks = () => {
       <main className="lg:ml-64 px-3 sm:px-6 lg:px-8 pb-8 pt-20 lg:pt-8 overflow-x-hidden">
         <div className="max-w-4xl mx-auto w-full">
           <div className="rounded-xl border bg-card p-4 mb-4"><h2 className="font-semibold">Showcase your social media</h2><p className="text-sm text-muted-foreground">Add an active public Instagram post or reel, full TikTok video URL, YouTube video, Shorts, playlist or channel ID URL. Supported media appears in Featured content on your public profile. Add the Social media section in Storefront Studio to show it on your website. Private posts, shortened TikTok links and non-embeddable content may require opening the original platform.</p></div>
+          <SocialContentManager />
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
             <div className="flex items-center gap-3 min-w-0 flex-1">
