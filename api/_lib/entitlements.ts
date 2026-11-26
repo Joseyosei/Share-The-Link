@@ -45,6 +45,9 @@ export async function usageSnapshot(userId:string,tier:PlanTier){
  return {...data,tier,policy:PLAN_POLICY[tier]};
 }
 export async function consumeBuilder(userId:string,tier:PlanTier){
- const {data,error}=await entitlementDb().rpc("consume_builder_usage",{p_user:userId,p_tier:tier});
+ const db=entitlementDb();
+ const budget=await db.from("creator_ai_budget").select("monthly_cap").eq("singleton",true).single();
+ if(budget.error||!budget.data)throw Error("Creator AI budget migration required");
+ const {data,error}=await db.rpc("consume_builder_usage",{p_user:userId,p_tier:tier});
  if(error)throw error;return data===true;
 }

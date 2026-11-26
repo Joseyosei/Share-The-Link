@@ -19,7 +19,7 @@ import Profile from "./pages/Profile";
 import StorefrontStudio from "./pages/StorefrontStudio";
 import CreatorWebsite from "./pages/CreatorWebsite";
 import Streaming from "./pages/Streaming";
-import AIBuilder from "./pages/AIBuilder";
+import CreatorAI from "./pages/CreatorAI";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPage from "./pages/PricingPage";
 import AboutPage from "./pages/AboutPage";
@@ -47,8 +47,6 @@ import DashboardBookings from "./pages/DashboardBookings";
 import DashboardReviews from "./pages/DashboardReviews";
 import AdminPage from "./pages/AdminPage";
 import AIAgentDashboard from "./pages/AIAgentDashboard";
-import AIAssistantChat from "./pages/AIAssistantChat";
-import STLBot from "./pages/STLBot";
 import DashboardSupport from "./pages/DashboardSupport";
 import DashboardSubscribers from "./pages/DashboardSubscribers";
 import DashboardTipJar from "./pages/DashboardTipJar";
@@ -131,14 +129,14 @@ const App = () => (
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
           <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
-          <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
+          <Route path="/ai-builder" element={<ProtectedRoute><CreatorAI initialMode="website" /></ProtectedRoute>} />
           <Route path="/connect" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><DashboardIntegrations /></ProtectedRoute>} />
-          <Route path="/dashboard/stl-bot" element={<ProtectedRoute><STLBot /></ProtectedRoute>} />
+          <Route path="/dashboard/stl-bot" element={<ProtectedRoute><CreatorAI /></ProtectedRoute>} />
           <Route path="/dashboard/ai-agent" element={<ProtectedRoute><AIAgentDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/ai-assistant" element={<ProtectedRoute><AIAssistantChat /></ProtectedRoute>} />
+          <Route path="/dashboard/ai-assistant" element={<ProtectedRoute><CreatorAI /></ProtectedRoute>} />
           <Route path="/dashboard/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
           <Route path="/dashboard/subscribers" element={<ProtectedRoute><DashboardSubscribers /></ProtectedRoute>} />
           <Route path="/dashboard/tip-jar" element={<ProtectedRoute><DashboardTipJar /></ProtectedRoute>} />
