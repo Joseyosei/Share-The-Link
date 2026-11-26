@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { trackFounderEvent } from "@/lib/track-founder-event";
+import { useState, useEffect } from "react";
 import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2, CheckCircle2, Circle, Store, Copy, ArrowRight, Palette, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import { themes } from "@/pages/DashboardAppearance";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
+  useEffect(() => { void trackFounderEvent("dashboard_opened"); }, []);
   const { toast } = useToast();
   const { profile, loading: profileLoading } = useUserProfile();
   const { 
