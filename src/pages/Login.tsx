@@ -20,6 +20,7 @@ const Login = () => {
   const [error, setError] = useState("");
 
   const getRedirectUrl = () => {
+    if (new URLSearchParams(location.search).get("next") === "pricing") return "/pricing";
     return (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
   };
 
