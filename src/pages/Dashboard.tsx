@@ -1,7 +1,8 @@
 import { trackFounderEvent } from "@/lib/track-founder-event";
 import { useState, useEffect } from "react";
-import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2, CheckCircle2, Circle, Store, Copy, ArrowRight, Palette, BarChart3 } from "lucide-react";
+import { Link2, MousePointerClick, ToggleRight, Plus, Radio, Wand2, Store, Copy, Palette, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CreatorOnboarding } from "@/components/dashboard/CreatorOnboarding";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -142,18 +143,15 @@ const Dashboard = () => {
   const loading = profileLoading || linksLoading;
 
   const profilePath = profile?.username ? `/${encodeURIComponent(profile.username)}` : null;
-  const setupSteps = [
-    { title: "Personalise your profile", done: Boolean(profile?.full_name && profile?.avatar_url), href: "/dashboard/settings" },
-    { title: "Add your first active link", done: stats.activeLinks > 0, href: "/dashboard/links" },
-  ];
-  const completed = setupSteps.filter(step => step.done).length;
   const copyProfile = async () => {
-    if (!profilePath) return;
+    if (!profilePath) return false;
     try {
       await navigator.clipboard.writeText(new URL(profilePath, window.location.origin).href);
       toast({ title: "Profile link copied" });
+      return true;
     } catch {
       toast({ title: "Unable to copy", description: "Open your profile and copy the address from your browser.", variant: "destructive" });
+      return false;
     }
   };
 
@@ -200,7 +198,7 @@ const Dashboard = () => {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {profilePath && <>
-                <Button variant="outline" onClick={copyProfile}><Copy className="w-4 h-4 mr-2" /> Copy link</Button>
+                <Button variant="outline" onClick={() => { void copyProfile(); }}><Copy className="w-4 h-4 mr-2" /> Copy link</Button>
                 <Button asChild className="gradient-button text-primary-foreground"><a href={profilePath} target="_blank" rel="noopener noreferrer">View profile</a></Button>
               </>}
               {!subscriptionLoading && !subscription.subscribed && <Button variant="outline" asChild><Link to="/pricing">Compare plans</Link></Button>}
@@ -229,21 +227,7 @@ const Dashboard = () => {
                 />
               </div>
 
-              {!loading && completed < setupSteps.length && (
-                <Card>
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div><h2 className="text-lg font-semibold">Get your page ready</h2><p className="text-sm text-muted-foreground">Complete these steps to share your page with confidence.</p></div>
-                      <Badge variant="secondary">{completed}/{setupSteps.length}</Badge>
-                    </div>
-                    <div role="progressbar" aria-label="Profile setup" aria-valuenow={completed} aria-valuemin={0} aria-valuemax={setupSteps.length} className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all" style={{width: `${completed / setupSteps.length * 100}%`}} /></div>
-                    {setupSteps.map(step => <Link key={step.href} to={step.href} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50">
-                      {step.done ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" /> : <Circle className="h-5 w-5 text-muted-foreground shrink-0" />}
-                      <span className="flex-1 text-sm font-medium">{step.title}</span><ArrowRight className="h-4 w-4 shrink-0" />
-                    </Link>)}
-                  </CardContent>
-                </Card>
-              )}
+              {!loading && profile && <CreatorOnboarding key={profile.user_id} profileReady={Boolean(profile.full_name?.trim() && profile.avatar_url?.trim())} hasPage={Boolean(profilePath)} activeLinks={stats.activeLinks} totalLinks={stats.totalLinks} isFree={!subscriptionLoading && !subscription.subscribed} onAdd={()=>setIsAddModalOpen(true)} onCopy={copyProfile}/>} 
               <section aria-label="Creator workspace" className="space-y-3">
                 <h2 className="text-xl font-semibold">Grow your business</h2>
                 <div className="grid sm:grid-cols-3 gap-3">

@@ -5,6 +5,7 @@ import { verifyAuth, unauthorized } from "./_lib/auth.js";
 import { isRateLimited, getClientIp, tooManyRequests } from "./_lib/rate-limit.js";
 import { isOneOf } from "./_lib/validate.js";
 import founderHandler from "./_lib/founder-intelligence.js";
+import onboardingHandler from "./_lib/creator-onboarding.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -12,6 +13,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.query.scope === "onboarding") return onboardingHandler(req, res);
   if (req.query.scope === "founder") return founderHandler(req, res);
   if (handleCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
