@@ -108,6 +108,7 @@ const App = () => (
           
           {/* Subscription success page */}
           <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+          <Route path="/subscription-success" element={<SubscriptionSuccess />} />
           
           {/* Protected routes - require authentication */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
