@@ -58,7 +58,7 @@ export function useSubscription() {
       const data = await resp.json();
       setSubscription({
         subscribed: data.subscribed || false,
-        tier: (data.tier as SubscriptionTier) || "free",
+        tier: (Object.prototype.hasOwnProperty.call(TIER_LIMITS, data.tier) ? data.tier : "free") as SubscriptionTier,
         planName: data.planName || "Free",
         subscriptionId: data.subscriptionId,
         status: data.status,
@@ -68,7 +68,7 @@ export function useSubscription() {
       });
     } catch (error) {
       console.error("Subscription check error:", error);
-      setSubscription({ subscribed: false, tier: "free", planName: "Free" });
+      // Keep the last known state during a temporary service failure.
     } finally {
       setLoading(false);
     }
