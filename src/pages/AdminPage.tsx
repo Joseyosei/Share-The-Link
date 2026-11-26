@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/auth-fetch";
+import { FounderIntelligence } from "@/components/admin/FounderIntelligence";
 import { AgentOpsPanel } from "@/components/admin/AgentOpsPanel";
 import {
   AlertDialog,
@@ -111,7 +112,7 @@ const AdminPage = () => {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "team" | "content" | "applications" | "support" | "agents" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"intelligence" | "overview" | "team" | "content" | "applications" | "support" | "agents" | "settings">("overview");
 
   // Data
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -643,6 +644,7 @@ const AdminPage = () => {
         <div className="flex flex-wrap gap-2 mb-8">
           {[
             { id: "overview" as const, label: "Overview", icon: BarChart3 },
+            { id: "intelligence" as const, label: "Founder Intelligence", icon: BarChart3 },
             { id: "team" as const, label: "Team Members", icon: Users },
             { id: "content" as const, label: "Site Content", icon: FileText },
             { id: "applications" as const, label: `Applications (${applications.length})`, icon: Briefcase },
@@ -665,6 +667,7 @@ const AdminPage = () => {
           ))}
         </div>
 
+        {activeTab === "intelligence" && <FounderIntelligence />}
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-8">

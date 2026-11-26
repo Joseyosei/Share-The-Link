@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PRICING_PLANS } from "@/lib/stripe-products";
@@ -21,7 +21,7 @@ export interface SubscriptionData {
 export const PRICING_TIERS = PRICING_PLANS;
 
 const TIER_LIMITS: Record<SubscriptionTier, { links: number; profiles: number; teamMembers: number }> = {
-  free: { links: 5, profiles: 1, teamMembers: 1 },
+  free: { links: Infinity, profiles: 1, teamMembers: 1 },
   pro: { links: Infinity, profiles: 5, teamMembers: 3 },
   business: { links: Infinity, profiles: Infinity, teamMembers: Infinity },
   enterprise: { links: Infinity, profiles: Infinity, teamMembers: Infinity },
@@ -35,6 +35,8 @@ export function useSubscription() {
     planName: "Free",
   });
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const checkoutLock = useRef(false);
 
   const checkSubscription = useCallback(async () => {
     try {
@@ -56,7 +58,7 @@ export function useSubscription() {
       const data = await resp.json();
       setSubscription({
         subscribed: data.subscribed || false,
-        tier: (data.tier as SubscriptionTier) || "free",
+        tier: (Object.prototype.hasOwnProperty.call(TIER_LIMITS, data.tier) ? data.tier : "free") as SubscriptionTier,
         planName: data.planName || "Free",
         subscriptionId: data.subscriptionId,
         status: data.status,
@@ -66,7 +68,7 @@ export function useSubscription() {
       });
     } catch (error) {
       console.error("Subscription check error:", error);
-      setSubscription({ subscribed: false, tier: "free", planName: "Free" });
+      // Keep the last known state during a temporary service failure.
     } finally {
       setLoading(false);
     }
@@ -76,34 +78,31 @@ export function useSubscription() {
     checkSubscription();
   }, [checkSubscription]);
 
-  const startCheckout = async (planId: "pro" | "business" | "enterprise") => {
+  const startCheckout = async (planId: "pro" | "business" | "enterprise", interval: "monthly" | "yearly" = "monthly") => {
+    if (checkoutLock.current) return;
+    checkoutLock.current = true;
+    setCheckoutLoading(true);
     try {
-      const plan = PRICING_PLANS.find((p) => p.id === planId);
-      if (!plan) throw new Error("Plan not found");
-
-      // Use Stripe Payment Links directly -- no API call needed
-      const paymentLink = plan.stripeLinks.monthly;
-      if (!paymentLink) {
-        throw new Error("Payment link not configured for this plan");
-      }
-
-      // Optionally prefill the customer's email via query parameter
       const { data: { user } } = await supabase.auth.getUser();
-      let url = paymentLink;
-      if (user?.email) {
-        const separator = url.includes("?") ? "&" : "?";
-        url = `${url}${separator}prefilled_email=${encodeURIComponent(user.email)}`;
+      if (!user) {
+        window.location.assign("/login?next=pricing");
+        return;
       }
-
-      window.location.href = url;
-      return url;
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast({
-        title: "Checkout failed",
-        description: error.message || "Unable to start checkout. Please try again.",
-        variant: "destructive",
+      const resp = await authFetch("/api/create-subscription-checkout", {
+        method: "POST",
+        body: JSON.stringify({ tier: planId, interval }),
       });
+      const data = await resp.json();
+      if (!resp.ok || !data.url) throw new Error(data.error || "Unable to start checkout.");
+      const url = new URL(data.url);
+      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error("Invalid checkout URL.");
+      window.location.assign(url.href);
+      return url.href;
+    } catch (error: any) {
+      toast({ title: "Checkout unavailable", description: error.message || "Please try again.", variant: "destructive" });
+    } finally {
+      checkoutLock.current = false;
+      setCheckoutLoading(false);
     }
   };
 
@@ -175,6 +174,7 @@ export function useSubscription() {
     subscription,
     loading,
     startCheckout,
+    checkoutLoading,
     cancelSubscription,
     reactivateSubscription,
     openCustomerPortal,

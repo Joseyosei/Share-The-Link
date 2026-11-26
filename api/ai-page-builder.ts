@@ -1,3 +1,5 @@
+import { providerConfig } from "./_lib/creator-ai-provider.js";
+import { resolvePlan,consumeBuilder } from "./_lib/entitlements.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCors } from "./_lib/cors.js";
 import { verifyAuth, unauthorized } from "./_lib/auth.js";
@@ -36,45 +38,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Business description is required" });
     }
 
-    // Try to fetch web info about the business if a URL is provided
-    let webContext = "";
-    if (websiteUrl) {
-      try {
-        const fetchRes = await fetch(websiteUrl, {
-          headers: { "User-Agent": "ShareTheLink-Bot/1.0" },
-          signal: AbortSignal.timeout(5000),
-        });
-        if (fetchRes.ok) {
-          const html = await fetchRes.text();
-          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-          const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
-          const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
-          const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-          const keywordsMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i);
-          // Try to extract theme color
-          const themeColor = html.match(/<meta[^>]*name=["']theme-color["'][^>]*content=["']([^"']+)["']/i);
+    // Reserve allowance before generating; no user-controlled server-side URL fetch.
+    try{
+      const {tier}=await resolvePlan(auth.userId,auth.email);
+      if(!await consumeBuilder(auth.userId,tier))return res.status(429).json({error:"Monthly AI builder allowance reached. Compare plans."});
+    }catch(error){return res.status(503).json({error:"AI allowance verification unavailable."});}
+    const fullDescription=businessDescription+(typeof websiteUrl==="string"?"\nWebsite URL (not fetched): "+websiteUrl.slice(0,500):"");
 
-          const parts = [
-            titleMatch?.[1] ? `Website title: ${titleMatch[1]}` : "",
-            ogTitleMatch?.[1] ? `Brand name: ${ogTitleMatch[1]}` : "",
-            descMatch?.[1] ? `Description: ${descMatch[1]}` : "",
-            ogDescMatch?.[1] ? `About: ${ogDescMatch[1]}` : "",
-            h1Match?.[1] ? `Headline: ${h1Match[1]}` : "",
-            keywordsMatch?.[1] ? `Keywords: ${keywordsMatch[1]}` : "",
-            themeColor?.[1] ? `Brand color: ${themeColor[1]}` : "",
-          ].filter(Boolean);
-
-          webContext = parts.length > 0 ? `\n\nWeb info found from ${websiteUrl}: ${parts.join(". ")}` : "";
-        }
-      } catch {
-        // Web fetch failed, continue without it
-      }
-    }
-
-    const fullDescription = businessDescription + webContext;
-
-    const apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY;
+    const provider=process.env.CREATOR_AI_ENABLED==="true"?providerConfig():null;
+    const apiKey=provider?.key;
     if (!apiKey) {
       return res.status(200).json({
         generation: generateFallbackDesign(fullDescription),
@@ -82,14 +54,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(provider!.url, {
+      redirect:"error", signal:AbortSignal.timeout(22000),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: provider!.model,
         messages: [
           {
             role: "system",

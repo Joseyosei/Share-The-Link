@@ -281,6 +281,7 @@ const TemplatesPage = () => {
             </p>
           </div>
 
+          <div className="text-center mb-8"><Button asChild variant="outline"><Link to="/dashboard/website">Explore the new website theme marketplace</Link></Button></div>
           {/* Category Filter */}
           <div className="flex flex-wrap justify-center gap-2 mb-12">
             {CATEGORIES.map((cat) => (

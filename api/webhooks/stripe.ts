@@ -1,5 +1,8 @@
+import { identifyPaidTier } from "../../src/lib/plan-policy.js";
+import { recordFounderEvent } from "../_lib/founder-events.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { commerceWebhook } from "../_lib/digital-commerce.js";
 import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -13,20 +16,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || "",
 );
 
-function detectTierFromSubscription(subscription: any): string {
-  if (subscription.metadata?.tier) return subscription.metadata.tier;
-  const amount = subscription.items?.data?.[0]?.price?.unit_amount;
-  if (amount === 700) return "pro";
-  if (amount === 2300) return "business";
-  if (amount === 10000) return "enterprise";
-  const productName = subscription.items?.data?.[0]?.price?.product?.name || "";
-  if (typeof productName === "string") {
-    const lower = productName.toLowerCase();
-    if (lower.includes("enterprise")) return "enterprise";
-    if (lower.includes("business")) return "business";
-    if (lower.includes("pro")) return "pro";
-  }
-  return "pro";
+function detectTierFromSubscription(subscription: Stripe.Subscription) {
+  return identifyPaidTier(subscription.items.data[0]?.price.id||"",subscription.metadata.tier);
 }
 
 export const config = { api: { bodyParser: false } };
@@ -39,21 +30,13 @@ async function buffer(readable: any): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-async function findSupabaseUserId(customer: any, metadata?: Record<string, string>): Promise<string | null> {
-  if (metadata?.supabase_user_id) return metadata.supabase_user_id;
-  if (!customer) return null;
-  let email: string | null = null;
-  if (typeof customer === "string") {
-    const cust: any = await stripe.customers.retrieve(customer);
-    if (cust.deleted) return null;
-    email = cust.email;
-  } else if (customer.email) {
-    email = customer.email;
-  }
-  if (!email) return null;
-  const { data } = await (supabaseAdmin.auth as any).admin.listUsers();
-  const user = data?.users?.find((u: any) => u.email === email);
-  return user?.id || null;
+async function findSupabaseUserId(customer: any, metadata?: Record<string,string>): Promise<string|null> {
+  if(!customer)return null;
+  const cust=typeof customer==="string"?await stripe.customers.retrieve(customer):customer;
+  if(cust.deleted)return null;
+  const userId=cust.metadata?.supabase_user_id;
+  if(!userId||(metadata?.supabase_user_id&&metadata.supabase_user_id!==userId))return null;
+  return userId;
 }
 
 async function upsertSubscription(userId: string, subscription: any, tier: string) {
@@ -80,19 +63,7 @@ async function upsertSubscription(userId: string, subscription: any, tier: strin
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 
-  if (error) {
-    console.error("Upsert sub error:", error);
-    await supabaseAdmin.from("user_subscriptions").insert({
-      user_id: userId,
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: priceId,
-      plan_name: planName,
-      status: subscription.status,
-      current_period_start: periodStart,
-      current_period_end: periodEnd,
-      cancel_at_period_end: subscription.cancel_at_period_end,
-    });
-  }
+  if(error)throw error;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -103,23 +74,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const buf = await buffer(req);
     const sig = req.headers["stripe-signature"] as string;
     if (!sig) return res.status(400).json({ error: "Missing stripe-signature header" });
-    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    try { event = stripe.webhooks.constructEvent(buf, sig, webhookSecret); if(event.account) return res.status(400).json({error:"Connected event requires Connect signing secret"}); }
+    catch (error) { const secret=process.env.STRIPE_CONNECT_WEBHOOK_SECRET; if(!secret)throw error; event=stripe.webhooks.constructEvent(buf,sig,secret); if(!event.account)return res.status(400).json({error:"Invalid Connect event"}); }
   } catch (err: any) {
     console.error("Webhook verification error:", err.message);
     return res.status(400).json({ error: err.message });
   }
 
   try {
+    if(event.account){ await commerceWebhook(event); return res.status(200).json({received:true}); }
     switch (event.type) {
+      case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed": {
         const session = event.data.object as any;
-        console.log("Checkout completed:", session.customer_email, "Tier:", session.metadata?.tier);
+        if (session.mode === "subscription" && session.metadata?.supabase_user_id && session.payment_status === "paid") {
+          try{await recordFounderEvent(session.metadata.supabase_user_id,"checkout_completed",session.id);}catch{console.error("Checkout analytics unavailable");}
+          if(typeof session.subscription==="string"){
+            const sub=await stripe.subscriptions.retrieve(session.subscription);
+            const tier=detectTierFromSubscription(sub);
+            const owner=await findSupabaseUserId(sub.customer,sub.metadata);
+            if(tier&&owner===session.metadata.supabase_user_id)await upsertSubscription(owner,sub,tier);
+          }
+        }
+        console.log("Checkout completed");
         break;
       }
       case "customer.subscription.created":
       case "customer.subscription.updated": {
-        const subscription = event.data.object as any;
+        const subscription=await stripe.subscriptions.retrieve((event.data.object as Stripe.Subscription).id);
         const tier = detectTierFromSubscription(subscription);
+        if(!tier)break;
         console.log("Subscription event:", { type: event.type, tier, status: subscription.status });
         const userId = await findSupabaseUserId(subscription.customer, subscription.metadata);
         if (userId) {
@@ -132,11 +116,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subscription = event.data.object as any;
         const userId = await findSupabaseUserId(subscription.customer, subscription.metadata);
         if (userId) {
-          await supabaseAdmin.from("user_subscriptions").update({
+          const {error}=await supabaseAdmin.from("user_subscriptions").update({
             status: "canceled",
             cancel_at_period_end: true,
             updated_at: new Date().toISOString(),
-          }).eq("user_id", userId);
+          }).eq("user_id", userId).eq("stripe_subscription_id",subscription.id);
+          if(error)throw error;
         }
         break;
       }
@@ -146,17 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       }
       case "invoice.payment_failed": {
-        const invoice = event.data.object as any;
-        console.log("Payment failed:", { customer: invoice.customer });
-        if (invoice.subscription) {
-          const userId = await findSupabaseUserId(invoice.customer);
-          if (userId) {
-            await supabaseAdmin.from("user_subscriptions").update({
-              status: "past_due",
-              updated_at: new Date().toISOString(),
-            }).eq("user_id", userId);
-          }
-        }
+        // Subscription update event reconciles actual status.
         break;
       }
       default:

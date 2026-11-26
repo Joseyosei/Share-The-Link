@@ -11,12 +11,15 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardLinks from "./pages/DashboardLinks";
+import SocialCallback from "./pages/SocialCallback";
 import DashboardSettings from "./pages/DashboardSettings";
 import DashboardAppearance from "./pages/DashboardAppearance";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
+import StorefrontStudio from "./pages/StorefrontStudio";
+import CreatorWebsite from "./pages/CreatorWebsite";
 import Streaming from "./pages/Streaming";
-import AIBuilder from "./pages/AIBuilder";
+import CreatorAI from "./pages/CreatorAI";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPage from "./pages/PricingPage";
 import AboutPage from "./pages/AboutPage";
@@ -30,6 +33,7 @@ import IntegrationsPage from "./pages/IntegrationsPage";
 import ChangelogPage from "./pages/ChangelogPage";
 import ConnectDashboard from "./pages/ConnectDashboard";
 import StorefrontPage from "./pages/StorefrontPage";
+import { DigitalStore,DigitalOrder } from "./pages/DigitalStore";
 import LiveStreamPage from "./pages/LiveStreamPage";
 import MediaPage from "./pages/MediaPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
@@ -43,8 +47,6 @@ import DashboardBookings from "./pages/DashboardBookings";
 import DashboardReviews from "./pages/DashboardReviews";
 import AdminPage from "./pages/AdminPage";
 import AIAgentDashboard from "./pages/AIAgentDashboard";
-import AIAssistantChat from "./pages/AIAssistantChat";
-import STLBot from "./pages/STLBot";
 import DashboardSupport from "./pages/DashboardSupport";
 import DashboardSubscribers from "./pages/DashboardSubscribers";
 import DashboardTipJar from "./pages/DashboardTipJar";
@@ -95,6 +97,9 @@ const App = () => (
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           {/* Public storefront - anyone can view */}
+          <Route path="/site/:username" element={<CreatorWebsite />} />
+          <Route path="/shop/:username" element={<DigitalStore />} />
+          <Route path="/commerce/order" element={<DigitalOrder />} />
           <Route path="/store/:accountId" element={<StorefrontPage />} />
           
           {/* Public live stream viewer page */}
@@ -108,11 +113,14 @@ const App = () => (
           
           {/* Subscription success page */}
           <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+          <Route path="/subscription-success" element={<SubscriptionSuccess />} />
           
           {/* Protected routes - require authentication */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/social/callback/:provider" element={<ProtectedRoute><SocialCallback /></ProtectedRoute>} />
           <Route path="/dashboard/links" element={<ProtectedRoute><DashboardLinks /></ProtectedRoute>} />
           <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
+          <Route path="/dashboard/website" element={<ProtectedRoute><StorefrontStudio /></ProtectedRoute>} />
           <Route path="/dashboard/appearance" element={<ProtectedRoute><DashboardAppearance /></ProtectedRoute>} />
           <Route path="/dashboard/media" element={<ProtectedRoute><DashboardMedia /></ProtectedRoute>} />
           <Route path="/dashboard/qr-code" element={<ProtectedRoute><DashboardQRCode /></ProtectedRoute>} />
@@ -121,14 +129,14 @@ const App = () => (
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/streaming" element={<ProtectedRoute><Streaming /></ProtectedRoute>} />
           <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
-          <Route path="/ai-builder" element={<ProtectedRoute><AIBuilder /></ProtectedRoute>} />
+          <Route path="/ai-builder" element={<ProtectedRoute><CreatorAI initialMode="website" /></ProtectedRoute>} />
           <Route path="/connect" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/connect/onboarding" element={<ProtectedRoute><ConnectDashboard /></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><DashboardIntegrations /></ProtectedRoute>} />
-          <Route path="/dashboard/stl-bot" element={<ProtectedRoute><STLBot /></ProtectedRoute>} />
+          <Route path="/dashboard/stl-bot" element={<ProtectedRoute><CreatorAI /></ProtectedRoute>} />
           <Route path="/dashboard/ai-agent" element={<ProtectedRoute><AIAgentDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/ai-assistant" element={<ProtectedRoute><AIAssistantChat /></ProtectedRoute>} />
+          <Route path="/dashboard/ai-assistant" element={<ProtectedRoute><CreatorAI /></ProtectedRoute>} />
           <Route path="/dashboard/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
           <Route path="/dashboard/subscribers" element={<ProtectedRoute><DashboardSubscribers /></ProtectedRoute>} />
           <Route path="/dashboard/tip-jar" element={<ProtectedRoute><DashboardTipJar /></ProtectedRoute>} />
