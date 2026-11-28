@@ -11,7 +11,7 @@ interface IntentMatch {
 }
 
 const INTENT_PATTERNS: { pattern: RegExp; intent: string; extract?: (m: RegExpMatchArray) => Record<string, string> }[] = [
-  { pattern: /(?:show|list|get|view|display)\s+(?:my\s+)?links/i, intent: "list_links" },
+  { pattern: /^(?:please\s+)?(?:show|list|get|view|display|manage|organise|organize)\s+(?:me\s+)?(?:all\s+)?(?:of\s+)?(?:my\s+)?(?:current\s+)?links[.!?]?$/i, intent: "list_links" },
   { pattern: /(?:add|create|new)\s+(?:a\s+)?link\s+(?:to\s+|for\s+)?(.+)/i, intent: "add_link", extract: (m) => ({ url: m[1].trim() }) },
   { pattern: /(?:delete|remove)\s+(?:the\s+)?link\s+(.+)/i, intent: "delete_link", extract: (m) => ({ title: m[1].trim() }) },
   { pattern: /(?:show|view|get|display)\s+(?:my\s+)?(?:analytics|stats|statistics)/i, intent: "analytics" },
@@ -47,9 +47,9 @@ async function handleListLinks(): Promise<BotResponse> {
   const userId = await getUserId();
   const { data, error } = await supabase
     .from("links")
-    .select("id, title, url, display_order")
+    .select("id, title, url, position")
     .eq("user_id", userId)
-    .order("display_order", { ascending: true });
+    .order("position", { ascending: true });
 
   if (error) return { reply: `Error fetching links: ${error.message}`, toolsUsed: true };
   if (!data || data.length === 0) return { reply: "You don't have any links yet. Would you like to add one?", toolsUsed: true };
@@ -66,7 +66,7 @@ async function handleAddLink(params: Record<string, string>): Promise<BotRespons
 
   const { error } = await supabase
     .from("links")
-    .insert({ user_id: userId, title, url, display_order: 999 });
+    .insert({ user_id: userId, title, url, position: 999 });
 
   if (error) return { reply: `Failed to add link: ${error.message}`, toolsUsed: true };
   return { reply: `Link added!\n\n- **${title}** — ${url}\n\nYou can edit the title and order from your dashboard.`, toolsUsed: true };
@@ -291,7 +291,7 @@ function handleGeneral(message: string): BotResponse {
 }
 
 export async function processMessage(message: string): Promise<BotResponse> {
-  const { intent, params } = detectIntent(message);
+  const { intent, params } = detectIntent(message.trim());
 
   switch (intent) {
     case "list_links": return handleListLinks();

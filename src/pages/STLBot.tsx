@@ -124,33 +124,7 @@ const STLBot = () => {
   };
 
   // Simple markdown-like rendering
-  const renderContent = (content: string) => {
-    return content.split("\n").map((line, i) => {
-      // Strip markdown headings and render as bold text
-      let rendered = line.replace(/^#{1,4}\s+(.+)/, "<strong>$1</strong>");
-      // Bold
-      rendered = rendered.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-      // Inline code
-      rendered = rendered.replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">$1</code>');
-      // Bullet points
-      if (rendered.startsWith("- ") || rendered.startsWith("• ")) {
-        rendered = `<span class="flex gap-2"><span class="text-primary mt-0.5">•</span><span>${rendered.slice(2)}</span></span>`;
-      }
-      // Numbered lists
-      const numMatch = rendered.match(/^(\d+)\.\s(.+)/);
-      if (numMatch) {
-        rendered = `<span class="flex gap-2"><span class="text-primary font-medium">${numMatch[1]}.</span><span>${numMatch[2]}</span></span>`;
-      }
-
-      return (
-        <span
-          key={i}
-          className={`block ${line === "" ? "h-2" : ""}`}
-          dangerouslySetInnerHTML={{ __html: rendered }}
-        />
-      );
-    });
-  };
+  const renderContent = (content: string) => <span className="whitespace-pre-wrap break-words">{content}</span>;
 
   return (
     <div className="min-h-screen bg-muted liquid-glass-muted">
